@@ -1,0 +1,14 @@
+The module is a dual-stack application under `pts/` with a clear separation between backend (`backend/app`) and frontend (`frontend/src`).
+
+Backend layering (FastAPI + SQLAlchemy):
+- Entry point `app/main.py` creates the FastAPI app, mounts middleware (CORS, error handling, logging), includes the central router from `app/api/routes.py`, mounts static recording/logo directories, runs startup migrations via `app/migrations/migration_manager.py`, and exposes `/health` and `/health/ready` probes.
+- API surface: routers live in `app/api/endpoints/` (auth, employees, kpi_catalog, trackings, superadmin, ai_content, public_interviews) and are aggregated in `app/api/routes.py` under an `/api/v1` prefix.
+- Data layer: declarative SQLAlchemy models in `app/api/models/` (Client, AppUser, Employee, Kpi*, Tracking, Interview) imported via `__init__.py` to populate `Base.metadata`; database engine/session factory in `database.py` with `get_db()` dependency and `get_db_context()` for background tasks; column-level migrations auto-discovered by `migration_manager.py` (files ending `_migration.py` exposing async `run_migration()`).
+- Business logic: `app/services/` contains domain services (interview_service, content_generation_service, synthesis_service, email_service, parsing/*) that orchestrate DB access and external AI calls.
+- AI subsystem: `app/backend/app/ai/` implements real-time interview agents using LiveKit (`livekit-agents`, openai/google plugins), organized into `agents/` (base, conversation, supervisor), `prompts/` (templates, strategies, generator), `services/agent_orchestrator.py`, and `utils/` (audio/video recorders, transcript utils, interview state, KPI coverage).
+- Cross-cutting: `app/core/config.py` uses pydantic-settings loaded from `.env`; `app/utils/jwt.py` and `security.py` handle token creation/validation and password hashing; `app/websocket/manager.py` manages WebSocket connections.
+
+Frontend layering (Next.js App Router + React 19):
+- Route groups under `src/app/(pages)/`: `(protected)` dashboard routes (employees, reports, settings, trackings), `(public)` auth/setup-password pages, `(superadmin)` client management, and a top-level `interview/[token]` route for candidate-facing interviews.
+- Shared UI components in `src/components/` grouped by feature (common, employees, interview, reports, trackings); state via React contexts (`AuthContext`, providers); typed request/response contracts in `src/types/`; API client in `src/utils/api.ts`.
+- Real-time interview UI integrates LiveKit components (`@livekit/components-react`, `livekit-client`) for audio/video capture and transcription overlay.

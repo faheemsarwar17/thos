@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: backend
+title: THOS FastAPI Backend (Hiring Platform API)
+scope:
+    - Backend/
+source_files: []
+depends_on: []
+related_to:
+    - path: frontend
+    - path: pts_app

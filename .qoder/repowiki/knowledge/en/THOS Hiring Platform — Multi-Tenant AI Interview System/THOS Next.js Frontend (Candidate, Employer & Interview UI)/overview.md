@@ -1,0 +1,1 @@
+Next.js App Router frontend for the THOS hiring platform, providing candidate, employer, admin, job, and LiveKit-based interview interfaces backed by a REST API.

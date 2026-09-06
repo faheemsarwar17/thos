@@ -1,0 +1,6 @@
+- Feature routes are split into per-domain files under `app/api/v1/` and mounted centrally in `router.py`, keeping each endpoint file focused on a single resource.
+- Cross-cutting concerns (settings, DB connection, identity, tenant context, pack registry) are injected via `Annotated[..., Depends(...)]` types defined in `app/api/dependencies.py` rather than global state.
+- Database access goes through the `Connection` protocol in `app/db/database.py`, allowing the same SQL to run against both SQLite and PostgreSQL without engine-specific code in the store layer.
+- Configuration is modeled as a single `Settings` Pydantic model with `field_validator`/`model_validator` rules and computed properties, loaded via `get_settings()` cached by `lru_cache`.
+- Error responses are raised uniformly as `ApiError` instances with `status_code`, `code`, and `message`, handled globally by `install_exception_handlers`.
+- Tenant isolation is enforced by requiring an `X-Organization-Id` header and resolving an `EmployerContext` via `employer_context_dependency`, which validates membership, organization verification status, and role-based permissions.

@@ -1,0 +1,16 @@
+schema_version: 1
+module_path: ""
+title: THOS Hiring Platform — Multi-Tenant AI Interview System
+scope:
+    - architecture.md
+    - design.md
+    - implementation-plan.md
+    - phases.md
+    - prd.md
+    - rules.md
+    - livekit-docker-compose.yml
+    - THOS_Development_Spec.md
+    - debug-8f68f3.log
+source_files: []
+depends_on: []
+related_to: []

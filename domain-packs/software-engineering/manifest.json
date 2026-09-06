@@ -1,0 +1,139 @@
+{
+  "pack_id": "software-engineering",
+  "pack_version": "1.0.0",
+  "display_name": "Software Engineering Pack",
+  "domain": "Software engineering hiring",
+  "ontology": {
+    "skills": [
+      "system design",
+      "API design",
+      "backend engineering",
+      "frontend engineering",
+      "testing",
+      "code review",
+      "debugging",
+      "CI/CD",
+      "observability",
+      "security basics",
+      "data modeling",
+      "performance",
+      "incident response",
+      "collaboration",
+      "technical writing"
+    ],
+    "certifications": [
+      "AWS Certified Developer",
+      "Kubernetes Administrator",
+      "Security+",
+      "Professional Scrum Developer"
+    ],
+    "concepts": [
+      "SOLID",
+      "REST",
+      "event-driven architecture",
+      "idempotency",
+      "horizontal scaling",
+      "observability",
+      "threat modeling"
+    ]
+  },
+  "resume_extraction_rules": {
+    "signals": ["languages", "frameworks", "system_design", "open_source", "production_incidents"]
+  },
+  "matching_weights": {
+    "cv_match": 0.4,
+    "profile_interview_score": 0.6
+  },
+  "profile_interview": {
+    "task_style": "scenario",
+    "question_count": 4,
+    "questions": [
+      {
+        "id": "se-pi-01",
+        "prompt": "A production API started returning intermittent 500s after a deploy. Walk through how you would diagnose and stabilize the service within the first hour.",
+        "competency": "incident response",
+        "expected_concepts": ["rollback", "logs", "metrics", "blast radius", "communication"]
+      },
+      {
+        "id": "se-pi-02",
+        "prompt": "Design an API for creating and updating orders that must remain correct under retries and duplicate client requests.",
+        "competency": "API design",
+        "expected_concepts": ["idempotency", "status codes", "validation", "concurrency", "contracts"]
+      },
+      {
+        "id": "se-pi-03",
+        "prompt": "Your team needs to add a new feature that touches three services. How would you sequence the work to reduce integration risk?",
+        "competency": "system design",
+        "expected_concepts": ["contracts", "feature flags", "backward compatibility", "testing", "rollout"]
+      },
+      {
+        "id": "se-pi-04",
+        "prompt": "A junior engineer repeatedly ships code that passes tests but fails code review for clarity and maintainability. How do you coach them?",
+        "competency": "collaboration",
+        "expected_concepts": ["feedback", "examples", "standards", "pairing", "growth"]
+      },
+      {
+        "id": "se-pi-05",
+        "prompt": "Explain how you would introduce observability to a service that currently only has basic uptime checks.",
+        "competency": "observability",
+        "expected_concepts": ["metrics", "traces", "logs", "SLOs", "alerts"]
+      },
+      {
+        "id": "se-pi-06",
+        "prompt": "You inherit a monolith that is slowing delivery. What signals tell you whether to modularize in place versus extract a service?",
+        "competency": "architecture judgment",
+        "expected_concepts": ["boundaries", "coupling", "team ownership", "migration cost", "risk"]
+      }
+    ]
+  },
+  "applied_interview": {
+    "task_style": "scenario",
+    "question_count": 4,
+    "questions": [
+      {
+        "id": "se-ai-01",
+        "prompt": "Given the job description, outline a 30-day technical onboarding plan for a mid-level engineer joining this team.",
+        "competency": "onboarding",
+        "expected_concepts": ["codebase", "ownership", "delivery", "mentorship", "milestones"]
+      },
+      {
+        "id": "se-ai-02",
+        "prompt": "Propose a testing strategy for the core workflow described in the posting, including what you would automate first.",
+        "competency": "testing",
+        "expected_concepts": ["unit", "integration", "regression", "risk", "coverage"]
+      },
+      {
+        "id": "se-ai-03",
+        "prompt": "The posting mentions scale concerns. Identify the two most likely bottlenecks and how you would validate them before building.",
+        "competency": "performance",
+        "expected_concepts": ["measurement", "bottleneck", "load", "caching", "tradeoffs"]
+      },
+      {
+        "id": "se-ai-04",
+        "prompt": "Draft a security review checklist you would apply before shipping the first milestone of this role's primary project.",
+        "competency": "security basics",
+        "expected_concepts": ["authn", "authz", "secrets", "input validation", "logging"]
+      },
+      {
+        "id": "se-ai-05",
+        "prompt": "Describe how you would run a design review for a feature in this domain so product, engineering, and support stay aligned.",
+        "competency": "technical writing",
+        "expected_concepts": ["options", "tradeoffs", "risks", "owners", "decision"]
+      },
+      {
+        "id": "se-ai-06",
+        "prompt": "A stakeholder wants the feature in half the estimated time. How do you respond without over-promising?",
+        "competency": "delivery judgment",
+        "expected_concepts": ["scope", "risk", "milestones", "communication", "quality"]
+      }
+    ]
+  },
+  "evaluation_rubric": {
+    "dimensions": [
+      { "id": "structure", "label": "Structure", "description": "The response is organised, sequenced, and complete." },
+      { "id": "reasoning", "label": "Reasoning", "description": "Decisions are justified with cause-and-effect thinking." },
+      { "id": "domain_correctness", "label": "Domain correctness", "description": "The response uses sound engineering practice and terminology." }
+    ]
+  },
+  "compliance_rules": []
+}

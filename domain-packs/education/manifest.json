@@ -1,0 +1,142 @@
+{
+  "pack_id": "education",
+  "pack_version": "1.0.0",
+  "display_name": "Education Pack",
+  "domain": "Academic hiring",
+  "ontology": {
+    "skills": [
+      "curriculum design",
+      "lesson planning",
+      "student assessment",
+      "classroom management",
+      "research supervision",
+      "academic writing",
+      "grant writing",
+      "learning outcomes",
+      "pedagogy",
+      "educational technology",
+      "course development",
+      "student mentoring",
+      "quality assurance",
+      "accreditation",
+      "data science",
+      "computer science",
+      "machine learning",
+      "cybersecurity",
+      "statistics"
+    ],
+    "certifications": [
+      "PhD",
+      "MPhil",
+      "HEC approved supervisor",
+      "Postgraduate teaching certificate"
+    ],
+    "concepts": [
+      "blooms taxonomy",
+      "formative assessment",
+      "summative assessment",
+      "outcome based education",
+      "semester system",
+      "HEC criteria"
+    ]
+  },
+  "resume_extraction_rules": {
+    "signals": ["publications", "hec_rank", "teaching_experience", "research_supervision"]
+  },
+  "matching_weights": {
+    "cv_match": 0.4,
+    "profile_interview_score": 0.6
+  },
+  "profile_interview": {
+    "task_style": "scenario",
+    "question_count": 4,
+    "questions": [
+      {
+        "id": "edu-pi-01",
+        "prompt": "A third of your class failed the midterm despite attending every lecture. Walk through how you would diagnose the problem and adjust your teaching for the rest of the semester.",
+        "competency": "instructional design",
+        "expected_concepts": ["assessment", "feedback", "learning outcomes", "revision", "root cause"]
+      },
+      {
+        "id": "edu-pi-02",
+        "prompt": "Describe how you would design a new elective course from scratch, from proposal to first delivery, in a department that follows outcome-based education.",
+        "competency": "curriculum design",
+        "expected_concepts": ["learning outcomes", "syllabus", "assessment", "approval", "alignment"]
+      },
+      {
+        "id": "edu-pi-03",
+        "prompt": "Two of your strongest students accuse each other of plagiarism on a joint project. Explain the process you would follow and the principles that guide it.",
+        "competency": "academic integrity",
+        "expected_concepts": ["evidence", "policy", "hearing", "fairness", "documentation"]
+      },
+      {
+        "id": "edu-pi-04",
+        "prompt": "Your department asks you to raise student engagement in a large 200-person introductory course. What specific changes would you make and how would you measure whether they worked?",
+        "competency": "student engagement",
+        "expected_concepts": ["active learning", "feedback", "participation", "measurement", "technology"]
+      },
+      {
+        "id": "edu-pi-05",
+        "prompt": "A student with a documented disability requests accommodations that seem to conflict with a core assessment requirement. How do you respond?",
+        "competency": "inclusive teaching",
+        "expected_concepts": ["accommodation", "policy", "alternative assessment", "dignity", "consultation"]
+      },
+      {
+        "id": "edu-pi-06",
+        "prompt": "Explain how you keep your course material current in a fast-moving field while keeping the workload realistic for students and for yourself.",
+        "competency": "continuous improvement",
+        "expected_concepts": ["review cycle", "industry", "prioritisation", "feedback", "workload"]
+      }
+    ]
+  },
+  "applied_interview": {
+    "task_style": "scenario",
+    "question_count": 4,
+    "questions": [
+      {
+        "id": "edu-ai-01",
+        "prompt": "Based on the attached course outline, draft a week-by-week teaching plan for the first six weeks, including one formative assessment checkpoint.",
+        "competency": "course planning",
+        "expected_concepts": ["weekly plan", "formative assessment", "learning outcomes", "pacing", "prerequisites"]
+      },
+      {
+        "id": "edu-ai-02",
+        "prompt": "Design the grading scheme for this course. Justify the weight you give to exams, projects, and participation, and explain how you guard against grade inflation.",
+        "competency": "student assessment",
+        "expected_concepts": ["rubric", "weighting", "moderation", "transparency", "standards"]
+      },
+      {
+        "id": "edu-ai-03",
+        "prompt": "A key topic in this course is one you have not taught before. Describe concretely how you would prepare to teach it at the required depth within one month.",
+        "competency": "subject mastery",
+        "expected_concepts": ["preparation", "sources", "practice", "peer review", "timeline"]
+      },
+      {
+        "id": "edu-ai-04",
+        "prompt": "Describe how you would supervise a final-year project group whose topic overlaps this course, from scoping to final evaluation.",
+        "competency": "research supervision",
+        "expected_concepts": ["scoping", "milestones", "feedback", "evaluation", "authorship"]
+      },
+      {
+        "id": "edu-ai-05",
+        "prompt": "The department wants this course to include an industry-linked component. Propose one that is realistic for the stated class size and explain the logistics.",
+        "competency": "industry linkage",
+        "expected_concepts": ["partnership", "logistics", "assessment", "class size", "outcomes"]
+      },
+      {
+        "id": "edu-ai-06",
+        "prompt": "Identify the two biggest risks to student success in this course based on the outline, and describe the early-warning signals you would monitor for each.",
+        "competency": "student success",
+        "expected_concepts": ["risk", "early warning", "intervention", "data", "attendance"]
+      }
+    ]
+  },
+  "evaluation_rubric": {
+    "dimensions": [
+      { "id": "structure", "label": "Structure", "description": "The response is organised, sequenced, and complete." },
+      { "id": "reasoning", "label": "Reasoning", "description": "Decisions are justified with cause-and-effect thinking." },
+      { "id": "domain_correctness", "label": "Domain correctness", "description": "The response uses correct academic practice and terminology." }
+    ]
+  },
+  "compliance_rules": ["HEC_alignment"]
+}

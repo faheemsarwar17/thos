@@ -1,0 +1,6 @@
+- Route pages are colocated with their feature folders under `app/<role>/.../page.tsx`, mirroring the URL structure of the app.
+- Authentication state is persisted as three `thos.*` keys in `localStorage` and accessed through `lib/auth.ts` helpers rather than read directly from storage.
+- All HTTP calls go through the centralized `api` object in `lib/api.ts`, which attaches `Authorization: Bearer` headers and handles 401 auto-refresh before reissuing the request.
+- Client-only components use the `'use client'` directive at the top of the file when they call browser APIs like `localStorage`, `useRouter`, or `useState`.
+- Role-based access control is enforced by wrapping page content with the `RequireAuth` component, optionally with `employerOnly` to restrict to employers/superadmins.
+- LiveKit interview rooms obtain a short-lived token via the Next.js route handler at `/api/interviews/token` instead of calling the backend media service directly from the browser.

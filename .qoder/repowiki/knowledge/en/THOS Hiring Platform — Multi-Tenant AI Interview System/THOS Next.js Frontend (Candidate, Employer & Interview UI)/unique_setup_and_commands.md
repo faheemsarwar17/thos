@@ -1,0 +1,1 @@
+Requires environment variables `NEXT_PUBLIC_API_URL` (defaulting to `http://localhost:8000`) and `BACKEND_API_URL` plus optional `BACKEND_LIVEKIT_TOKEN_PATH` for the interview token proxy. Run with `npm run dev` / `build` / `start`; lint with `npm run lint`; typecheck with `npm run typecheck`; test with `npm run test`.

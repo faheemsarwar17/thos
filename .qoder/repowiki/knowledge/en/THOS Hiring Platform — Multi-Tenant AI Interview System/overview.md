@@ -1,0 +1,1 @@
+Top-level repository orchestrating a universal hiring engine, swappable domain packs, and two full-stack applications (ATS and Performance Tracking) around shared contracts for tenancy, events, interviews, and assessments.

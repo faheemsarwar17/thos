@@ -1,0 +1,1 @@
+Full-stack application providing AI-driven performance interviews, employee KPI tracking, and multi-tenant reporting with a FastAPI backend and Next.js frontend.

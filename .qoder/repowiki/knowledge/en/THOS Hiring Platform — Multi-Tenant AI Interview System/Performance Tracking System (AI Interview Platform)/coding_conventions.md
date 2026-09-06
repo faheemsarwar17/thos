@@ -1,0 +1,7 @@
+- Each API endpoint lives in its own file under `app/api/endpoints/` and registers routes on a module-level `APIRouter(tags=[...])` that is then included centrally in `app/api/routes.py`.
+- Database sessions are obtained exclusively through the `get_db()` FastAPI dependency or the `get_db_context()` context manager — no direct `SessionLocal()` instantiation outside those helpers.
+- SQLAlchemy models are declared as classes inheriting from `declarative_base()` and must be imported via `app/api/models/__init__.py` so `Base.metadata.create_all()` can discover them at startup.
+- Column-level schema changes are implemented as standalone modules named `<action>_migration.py` under `app/migrations/` exposing an async `run_migration()` function, which the `MigrationManager` auto-discovers and executes on startup.
+- Configuration is centralized in `app/core/config.py` using a pydantic `BaseSettings` subclass with `Field(env=...)` defaults read from `.env`, and computed properties like `is_production` / `validate_production_secrets()` guard unsafe startup.
+- Authentication endpoints use HttpOnly cookies for refresh tokens with environment-aware `secure`/`samesite` flags, while access tokens are returned in JSON payloads and validated via `Depends(get_current_user)` from `app/utils/jwt.py`.
+- Long-running AI interview sessions are managed by an `InterviewService` that tracks in-flight `asyncio.Task`s keyed by session ID and guards against duplicate orchestrator startups using locks and stale-or-chestnut checks.

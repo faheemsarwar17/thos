@@ -1,0 +1,1 @@
+Next.js 15 App Router, React 19, TypeScript 5, LiveKit (`@livekit/components-react`, `livekit-client`) for real-time interview rooms, Vitest + @testing-library/react for unit tests, ESLint v9 with flat config.

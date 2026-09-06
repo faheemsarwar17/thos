@@ -1,0 +1,115 @@
+/**
+ * THOS Utilities & Accessibility Styles
+ * Conforms to: WCAG 2.2 AA, vercel-labs/web-interface-guidelines
+ */
+
+/* Focus Rings (Never outline: none without visible replacement) */
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* Specific focus helper classes */
+.focus-ring:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* Group focus within */
+.focus-within-ring:focus-within {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 1px var(--border-focus);
+}
+
+/* Selection Highlight */
+::selection {
+  background: var(--brand-100);
+  color: var(--brand-700);
+}
+
+[data-theme="dark"] ::selection {
+  background: var(--brand-200);
+  color: #ffffff;
+}
+
+/* Accessibility / Screen Reader Only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Accessible Skip Link */
+.skip-link {
+  position: fixed;
+  z-index: 1000;
+  top: 12px;
+  left: 12px;
+  padding: 8px 16px;
+  background: var(--surface-card);
+  color: var(--brand-600);
+  border: 2px solid var(--brand-500);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-overlay);
+  transform: translateY(-200%);
+  transition: transform var(--duration-normal) var(--ease-spring);
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+/* Headings anchor scroll margin */
+[id] {
+  scroll-margin-top: calc(var(--topbar-height) + 20px);
+}
+
+/* Smooth motion & reduced motion support (Vercel Guidelines) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Subtle Interactive Cursor Utility */
+button,
+[role="button"],
+a,
+input[type="checkbox"],
+input[type="radio"],
+select {
+  cursor: pointer;
+}
+
+button:disabled,
+[role="button"][aria-disabled="true"],
+input:disabled,
+select:disabled {
+  cursor: not-allowed;
+}
+
+/* Layout micro-helpers */
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}

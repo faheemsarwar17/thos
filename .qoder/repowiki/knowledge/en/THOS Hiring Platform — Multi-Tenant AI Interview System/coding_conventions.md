@@ -1,0 +1,6 @@
+- Every mutation requires an idempotency key, actor/tenant context, schema validation, authorization policy evaluation, transactional business change, append-only audit record, and outbox event written in the same transaction.
+- All domain events use the typed `DomainEvent<T>` envelope with `eventId`, `eventVersion`, `occurredAt`, `tenantId`, `actor`, `correlationId`, resource ID/version, and privacy-safe payload; consumers must be idempotent and schema-validated.
+- Tenant isolation is enforced at every boundary — request, query, cache, event, object storage, and search index — using PostgreSQL row-level security plus explicit tenant predicates, never relying on client-side scoping alone.
+- Domain logic is kept out of engine services and expressed as Domain Packs loaded through the Registry; adding a new industry must require only pack authorship, not engine code changes.
+- AI operations go through a single provider-neutral LangChain adapter that records prompt/model/pack/rubric/policy versions, strips non-required fields, validates structured output, and falls back to human review on failure.
+- Async/AI-driven work exposes a uniform job state machine (`queued | processing | completed | needs_attention | retrying | resolved | cancelled`) with safe retries, exception inbox, and correlation IDs visible to users.

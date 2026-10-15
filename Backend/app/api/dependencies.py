@@ -133,6 +133,27 @@ def employer_context_dependency(
     else:
         membership = memberships[0] if memberships else None
     if membership is None:
+        if user.get("is_superadmin"):
+            if organization_id:
+                org = store.get_organization(conn, organization_id)
+            else:
+                row = conn.execute(
+                    "SELECT * FROM organizations WHERE verification_status = 'verified' ORDER BY created_at ASC LIMIT 1"
+                ).fetchone()
+                org = dict(row) if row else None
+            if org:
+                membership = {
+                    "id": f"superadmin-{org['id']}",
+                    "tenant_id": org["id"],
+                    "user_id": user["id"],
+                    "role": "administrator",
+                }
+                return EmployerContext(
+                    user=user,
+                    membership=membership,
+                    tenant_id=org["id"],
+                    role="administrator",
+                )
         raise ApiError(
             status_code=403,
             code="forbidden",

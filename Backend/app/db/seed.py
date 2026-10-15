@@ -107,7 +107,7 @@ def _seed(conn: Connection, settings: Settings) -> None:
         manifest = None
 
     # --- staff -------------------------------------------------------------
-    store.create_user(
+    superadmin = store.create_user(
         conn,
         email="superadmin@thos.local",
         password_hash=hash_password(DEMO_PASSWORD),
@@ -138,6 +138,7 @@ def _seed(conn: Connection, settings: Settings) -> None:
         address="Islamabad, Pakistan",
         create_membership=True,
     )
+    store.add_member(conn, tenant_id=org_a["id"], user_id=superadmin["id"], role="administrator")
     store.add_member(conn, tenant_id=org_a["id"], user_id=bilal["id"], role="recruiter")
     store.add_member(conn, tenant_id=org_a["id"], user_id=samira["id"], role="hiring_manager")
     cs_unit = store.create_unit(

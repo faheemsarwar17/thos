@@ -50,9 +50,22 @@ def _session_payload(
 ) -> dict[str, Any]:
     memberships = store.list_memberships_for_user(conn, user["id"])
     candidate_id = None
-    if not memberships:
+    if not memberships and not user.get("is_superadmin"):
         candidate = store.get_or_create_candidate(conn, user_id=user["id"])
         candidate_id = candidate["id"]
+    elif not memberships and user.get("is_superadmin"):
+        row = conn.execute(
+            "SELECT id, name FROM organizations WHERE verification_status = 'verified' ORDER BY created_at ASC LIMIT 1"
+        ).fetchone()
+        if row:
+            memberships = [
+                {
+                    "id": f"mem-superadmin-{row['id']}",
+                    "tenant_id": row["id"],
+                    "organization_name": row["name"],
+                    "role": "administrator",
+                }
+            ]
     return {
         **tokens,
         "user": _public_user(user),
@@ -67,7 +80,7 @@ def _session_payload(
         ],
         "candidate_id": candidate_id,
         "is_superadmin": bool(user.get("is_superadmin")),
-        "has_employer_membership": bool(memberships),
+        "has_employer_membership": bool(memberships) or bool(user.get("is_superadmin")),
     }
 
 
@@ -153,9 +166,22 @@ async def auth_me(conn: DbDependency, user: CurrentUserDependency) -> dict[str, 
     memberships = store.list_memberships_for_user(conn, user["id"])
     applications = store.list_org_applications_for_user(conn, user["id"])
     candidate_id = None
-    if not memberships:
+    if not memberships and not user.get("is_superadmin"):
         candidate = store.get_or_create_candidate(conn, user_id=user["id"])
         candidate_id = candidate["id"]
+    elif not memberships and user.get("is_superadmin"):
+        row = conn.execute(
+            "SELECT id, name FROM organizations WHERE verification_status = 'verified' ORDER BY created_at ASC LIMIT 1"
+        ).fetchone()
+        if row:
+            memberships = [
+                {
+                    "id": f"mem-superadmin-{row['id']}",
+                    "tenant_id": row["id"],
+                    "organization_name": row["name"],
+                    "role": "administrator",
+                }
+            ]
     return {
         "user": _public_user(user),
         "memberships": [
@@ -180,5 +206,5 @@ async def auth_me(conn: DbDependency, user: CurrentUserDependency) -> dict[str, 
         ],
         "candidate_id": candidate_id,
         "is_superadmin": bool(user.get("is_superadmin")),
-        "has_employer_membership": bool(memberships),
+        "has_employer_membership": bool(memberships) or bool(user.get("is_superadmin")),
     }

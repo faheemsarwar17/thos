@@ -79,6 +79,143 @@ function ApplicationTimeline({ applicationId }: { applicationId: string }) {
   );
 }
 
+function renderInlineMarkdown(text: string) {
+  const parts = text.split(/(\*\*.*?\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return (
+        <strong key={i} style={{ color: "var(--ink-900, #0f172a)", fontWeight: 600 }}>
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+    return part;
+  });
+}
+
+function FeedbackViewer({ content }: { content: string }) {
+  const paragraphs = content.split(/\n\s*\n/);
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+      {paragraphs.map((p, pIdx) => {
+        const lines = p
+          .split("\n")
+          .map((l) => l.trim())
+          .filter(Boolean);
+        if (lines.length === 0) return null;
+
+        const first = lines[0];
+        if (first.startsWith("### ")) {
+          return (
+            <div key={pIdx} style={{ marginTop: pIdx > 0 ? "6px" : "0" }}>
+              <h4
+                style={{
+                  fontSize: "14px",
+                  fontWeight: 700,
+                  color: "var(--brand-900, #0f172a)",
+                  margin: "0 0 6px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                }}
+              >
+                {first.replace(/^###\s+/, "")}
+              </h4>
+              {lines.slice(1).map((line, lIdx) => {
+                if (line.startsWith("- ") || line.startsWith("* ")) {
+                  return (
+                    <li
+                      key={lIdx}
+                      style={{
+                        marginLeft: "18px",
+                        marginBottom: "4px",
+                        fontSize: "13.5px",
+                        lineHeight: 1.6,
+                        color: "var(--ink-800)",
+                      }}
+                    >
+                      {renderInlineMarkdown(line.replace(/^[-*]\s+/, ""))}
+                    </li>
+                  );
+                }
+                return (
+                  <p
+                    key={lIdx}
+                    style={{
+                      margin: "0 0 6px",
+                      fontSize: "13.5px",
+                      lineHeight: 1.6,
+                      color: "var(--ink-800)",
+                    }}
+                  >
+                    {renderInlineMarkdown(line)}
+                  </p>
+                );
+              })}
+            </div>
+          );
+        }
+
+        if (lines.every((l) => l.startsWith("- ") || l.startsWith("* "))) {
+          return (
+            <ul key={pIdx} style={{ margin: "0 0 4px 18px", padding: 0 }}>
+              {lines.map((l, lIdx) => (
+                <li
+                  key={lIdx}
+                  style={{
+                    marginBottom: "6px",
+                    fontSize: "13.5px",
+                    lineHeight: 1.6,
+                    color: "var(--ink-800)",
+                  }}
+                >
+                  {renderInlineMarkdown(l.replace(/^[-*]\s+/, ""))}
+                </li>
+              ))}
+            </ul>
+          );
+        }
+
+        return (
+          <div key={pIdx}>
+            {lines.map((line, lIdx) => {
+              if (line.startsWith("- ") || line.startsWith("* ")) {
+                return (
+                  <li
+                    key={lIdx}
+                    style={{
+                      marginLeft: "18px",
+                      marginBottom: "4px",
+                      fontSize: "13.5px",
+                      lineHeight: 1.6,
+                      color: "var(--ink-800)",
+                    }}
+                  >
+                    {renderInlineMarkdown(line.replace(/^[-*]\s+/, ""))}
+                  </li>
+                );
+              }
+              return (
+                <p
+                  key={lIdx}
+                  style={{
+                    margin: "0 0 6px",
+                    fontSize: "13.5px",
+                    lineHeight: 1.6,
+                    color: "var(--ink-800)",
+                  }}
+                >
+                  {renderInlineMarkdown(line)}
+                </p>
+              );
+            })}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function CandidateApplicationsPage() {
   const { data, error, loading, reload } = useApi<{ applications: CandidateApplication[] }>(
     "/api/v1/candidates/me/applications"
@@ -148,13 +285,25 @@ export function CandidateApplicationsPage() {
                   <div>
                     <p className="eyebrow">{application.organization_name}</p>
                     <h2>{application.job_title}</h2>
-                    {matchScore !== undefined && matchScore !== null && (
-                      <div style={{ marginTop: "4px", marginBottom: "6px" }}>
+                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "6px", marginBottom: "6px" }}>
+                      {matchScore !== undefined && matchScore !== null && (
                         <Badge variant="brand">
-                          Match Score: {Math.round(matchScore)}/100
+                          Overall Match: {Math.round(matchScore)}/100
                         </Badge>
-                      </div>
-                    )}
+                      )}
+                      {application.applied_interview?.interview_score !== undefined &&
+                        application.applied_interview?.interview_score !== null && (
+                          <Badge variant="neutral">
+                            Voice Interview: {Math.round(application.applied_interview.interview_score)}/100
+                          </Badge>
+                        )}
+                      {application.applied_interview?.sandbox?.score !== undefined &&
+                        application.applied_interview?.sandbox?.score !== null && (
+                          <Badge variant="neutral">
+                            Technical Sandbox: {Math.round(application.applied_interview.sandbox.score)}/100
+                          </Badge>
+                        )}
+                    </div>
                     <p className="panel-note" style={{ fontSize: "12px", color: "var(--ink-400)" }}>
                       Applied {new Date(application.applied_at).toLocaleDateString()} · Updated{" "}
                       {new Date(application.updated_at).toLocaleDateString()}
@@ -227,10 +376,10 @@ export function CandidateApplicationsPage() {
                   <div
                     style={{
                       margin: "0 20px 16px",
-                      padding: "16px 18px",
-                      background: "var(--brand-50)",
-                      border: "1px solid var(--brand-200)",
-                      borderRadius: "8px",
+                      padding: "18px 20px",
+                      background: "var(--brand-50, #f0fdfa)",
+                      border: "1px solid var(--brand-200, #99f6e4)",
+                      borderRadius: "10px",
                     }}
                   >
                     <div
@@ -238,25 +387,16 @@ export function CandidateApplicationsPage() {
                         display: "flex",
                         alignItems: "center",
                         gap: "8px",
-                        marginBottom: "10px",
-                        color: "var(--brand-800)",
-                        fontWeight: 600,
-                        fontSize: "14px",
+                        marginBottom: "12px",
+                        color: "var(--brand-800, #0f766e)",
+                        fontWeight: 700,
+                        fontSize: "14.5px",
                       }}
                     >
-                      <LuSparkles size={16} />
+                      <LuSparkles size={17} />
                       <span>AI Career Advisor: Growth &amp; Improvement Roadmap</span>
                     </div>
-                    <div
-                      style={{
-                        whiteSpace: "pre-wrap",
-                        fontSize: "13px",
-                        lineHeight: 1.6,
-                        color: "var(--ink-800)",
-                      }}
-                    >
-                      {application.ai_improvement_feedback}
-                    </div>
+                    <FeedbackViewer content={application.ai_improvement_feedback} />
                   </div>
                 )}
 

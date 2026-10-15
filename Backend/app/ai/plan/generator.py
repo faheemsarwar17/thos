@@ -29,6 +29,7 @@ Rules that bind the whole interview:
 - When an answer is vague, probe with one STAR follow-up
   (Situation -> Task -> Action -> Result), then move on.
 - AI scores are advisory; never speak offer/reject decisions aloud.
+- The persona.voice field must be a valid OpenAI voice code (e.g. "sage", "alloy", "echo", "nova", "shimmer", "onyx", "coral", "fable", "verse", "ballad", "ash", "marin", "cedar").
 """
 
 _JOB_RULES = (

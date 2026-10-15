@@ -253,6 +253,22 @@ class SynthesisService:
                         transcripts=transcripts,
                         submitted_at=datetime.now(UTC).isoformat(),
                     )
+                    try:
+                        from app.services.ai_feedback import (
+                            synthesize_application_feedback_and_scoring,
+                        )
+
+                        attempt_record = store.get_applied_attempt_by_id(
+                            conn, attempt_id=interview_id
+                        )
+                        if attempt_record:
+                            await synthesize_application_feedback_and_scoring(
+                                conn, attempt=attempt_record, settings=self.settings
+                            )
+                    except Exception as err:
+                        logger.error(
+                            f"Failed to synthesize application feedback for interview {interview_id}: {err}"
+                        )
                 conn.commit()
             finally:
                 conn.close()

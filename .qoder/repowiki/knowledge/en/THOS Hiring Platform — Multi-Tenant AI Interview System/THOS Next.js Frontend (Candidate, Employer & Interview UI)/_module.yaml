@@ -1,9 +1,0 @@
-schema_version: 1
-module_path: frontend
-title: THOS Next.js Frontend (Candidate, Employer & Interview UI)
-scope:
-    - Frontend/
-source_files: []
-depends_on: []
-related_to:
-    - path: backend

@@ -166,6 +166,14 @@ class InterviewSession:
             self.settings.openai_api_key
             or (self.settings.ai_api_key.get_secret_value() if self.settings.ai_api_key else None)
         )
+        from app.ai.plan.models import ALLOWED_TTS_VOICES
+
+        voice_candidate = (self.plan.persona.voice or "").strip().lower()
+        if voice_candidate not in ALLOWED_TTS_VOICES:
+            voice_candidate = (self.settings.tts_voice or "sage").strip().lower()
+        if voice_candidate not in ALLOWED_TTS_VOICES:
+            voice_candidate = "sage"
+
         self.agent_session = AgentSession(
             vad=silero.VAD.load(min_silence_duration=self.settings.vad_min_silence_seconds),
             stt=openai.STT(
@@ -175,7 +183,7 @@ class InterviewSession:
             llm=GraphLLM(self.engine),
             tts=openai.TTS(
                 model=self.settings.tts_model,
-                voice=self.plan.persona.voice or self.settings.tts_voice,
+                voice=voice_candidate,
                 api_key=openai_key or None,
             ),
             turn_detection="vad",
@@ -250,7 +258,15 @@ class InterviewSession:
                     self._send("agent_speech_ended", self._base()),
                     name="ws-agent-speech-ended",
                 )
-                if not self._completed:
+                if self.engine is not None and self.engine.is_done:
+                    logger.info(
+                        f"Interview session {self.attempt_id} engine finished; concluding."
+                    )
+                    self._spawn(
+                        self._finish(reason="completed"),
+                        name=f"finish-interview-{self.attempt_id}",
+                    )
+                elif not self._completed:
                     self._spawn(
                         self._send("user_turn_granted", self._base()),
                         name="ws-user-turn-granted",
@@ -418,7 +434,7 @@ class InterviewSession:
             return
         self._completed = True
         closing = ""
-        if self.engine is not None:
+        if self.engine is not None and not self.engine.is_done:
             closing = await self.engine.force_wrap()
         if closing and self.agent_session is not None:
             try:

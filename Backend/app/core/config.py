@@ -86,11 +86,11 @@ class Settings(BaseSettings):
     tts_model: str = "gpt-4o-mini-tts"
     tts_voice: str = "sage"
     turn_assessment_model: str = "gpt-4o-mini"
-    turn_assessment_max_tokens: int = 200
+    turn_assessment_max_tokens: int = 500
     endpointing_delay_seconds: float = 0.3
     vad_min_silence_seconds: float = 0.45
-    # Answers shorter than this are treated as trivial/noise ("take your time" prompt).
-    answer_max_words_followup_threshold: int = 12
+    # Answers shorter than this without clear intent are treated as noise.
+    answer_max_words_followup_threshold: int = 2
     plan_generation_model: str = "gpt-4o"
     default_interview_language: str = "English"
     analysis_model: str = "gpt-4o"

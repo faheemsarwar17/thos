@@ -112,6 +112,7 @@ class TurnEngine:
         graph.add_node("assess", self._assess_node)
         graph.add_node("follow_up", self._follow_up_node)
         graph.add_node("advance", self._advance_node)
+        graph.add_node("clarify", self._clarify_node)
         graph.add_node("redirect", self._redirect_node)
         graph.add_node("wrap_up", self._wrap_up_node)
         graph.add_node("wait", self._wait_node)
@@ -123,12 +124,20 @@ class TurnEngine:
             {
                 "follow_up": "follow_up",
                 "advance": "advance",
+                "clarify": "clarify",
                 "redirect": "redirect",
                 "wrap_up": "wrap_up",
                 "wait": "wait",
             },
         )
-        for node in ("follow_up", "advance", "redirect", "wrap_up", "wait"):
+        for node in (
+            "follow_up",
+            "advance",
+            "clarify",
+            "redirect",
+            "wrap_up",
+            "wait",
+        ):
             graph.add_edge(node, END)
         return graph.compile()
 
@@ -140,58 +149,115 @@ class TurnEngine:
         return questions[index] if 0 <= index < len(questions) else None
 
     def _ingest_answer(self, state: TurnState) -> dict[str, Any]:
-        words = len(state.get("answer", "").split())
-        if words < self._noise_threshold:
-            return {"verdict": "noise"}
-        return {"verdict": ""}
+        answer = state.get("answer", "")
+        tokens = [
+            w.strip(".,!?;:\"'()").lower()
+            for w in answer.split()
+            if w.strip(".,!?;:\"'()")
+        ]
+        fillers = {"uh", "um", "hmm", "hm", "ah", "er", "oh", "huh", "mm"}
+        if not tokens or (len(tokens) <= 2 and all(t in fillers for t in tokens)):
+            return {"verdict": "noise", "intent": "need_time"}
+        return {"verdict": "", "intent": ""}
 
     async def _assess_node(self, state: TurnState) -> dict[str, Any]:
         if state.get("verdict") == "noise":
-            return {}
+            return {"spoken_response": _WAIT}
         question = self._current_question(state)
         if question is None:
-            return {"verdict": "sufficient"}
-        assessment: AnswerAssessment = await self._assess(question, state["answer"])
+            return {"verdict": "sufficient", "intent": "answer"}
+
+        next_idx = state.get("question_index", 0) + 1
+        questions = state["plan"].questions
+        next_question = (
+            questions[next_idx] if 0 <= next_idx < len(questions) else None
+        )
+
+        try:
+            assessment: AnswerAssessment = await self._assess(
+                question,
+                state["answer"],
+                next_question=next_question,
+                persona=state["plan"].persona,
+                history=state.get("assessments", []),
+                language=state["plan"].language,
+            )
+        except TypeError:
+            assessment = await self._assess(question, state["answer"])
+
         log = list(state.get("assessments", []))
         log.append(
             {
                 "question_id": question.id,
+                "question_text": question.question,
                 "answer": state["answer"],
+                "intent": assessment.intent,
                 "verdict": assessment.verdict,
                 "missing_point": assessment.missing_point,
                 "suggested_followup": assessment.suggested_followup,
+                "spoken_response": assessment.spoken_response,
                 "timestamp": datetime.now(UTC).isoformat(),
             }
         )
         return {
+            "intent": assessment.intent,
             "verdict": assessment.verdict,
+            "missing_point": assessment.missing_point,
             "suggested_followup": assessment.suggested_followup,
+            "spoken_response": assessment.spoken_response,
             "assessments": log,
         }
 
     def _route(self, state: TurnState) -> str:
+        intent = state.get("intent", "answer")
         verdict = state.get("verdict", "sufficient")
-        if verdict == "noise":
+
+        if intent == "ask_to_end":
+            return "wrap_up"
+        if intent == "clarification_question":
+            return "clarify"
+        if intent == "need_time" or verdict == "noise":
             return "wait"
-        if verdict == "off_topic":
+        if intent == "off_topic" or verdict == "off_topic":
             return "redirect"
+
         question = self._current_question(state)
         if question is None:
             return "wrap_up"
+
+        is_last = (
+            state.get("question_index", 0) >= len(state["plan"].questions) - 1
+        )
+
+        if intent == "skip_question":
+            return "wrap_up" if is_last else "advance"
+
         used = state.get("followups_used", {}).get(question.id, 0)
         if verdict == "needs_followup" and used < question.max_followups:
             return "follow_up"
-        # sufficient, or follow-ups exhausted
-        is_last = state.get("question_index", 0) >= len(state["plan"].questions) - 1
+
         return "wrap_up" if is_last else "advance"
+
+    def _clarify_node(self, state: TurnState) -> dict[str, Any]:
+        response = state.get("spoken_response", "").strip()
+        if not response:
+            question = self._current_question(state)
+            q_text = question.question if question else ""
+            response = (
+                f"Certainly. To clarify: {q_text} "
+                "Please feel free to answer whenever you are ready."
+            )
+        return {"utterance": response}
 
     def _follow_up_node(self, state: TurnState) -> dict[str, Any]:
         question = self._current_question(state)
         used = dict(state.get("followups_used", {}))
         if question is not None:
             used[question.id] = used.get(question.id, 0) + 1
-        followup = state.get("suggested_followup", "").strip() or (
-            "Could you give me a specific example?"
+        followup = (
+            state.get("spoken_response", "").strip()
+            or state.get("suggested_followup", "").strip()
+            or "Could you give me a specific example of that?"
         )
         return {"followups_used": used, "utterance": followup}
 
@@ -203,9 +269,26 @@ class TurnEngine:
         next_index = state.get("question_index", 0) + 1
         questions = state["plan"].questions
         if next_index >= len(questions):
-            return {"coverage": coverage, "question_index": next_index, "phase": "closing"}
-        bridge = _BRIDGES[next_index % len(_BRIDGES)]
-        utterance = f"{bridge} {questions[next_index].question}"
+            return {
+                "coverage": coverage,
+                "question_index": next_index,
+                "phase": "closing",
+            }
+
+        next_q = questions[next_index].question
+        response = state.get("spoken_response", "").strip()
+
+        # If the LLM has generated an intelligent spoken response:
+        # Check if the next question text is already embedded, or if it's a transition that needs the next question
+        if response:
+            if next_q.lower() in response.lower() or "?" in response:
+                utterance = response
+            else:
+                utterance = f"{response} {next_q}"
+        else:
+            bridge = _BRIDGES[next_index % len(_BRIDGES)]
+            utterance = f"{bridge} {next_q}"
+
         return {
             "coverage": coverage,
             "question_index": next_index,
@@ -217,6 +300,9 @@ class TurnEngine:
         question = self._current_question(state)
         if question is None:
             return {"utterance": state["plan"].closing}
+        response = state.get("spoken_response", "").strip()
+        if response:
+            return {"utterance": response}
         return {"utterance": f"{_REDIRECT} {question.question}"}
 
     def _wrap_up_node(self, state: TurnState) -> dict[str, Any]:
@@ -224,12 +310,22 @@ class TurnEngine:
         question = self._current_question(state)
         if question is not None:
             coverage[question.id] = True
-        closing = state["plan"].closing.strip() or "Thank you for your time. Goodbye."
-        return {"coverage": coverage, "utterance": closing, "phase": "done"}
+
+        response = state.get("spoken_response", "").strip()
+        closing = (
+            state["plan"].closing.strip()
+            or "Thank you for your time today. Goodbye."
+        )
+        if response:
+            utterance = response
+        else:
+            utterance = closing
+
+        return {"coverage": coverage, "utterance": utterance, "phase": "done"}
 
     def _wait_node(self, state: TurnState) -> dict[str, Any]:
-        del state
-        return {"utterance": _WAIT}
+        response = state.get("spoken_response", "").strip()
+        return {"utterance": response or _WAIT}
 
 
 def restore_coverage(engine: TurnEngine, assessments: list[dict[str, Any]]) -> None:

@@ -234,7 +234,12 @@ export type CandidateApplication = {
   applied_interview: {
     attempt_id: string;
     status: string;
-    sandbox?: { required: boolean; status: string | null } | null;
+    interview_score?: number | null;
+    sandbox?: {
+      required: boolean;
+      status: string | null;
+      score?: number | null;
+    } | null;
   } | null;
   job_match_score?: number | null;
   job_match_reasons?: string | null;

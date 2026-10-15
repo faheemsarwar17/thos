@@ -1,1 +1,0 @@
-FastAPI-based hiring platform backend providing REST endpoints for organizations, candidates, job postings, workflows, voice interviews, and AI-assisted question generation backed by PostgreSQL or SQLite.

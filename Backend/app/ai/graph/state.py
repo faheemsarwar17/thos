@@ -21,7 +21,9 @@ class TurnState(TypedDict, total=False):
     assessments: list[dict[str, Any]]
     phase: Phase
     answer: str
+    intent: str
     verdict: str
+    spoken_response: str
     suggested_followup: str
     utterance: str
     started_at: str
@@ -36,7 +38,9 @@ def new_turn_state(plan: InterviewPlan, *, started_at: str = "") -> TurnState:
         assessments=[],
         phase="greeting",
         answer="",
+        intent="",
         verdict="",
+        spoken_response="",
         suggested_followup="",
         utterance="",
         started_at=started_at,

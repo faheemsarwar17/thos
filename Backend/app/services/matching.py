@@ -287,58 +287,241 @@ def run_posting_matching(
     return saved
 
 import json
+import logging
 from pydantic import BaseModel, Field
+
+logger = logging.getLogger("thos.ai")
+
 
 class JobMatchEvaluation(BaseModel):
     score: float = Field(..., description="Compatibility score from 0.0 to 100.0")
-    reasoning: str = Field(..., description="A short paragraph explaining the match based on candidate profile and interview vs the job description.")
+    reasoning: str = Field(
+        ...,
+        description="A clear paragraph explaining the match based on candidate profile and screening interview vs the job description.",
+    )
+    strengths: list[str] = Field(
+        default_factory=list,
+        description="Key matched strengths or skills demonstrated by the candidate",
+    )
+    gaps: list[str] = Field(
+        default_factory=list,
+        description="Missing requirements, skill gaps, or areas for improvement",
+    )
+    recommendation: str = Field(
+        default="match",
+        description="Recruiter recommendation: strong_match, match, borderline, unqualified",
+    )
+
+
+async def evaluate_screening_with_ai(
+    conn: Connection,
+    *,
+    candidate: dict[str, Any],
+    posting: dict[str, Any],
+    manifest: dict[str, Any] | None = None,
+    settings: Settings | None = None,
+) -> JobMatchEvaluation:
+    """Evaluate candidate qualifications and initial screening interview against a JD using AI.
+
+    Extracts:
+    1. Candidate profile, parsed CV, skills, experience
+    2. Completed profile interview attempts, evaluation score, rubric, and transcript
+    3. Job requisition title, description, requirements, skills, work mode
+
+    Returns a calibrated JobMatchEvaluation with a 0-100 score and explainable reasons.
+    If LLM is offline or unavailable, generates a high-quality deterministic score
+    combining semantic embeddings, ontology skill overlap, and verified interview score.
+    """
+    cfg = settings or get_settings()
+
+    # 1. Gather profile interview attempts
+    attempts = store.list_profile_attempts(conn, candidate_id=candidate["id"])
+    completed_attempts = [
+        a for a in attempts
+        if a.get("status") in ("evaluated", "completed", "analyzed")
+    ]
+    pack_id = (manifest or {}).get("pack_id") or posting.get("pack_id")
+    target_attempt = None
+    if pack_id:
+        for a in completed_attempts:
+            if a.get("pack_id") == pack_id:
+                target_attempt = a
+                break
+    if not target_attempt and completed_attempts:
+        target_attempt = max(
+            completed_attempts,
+            key=lambda a: float((a.get("evaluation") or {}).get("overall_score", 0)),
+        )
+
+    transcripts = target_attempt.get("transcripts", []) if target_attempt else []
+    interview_eval = target_attempt.get("evaluation") if target_attempt else None
+    interview_score = (
+        float(interview_eval.get("overall_score"))
+        if interview_eval and interview_eval.get("overall_score") is not None
+        else store.best_profile_score(conn, candidate_id=candidate["id"])
+    )
+
+    # 2. Embeddings & Overlap
+    profile = candidate.get("profile") or {}
+    skills = list(profile.get("skills") or [])
+    pack_skills = list(((manifest or {}).get("ontology") or {}).get("skills") or [])
+    posting_text = f"{posting.get('title', '')} {posting.get('description', '')} {posting.get('requirements', '')}"
+    skill_score, matched_skills = _skill_overlap(skills, pack_skills, posting_text)
+
+    posting_embedding = ensure_posting_embedding(
+        conn,
+        tenant_id=posting.get("tenant_id", ""),
+        posting=posting,
+        manifest=manifest or {},
+        settings=cfg,
+    )
+    candidate_embedding = ensure_candidate_embedding(
+        conn,
+        candidate=candidate,
+        settings=cfg,
+    )
+    vector_score = similarity_percent(candidate_embedding, posting_embedding)
+
+    cv_score = (
+        max(skill_score, vector_score)
+        if (candidate_embedding and posting_embedding and vector_score > 0)
+        else skill_score
+    )
+    if interview_score is not None:
+        fallback_score = round((cv_score * 0.4) + (interview_score * 0.6), 1)
+    else:
+        fallback_score = round(cv_score, 1)
+
+    # Ensure baseline score for candidates with meaningful profiles
+    if fallback_score < 25 and (skills or profile.get("summary") or candidate.get("parsed_cv")):
+        fallback_score = 40.0
+
+    # 3. If AI is configured, invoke LLM
+    if cfg.ai_is_configured:
+        try:
+            from langchain_core.messages import HumanMessage, SystemMessage
+            from langchain_openai import ChatOpenAI
+
+            api_key = cfg.openai_api_key or (
+                cfg.ai_api_key.get_secret_value() if cfg.ai_api_key else ""
+            )
+            if api_key:
+                chat_model = ChatOpenAI(
+                    api_key=api_key,
+                    model=cfg.ai_model,
+                    temperature=0.1,
+                    timeout=float(cfg.ai_timeout_seconds),
+                    max_retries=1,
+                )
+                structured = chat_model.with_structured_output(JobMatchEvaluation)
+
+                system_prompt = (
+                    "You are an expert hiring manager and technical talent evaluator. "
+                    "Assess how well the candidate matches the job requisition based on their profile, CV, and their initial AI voice screening interview performance. "
+                    "Output: "
+                    "1. score: float from 0.0 to 100.0 representing overall fit for this role. "
+                    "2. reasoning: a concise 2-3 sentence paragraph explaining why this score was awarded. "
+                    "3. strengths: list of 2-4 key candidate strengths relevant to the job. "
+                    "4. gaps: list of missing skills or requirements for this role. "
+                    "5. recommendation: one of 'strong_match', 'match', 'borderline', 'unqualified'. "
+                    "Be objective, balanced, and reward demonstrated depth in relevant skills."
+                )
+
+                profile_text = profile_text_for_embedding(profile, candidate.get("parsed_cv"))
+
+                interview_summary = []
+                if interview_score is not None:
+                    interview_summary.append(f"Screening Interview Score: {interview_score:.1f}/100")
+                if interview_eval:
+                    if interview_eval.get("summary"):
+                        interview_summary.append(f"Summary: {interview_eval.get('summary')}")
+                    if interview_eval.get("strengths"):
+                        interview_summary.append(
+                            f"Strengths: {', '.join(interview_eval.get('strengths', []))}"
+                        )
+                    if interview_eval.get("growth_areas"):
+                        interview_summary.append(
+                            f"Growth areas: {', '.join(interview_eval.get('growth_areas', []))}"
+                        )
+
+                transcript_str = (
+                    json.dumps(transcripts[:10], indent=2)
+                    if transcripts
+                    else "None recorded."
+                )
+
+                human_prompt = (
+                    f"--- JOB REQUISITION ---\n"
+                    f"Title: {posting.get('title', '')}\n"
+                    f"Work Mode: {posting.get('work_mode', 'hybrid')}\n"
+                    f"Description:\n{posting.get('description', '')}\n\n"
+                    f"Requirements:\n{posting.get('requirements', '')}\n\n"
+                    f"--- CANDIDATE PROFILE & CV ---\n"
+                    f"{profile_text}\n\n"
+                    f"--- INITIAL SCREENING INTERVIEW PERFORMANCE ---\n"
+                    f"{chr(10).join(interview_summary) or 'No prior interview evaluated.'}\n\n"
+                    f"--- INTERVIEW TRANSCRIPTS ---\n"
+                    f"{transcript_str}\n"
+                )
+
+                result = await structured.ainvoke(
+                    [SystemMessage(content=system_prompt), HumanMessage(content=human_prompt)]
+                )
+                if result and isinstance(result, JobMatchEvaluation):
+                    result.score = max(0.0, min(100.0, round(float(result.score), 1)))
+                    return result
+        except Exception as e:
+            logger.warning(
+                f"LLM screening evaluation failed, falling back to deterministic calculation: {e}"
+            )
+
+    # 4. Fallback deterministic evaluation
+    reasons: list[str] = []
+    if matched_skills:
+        reasons.append(f"Matched skills: {', '.join(matched_skills)}")
+    if vector_score > 0:
+        reasons.append(f"Profile semantic match: {vector_score:.0f}%")
+    if interview_score is not None:
+        reasons.append(f"Screening interview score: {interview_score:.0f}/100")
+    if not reasons:
+        reasons.append("Evaluated against requisition qualifications and profile background")
+
+    reasoning_text = ". ".join(reasons) + "."
+    rec = (
+        "strong_match"
+        if fallback_score >= 80
+        else (
+            "match"
+            if fallback_score >= 65
+            else ("borderline" if fallback_score >= 45 else "unqualified")
+        )
+    )
+
+    return JobMatchEvaluation(
+        score=fallback_score,
+        reasoning=reasoning_text,
+        strengths=matched_skills[:4],
+        gaps=[],
+        recommendation=rec,
+    )
+
 
 async def evaluate_jd_match(
     candidate: dict[str, Any],
     posting: dict[str, Any],
     interview_transcripts: list[dict[str, Any]],
-    settings: Settings | None = None
+    settings: Settings | None = None,
+    conn: Connection | None = None,
 ) -> JobMatchEvaluation | None:
-    """Use LLM to generate a specific compatibility score against a JD."""
+    """Backward-compatible helper for evaluate_jd_match."""
+    if conn is not None:
+        return await evaluate_screening_with_ai(
+            conn, candidate=candidate, posting=posting, settings=settings
+        )
     cfg = settings or get_settings()
-    if not cfg.ai_is_configured:
-        return None
+    from app.db.database import connect
 
-    try:
-        from langchain_core.messages import SystemMessage, HumanMessage
-        from langchain_openai import ChatOpenAI
-        chat_model = ChatOpenAI(
-            api_key=cfg.ai_api_key.get_secret_value(),
-            model=cfg.ai_model,
-            temperature=0,
-            timeout=cfg.ai_timeout_seconds,
-            max_retries=1,
+    with connect(cfg.database) as local_conn:
+        return await evaluate_screening_with_ai(
+            local_conn, candidate=candidate, posting=posting, settings=settings
         )
-        structured = chat_model.with_structured_output(JobMatchEvaluation)
-        
-        system_prompt = (
-            "You are an expert technical recruiter matching candidates to job postings. "
-            "Analyze the candidate's profile and their initial profile interview transcript against the job description. "
-            "Output a compatibility score (0-100) and a brief reasoning (2-3 sentences max) explaining your score. "
-            "Be fair, objective, and focus heavily on technical alignment and depth demonstrated in their strongest area."
-        )
-        
-        # Build candidate context
-        profile_text = profile_text_for_embedding(candidate.get("profile", {}), candidate.get("parsed_cv"))
-        transcript_text = json.dumps(interview_transcripts, indent=2)
-        posting_text = f"{posting.get('title', '')}\n\n{posting.get('description', '')}\n\n{posting.get('requirements', '')}"
-        
-        human_prompt = (
-            f"--- Job Description ---\n{posting_text}\n\n"
-            f"--- Candidate Profile ---\n{profile_text}\n\n"
-            f"--- Candidate Profile Interview Transcript ---\n{transcript_text}\n"
-        )
-        
-        result = await structured.ainvoke(
-            [SystemMessage(content=system_prompt), HumanMessage(content=human_prompt)]
-        )
-        return result
-    except Exception as e:
-        import logging
-        logging.error(f"Failed to evaluate JD match: {e}")
-        return None

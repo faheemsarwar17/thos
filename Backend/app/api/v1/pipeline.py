@@ -40,7 +40,11 @@ from app.services.ai_feedback import (
 )
 from app.services.avatars import resolve_avatar
 from app.services.mail import send_interview_link
-from app.services.matching import evaluate_jd_match, score_candidate_for_posting
+from app.services.matching import (
+    evaluate_jd_match,
+    evaluate_screening_with_ai,
+    score_candidate_for_posting,
+)
 
 router = APIRouter(tags=["pipeline"])
 
@@ -409,88 +413,53 @@ async def transition_application(
     if destination["category"] == CATEGORY_REVIEW:
         try:
             candidate = store.get_candidate(conn, application["candidate_id"])
-            if candidate and candidate.get("embedding"):
-                # Fetch domain manifest
+            if candidate:
                 org = store.get_organization(conn, context.tenant_id)
-                manifest = {} # Fallback
-                if org and "domain_packs" in org and posting.get("domain_pack_id"):
+                manifest = {}
+                pack_id = posting.get("pack_id") or posting.get("domain_pack_id")
+                if org and "domain_packs" in org and pack_id:
                     for pack in org["domain_packs"]:
-                        if pack["id"] == posting["domain_pack_id"]:
+                        if pack.get("id") == pack_id or pack.get("pack_id") == pack_id:
                             manifest = pack
                             break
-                            
-                score_data = score_candidate_for_posting(
-                    candidate=candidate,
-                    posting=posting,
-                    manifest=manifest,
-                    interview_score=None,
-                    posting_embedding=posting.get("embedding"),
-                    candidate_embedding=candidate.get("embedding")
-                )
-                
-                # Fetch transcripts from the best profile attempt
-                best_attempt = None
-                if manifest:
-                    from app.db import store as db_store
-                    attempts = db_store.list_profile_attempts(conn, candidate_id=candidate["id"])
-                    pack_attempts = [
-                        a
-                        for a in attempts
-                        if a["pack_id"] == manifest.get("pack_id")
-                        and a["status"] in ("completed", "analyzed", "evaluated")
-                    ]
-                    if pack_attempts:
-                        best_attempt = max(
-                            pack_attempts,
-                            key=lambda a: (a.get("evaluation") or {}).get("score", 0),
-                        )
+                if not manifest and pack_id:
+                    manifest = store.get_domain_pack(conn, pack_id=pack_id) or {}
 
-                transcripts = best_attempt.get("transcripts", []) if best_attempt else []
-                
-                # If score meets threshold (e.g. 75), auto-send interview
-                if score_data and score_data.get("score", 0) >= 75.0:
+                if destination["id"] == "screened" or application.get("job_match_score") is None:
+                    eval_result = await evaluate_screening_with_ai(
+                        conn,
+                        candidate=candidate,
+                        posting=posting,
+                        manifest=manifest,
+                        settings=settings,
+                    )
+                    conn.execute(
+                        "UPDATE applications SET job_match_score = ?, job_match_reasons = ?, updated_at = ? WHERE id = ?",
+                        (eval_result.score, eval_result.reasoning, utc_now(), application_id),
+                    )
+                    conn.commit()
+                    application["job_match_score"] = eval_result.score
+                    application["job_match_reasons"] = eval_result.reasoning
+
+                # If score meets threshold (e.g. 75), auto-send interview link
+                score_val = application.get("job_match_score") or 0.0
+                if score_val >= 75.0:
                     user = store.get_user(conn, candidate["user_id"])
                     if user:
                         interview_url = f"{settings.public_base_url}/candidate/applications"
-                        # In production this would be backgrounded.
                         import asyncio
+
                         asyncio.create_task(
                             send_interview_link(
                                 to_email=user["email"],
                                 candidate_name=user["display_name"],
                                 job_title=posting["title"],
                                 organization_name=org["name"] if org else "the company",
-                                interview_url=interview_url
+                                interview_url=interview_url,
                             )
                         )
-
-                # Background the LLM JD match evaluation
-                import asyncio
-
-                from app.services.matching import evaluate_jd_match
-                
-                async def update_application_job_match(app_id, cand, post, ts):
-                    match_eval = await evaluate_jd_match(cand, post, ts)
-                    if match_eval:
-                        # Re-open a brief connection to save the score
-                        import psycopg
-
-                        from app.core.config import get_settings
-                        settings = get_settings()
-                        with psycopg.connect(settings.database_url.get_secret_value()) as bg_conn:
-                            bg_conn.execute(
-                                "UPDATE applications SET job_match_score = %s,"
-                                " job_match_reasons = %s, updated_at = %s WHERE id = %s",
-                                (match_eval.score, match_eval.reasoning, utc_now(), app_id)
-                            )
-                            bg_conn.commit()
-                            
-                asyncio.create_task(
-                    update_application_job_match(application_id, candidate, posting, transcripts)
-                )
         except Exception as e:
-            import logging
-            logging.error(f"Failed pipeline automated actions: {e}")
+            logger.warning(f"Failed pipeline automated actions: {e}")
 
     # Candidate-facing notification uses the mapped status only.
     candidate = store.get_candidate(conn, application["candidate_id"])
@@ -797,14 +766,32 @@ async def screen_received_applications(
 
         candidate = store.get_candidate(conn, app["candidate_id"])
         posting = store.get_posting(conn, tenant_id=context.tenant_id, posting_id=app["posting_id"])
-        if candidate and posting and app.get("job_match_score") is None:
+        if candidate and posting:
             try:
-                eval_result = await evaluate_jd_match(candidate, posting, [], settings=settings)
-                if eval_result:
-                    conn.execute(
-                        "UPDATE applications SET job_match_score = ?, job_match_reasons = ?, updated_at = ? WHERE id = ?",
-                        (eval_result.score, eval_result.reasoning, utc_now(), app_id),
-                    )
+                org = store.get_organization(conn, context.tenant_id)
+                manifest = {}
+                pack_id = posting.get("pack_id") or posting.get("domain_pack_id")
+                if org and "domain_packs" in org and pack_id:
+                    for pack in org["domain_packs"]:
+                        if pack.get("id") == pack_id or pack.get("pack_id") == pack_id:
+                            manifest = pack
+                            break
+                if not manifest and pack_id:
+                    manifest = store.get_domain_pack(conn, pack_id=pack_id) or {}
+
+                eval_result = await evaluate_screening_with_ai(
+                    conn,
+                    candidate=candidate,
+                    posting=posting,
+                    manifest=manifest,
+                    settings=settings,
+                )
+                conn.execute(
+                    "UPDATE applications SET job_match_score = ?, job_match_reasons = ?, updated_at = ? WHERE id = ?",
+                    (eval_result.score, eval_result.reasoning, utc_now(), app_id),
+                )
+                app["job_match_score"] = eval_result.score
+                app["job_match_reasons"] = eval_result.reasoning
             except Exception as e:
                 logger.warning(f"Screening JD match calculation failed for {app_id}: {e}")
 
@@ -850,14 +837,55 @@ async def shortlist_applications(
     )
     screened_apps = [app for app in all_apps if app["stage_id"] == "screened"]
 
+    # Ensure every screened candidate has an AI screening score computed
+    for app in screened_apps:
+        if app.get("job_match_score") is None:
+            cand = store.get_candidate(conn, app["candidate_id"])
+            post = store.get_posting(conn, tenant_id=context.tenant_id, posting_id=app["posting_id"])
+            if cand and post:
+                try:
+                    org = store.get_organization(conn, context.tenant_id)
+                    manifest = {}
+                    pack_id = post.get("pack_id") or post.get("domain_pack_id")
+                    if org and "domain_packs" in org and pack_id:
+                        for pack in org["domain_packs"]:
+                            if pack.get("id") == pack_id or pack.get("pack_id") == pack_id:
+                                manifest = pack
+                                break
+                    if not manifest and pack_id:
+                        manifest = store.get_domain_pack(conn, pack_id=pack_id) or {}
+
+                    eval_res = await evaluate_screening_with_ai(
+                        conn,
+                        candidate=cand,
+                        posting=post,
+                        manifest=manifest,
+                        settings=settings,
+                    )
+                    conn.execute(
+                        "UPDATE applications SET job_match_score = ?, job_match_reasons = ?, updated_at = ? WHERE id = ?",
+                        (eval_res.score, eval_res.reasoning, utc_now(), app["id"]),
+                    )
+                    app["job_match_score"] = eval_res.score
+                    app["job_match_reasons"] = eval_res.reasoning
+                except Exception as err:
+                    logger.warning(f"Could not compute AI screening score for {app['id']}: {err}")
+
     if payload.application_ids is not None:
         target_set = set(payload.application_ids)
         to_shortlist = [app for app in screened_apps if app["id"] in target_set]
-        to_reject = [app for app in screened_apps if app["id"] not in target_set] if payload.reject_remaining else []
+        to_reject = (
+            [app for app in screened_apps if app["id"] not in target_set]
+            if payload.reject_remaining
+            else []
+        )
     elif payload.top_n is not None and payload.top_n > 0:
         sorted_apps = sorted(
             screened_apps,
-            key=lambda a: (a.get("job_match_score") or 0.0, a.get("profile_interview_score") or 0.0),
+            key=lambda a: (
+                float(a.get("job_match_score") or 0.0),
+                float(a.get("profile_interview_score") or 0.0),
+            ),
             reverse=True,
         )
         to_shortlist = sorted_apps[: payload.top_n]

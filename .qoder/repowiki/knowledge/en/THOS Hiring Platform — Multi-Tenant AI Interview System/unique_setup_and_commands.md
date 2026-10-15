@@ -1,1 +1,0 @@
-Local development boots via Docker Compose from `infrastructure/local/` plus `livekit-docker-compose.yml`, providing PostgreSQL, Redis, MinIO, mail capture, and LiveKit; a one-command bootstrap seeds synthetic data and starts web/API/workers so both the ATS and pts applications can run against the same shared infrastructure.

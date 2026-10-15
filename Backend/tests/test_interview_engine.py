@@ -241,20 +241,85 @@ def test_off_topic_redirects_and_repeats_question() -> None:
     assert engine.state["question_index"] == 0
 
 
+FILLER_NOISE = "uh mm"
+
+
 def test_noise_answer_waits_without_assessment() -> None:
     calls: list[str] = []
 
-    async def _assess(question: PlannedQuestion, answer: str) -> AnswerAssessment:
+    async def _assess(question: PlannedQuestion, answer: str, **kwargs: Any) -> AnswerAssessment:
         calls.append(answer)
         return AnswerAssessment(verdict="sufficient")
 
     engine = TurnEngine(_engine_plan(), assess=_assess)
     asyncio.run(engine.opening())
-    utterance = asyncio.run(engine.handle_answer(SHORT_ANSWER))
+    utterance = asyncio.run(engine.handle_answer(FILLER_NOISE))
     assert utterance.startswith("Take your time")
     assert engine.state["question_index"] == 0
     assert calls == []  # noise never reaches the assessment chain
     assert engine.state["assessments"] == []
+
+
+def test_candidate_asks_to_end_concludes_interview() -> None:
+    async def _assess(question: PlannedQuestion, answer: str, **kwargs: Any) -> AnswerAssessment:
+        return AnswerAssessment(
+            intent="ask_to_end",
+            verdict="sufficient",
+            spoken_response="Certainly, we can conclude here. Thank you for your time today.",
+        )
+
+    engine = TurnEngine(_engine_plan(), assess=_assess)
+    asyncio.run(engine.opening())
+    utterance = asyncio.run(engine.handle_answer("Can we end the interview?"))
+    assert "conclude here" in utterance
+    assert engine.is_done
+    assert engine.state["phase"] == "done"
+
+
+def test_candidate_asks_clarification_stays_on_question() -> None:
+    async def _assess(question: PlannedQuestion, answer: str, **kwargs: Any) -> AnswerAssessment:
+        return AnswerAssessment(
+            intent="clarification_question",
+            verdict="sufficient",
+            spoken_response="For this question, focus on high-throughput database design.",
+        )
+
+    engine = TurnEngine(_engine_plan(), assess=_assess)
+    asyncio.run(engine.opening())
+    utterance = asyncio.run(engine.handle_answer("What should I achieve in this question?"))
+    assert "focus on high-throughput database design" in utterance
+    assert engine.state["question_index"] == 0
+    assert engine.state.get("followups_used", {}).get("q1", 0) == 0
+
+
+def test_candidate_skips_question_advances_to_next() -> None:
+    async def _assess(question: PlannedQuestion, answer: str, **kwargs: Any) -> AnswerAssessment:
+        return AnswerAssessment(
+            intent="skip_question",
+            verdict="sufficient",
+            spoken_response="No problem at all! Let's move to our next topic. How do you ensure code quality?",
+        )
+
+    engine = TurnEngine(_engine_plan(), assess=_assess)
+    asyncio.run(engine.opening())
+    utterance = asyncio.run(engine.handle_answer("I don't have experience with that, can we skip?"))
+    assert "How do you ensure code quality?" in utterance
+    assert engine.state["question_index"] == 1
+
+
+def test_dynamic_spoken_response_preserved_in_advance() -> None:
+    async def _assess(question: PlannedQuestion, answer: str, **kwargs: Any) -> AnswerAssessment:
+        return AnswerAssessment(
+            intent="answer",
+            verdict="sufficient",
+            spoken_response="That is a great explanation of event-driven architecture. Moving on, how do you ensure code quality?",
+        )
+
+    engine = TurnEngine(_engine_plan(), assess=_assess)
+    asyncio.run(engine.opening())
+    utterance = asyncio.run(engine.handle_answer(LONG_ANSWER))
+    assert utterance == "That is a great explanation of event-driven architecture. Moving on, how do you ensure code quality?"
+    assert engine.state["question_index"] == 1
 
 
 def test_last_question_wraps_up() -> None:

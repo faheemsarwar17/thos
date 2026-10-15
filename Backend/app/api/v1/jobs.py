@@ -214,6 +214,18 @@ async def my_applications(
         )
         status = _candidate_status(posting, application["stage_id"])
         sandbox_session = (attempt or {}).get("sandbox_session")
+        evaluation = (attempt or {}).get("evaluation") or {}
+        interview_score = evaluation.get("overall_score")
+        if interview_score is None:
+            interview_score = evaluation.get("score")
+
+        sandbox_eval = (
+            (sandbox_session or {}).get("evaluation") or {}
+            if isinstance(sandbox_session, dict)
+            else {}
+        )
+        sandbox_score = sandbox_eval.get("score")
+
         items.append(
             {
                 "id": application["id"],
@@ -230,6 +242,7 @@ async def my_applications(
                     {
                         "attempt_id": attempt["id"],
                         "status": attempt["status"],
+                        "interview_score": interview_score,
                         "sandbox": {
                             "required": bool(posting.get("sandbox_required")),
                             "status": (
@@ -237,6 +250,7 @@ async def my_applications(
                                 if isinstance(sandbox_session, dict)
                                 else None
                             ),
+                            "score": sandbox_score,
                         },
                     }
                     if attempt

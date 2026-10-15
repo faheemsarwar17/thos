@@ -320,19 +320,63 @@ export function SandboxPortal({ attemptId }: { attemptId: string }) {
   const config = state.config;
 
   if (phase === "done") {
+    const score = result?.score != null ? Math.round(result.score) : null;
+    const isZero = score === 0;
+
     return (
       <CenterCard
-        title={result?.status === "expired" ? "Time expired — sandbox submitted" : "Sandbox submitted"}
-        message="Thank you. Your submission, proctoring log, and recording have been shared with the hiring team."
+        title={
+          result?.status === "expired"
+            ? "Time Expired — Assessment Evaluated"
+            : "Assessment Evaluated & Submitted"
+        }
+        message="Your submission, proctoring log, and recording have been evaluated by AI and shared with the hiring team."
         tone="success"
       >
-        {result?.score != null ? (
-          <p style={{ marginBottom: "12px", fontWeight: 700 }}>Score: {result.score}/100</p>
-        ) : null}
-        {error ? <p style={{ marginBottom: "12px" }}>{error}</p> : null}
-        <a className="button button--primary" href="/candidate">
-          Back to candidate home
-        </a>
+        <div
+          style={{
+            margin: "0 auto 20px",
+            padding: "20px 24px",
+            background: isZero ? "var(--surface-sunken, #f8fafc)" : "var(--brand-50, #f0fdfa)",
+            border: `1px solid ${isZero ? "var(--border, #e2e8f0)" : "var(--brand-200, #99f6e4)"}`,
+            borderRadius: "10px",
+            maxWidth: "480px",
+          }}
+        >
+          <div style={{ fontSize: "13px", color: "var(--ink-600)", marginBottom: "4px", fontWeight: 500 }}>
+            Technical Assessment Score
+          </div>
+          <div
+            style={{
+              fontSize: "32px",
+              fontWeight: 800,
+              color: isZero ? "var(--ink-700)" : "var(--brand-800)",
+              letterSpacing: "-0.02em",
+            }}
+          >
+            {score !== null ? `${score}/100` : "Evaluated"}
+          </div>
+          {isZero ? (
+            <p style={{ margin: "8px 0 0", fontSize: "13px", color: "var(--ink-500)", lineHeight: 1.5 }}>
+              The starter template was submitted without substantive implementation. A comprehensive evaluation and growth roadmap have been generated for you.
+            </p>
+          ) : (
+            <p style={{ margin: "8px 0 0", fontSize: "13px", color: "var(--ink-600)", lineHeight: 1.5 }}>
+              Your technical approach, code quality, and problem-solving were evaluated against the rubric.
+            </p>
+          )}
+        </div>
+
+        {error ? <p style={{ marginBottom: "16px", color: "var(--red-600)" }}>{error}</p> : null}
+
+        <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap", marginTop: "16px" }}>
+          <a className="button button--primary" href="/candidate/applications">
+            View Assessment Feedback &amp; Roadmap
+          </a>
+          <a className="button button--secondary" href="/candidate">
+            Back to Candidate Home
+          </a>
+        </div>
       </CenterCard>
     );
   }
@@ -411,6 +455,50 @@ export function SandboxPortal({ attemptId }: { attemptId: string }) {
 
   return (
     <div className="sandbox-active">
+      {submitting && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(15, 23, 42, 0.85)",
+            backdropFilter: "blur(8px)",
+            zIndex: 99999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexDirection: "column",
+            color: "#ffffff",
+            padding: "24px",
+            textAlign: "center",
+          }}
+        >
+          <div
+            style={{
+              width: "52px",
+              height: "52px",
+              border: "4px solid rgba(255, 255, 255, 0.2)",
+              borderTopColor: "var(--brand-400, #38bdf8)",
+              borderRadius: "50%",
+              animation: "spin 1s linear infinite",
+              marginBottom: "20px",
+            }}
+          />
+          <h2 style={{ fontSize: "22px", fontWeight: 700, marginBottom: "8px", color: "#ffffff" }}>
+            AI is Analyzing Your Assessment…
+          </h2>
+          <p
+            style={{
+              maxWidth: "500px",
+              color: "rgba(255, 255, 255, 0.85)",
+              fontSize: "14px",
+              lineHeight: 1.6,
+              margin: 0,
+            }}
+          >
+            Evaluating code quality, edge-case handling, and rubric alignment while synthesizing a comprehensive performance report and career roadmap for your application.
+          </p>
+        </div>
+      )}
       <header className="sandbox-active__header">
         <div>
           <p className="eyebrow" style={{ margin: 0 }}>

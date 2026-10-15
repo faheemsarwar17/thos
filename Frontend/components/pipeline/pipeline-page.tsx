@@ -703,8 +703,37 @@ export function PipelinePage() {
           <Pill tone={getStagePillTone(card.stage_id, card.stage_category)}>
             {card.stage_label}
           </Pill>
-          <ScoreBadge score={card.profile_interview_score} />
+          <div style={{ display: "flex", alignItems: "center", gap: "4px", flexWrap: "wrap" }}>
+            {card.job_match_score != null ? (
+              <ScoreBadge score={card.job_match_score} label="AI Score" />
+            ) : card.profile_interview_score != null ? (
+              <ScoreBadge score={card.profile_interview_score} label="Interview" />
+            ) : (
+              <ScoreBadge score={null} />
+            )}
+            {card.job_match_score != null && card.profile_interview_score != null && (
+              <ScoreBadge score={card.profile_interview_score} label="Voice" />
+            )}
+          </div>
         </div>
+
+        {card.job_match_reasons && (
+          <p
+            style={{
+              fontSize: "11px",
+              color: "var(--ink-500)",
+              margin: "3px 0 1px",
+              display: "-webkit-box",
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical",
+              overflow: "hidden",
+              lineHeight: 1.3,
+            }}
+            title={card.job_match_reasons}
+          >
+            {card.job_match_reasons}
+          </p>
+        )}
 
         {(card.applied_interview_status || card.sandbox_status) && (
           <div className="kanban-card__badges" style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "2px" }}>
@@ -1035,22 +1064,36 @@ export function PipelinePage() {
                   </div>
 
                   {group.id === "received" && (
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => handleScreenReceived()}
-                      loading={screeningBusy}
-                      disabled={receivedCards.length === 0}
-                      style={{ height: "26px", fontSize: "11px", padding: "0 8px", fontWeight: 600 }}
-                      title={
-                        receivedCards.length > 0
-                          ? "Screen all received applications"
-                          : "No pending received applications"
-                      }
-                    >
-                      <LuSparkles size={11} style={{ marginRight: "3px" }} />
-                      Screen All ({receivedCards.length})
-                    </Button>
+                    <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => handleScreenReceived()}
+                        loading={screeningBusy}
+                        disabled={receivedCards.length === 0}
+                        style={{ height: "26px", fontSize: "11px", padding: "0 8px", fontWeight: 600 }}
+                        title={
+                          receivedCards.length > 0
+                            ? "Screen all received applications with AI"
+                            : "No pending received applications"
+                        }
+                      >
+                        <LuSparkles size={11} style={{ marginRight: "3px" }} />
+                        Screen All ({receivedCards.length})
+                      </Button>
+                      {screenedCards.length > 0 && (
+                        <Button
+                          size="sm"
+                          variant="primary"
+                          onClick={() => openShortlistModal(false)}
+                          style={{ height: "26px", fontSize: "11px", padding: "0 8px", fontWeight: 600 }}
+                          title="Auto-shortlist top candidates based on AI screening score"
+                        >
+                          <LuUserCheck size={11} style={{ marginRight: "3px" }} />
+                          Shortlist ({screenedCards.length})
+                        </Button>
+                      )}
+                    </div>
                   )}
 
                   {group.id === "shortlisted" && (
@@ -1248,7 +1291,7 @@ export function PipelinePage() {
                       )}
                     </div>
                   </th>
-                  <th scope="col">Skill Score</th>
+                  <th scope="col">AI / Skill Score</th>
                   <th scope="col">Job Interview</th>
                   <th scope="col" style={{ width: "160px" }}>Move Stage</th>
                 </tr>
@@ -1289,7 +1332,15 @@ export function PipelinePage() {
                         </Pill>
                       </td>
                       <td>
-                        <ScoreBadge score={card.profile_interview_score} />
+                        <div style={{ display: "flex", gap: "4px", alignItems: "center", flexWrap: "wrap" }}>
+                          {card.job_match_score != null ? (
+                            <ScoreBadge score={card.job_match_score} label="AI Score" />
+                          ) : card.profile_interview_score != null ? (
+                            <ScoreBadge score={card.profile_interview_score} label="Interview" />
+                          ) : (
+                            <ScoreBadge score={null} />
+                          )}
+                        </div>
                       </td>
                       <td>
                         {card.applied_interview_status
@@ -1515,29 +1566,59 @@ export function PipelinePage() {
                       fontWeight: 600,
                       color: "var(--ink-500)",
                       display: "block",
-                      marginBottom: "4px",
+                      marginBottom: "6px",
                     }}
                   >
-                    Ranked Preview (Top {Math.min(shortlistTopN, screenedCards.length)} will be shortlisted):
+                    AI Screening Ranked Preview ({screenedCards.length} candidate{screenedCards.length === 1 ? "" : "s"}):
                   </span>
-                  {sortedScreened.slice(0, Math.min(shortlistTopN, screenedCards.length)).map((c, i) => (
-                    <div
-                      key={c.id}
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        fontSize: "12px",
-                        padding: "6px 0",
-                        borderBottom: "1px solid var(--border-subtle)",
-                      }}
-                    >
-                      <span>
-                        #{i + 1} {blindMode ? `Candidate #${c.id.slice(-4)}` : c.candidate_name}
-                      </span>
-                      <ScoreBadge score={c.job_match_score ?? c.profile_interview_score} label="Match" />
-                    </div>
-                  ))}
+                  {sortedScreened.map((c, i) => {
+                    const isTopN = i < Math.min(shortlistTopN, screenedCards.length);
+                    return (
+                      <div
+                        key={c.id}
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          fontSize: "12px",
+                          padding: "6px 8px",
+                          borderBottom: "1px solid var(--border-subtle)",
+                          background: isTopN ? "var(--brand-50, rgba(20, 100, 255, 0.05))" : "transparent",
+                          borderRadius: "4px",
+                        }}
+                      >
+                        <div style={{ display: "flex", flexDirection: "column", gap: "2px", maxWidth: "70%" }}>
+                          <span style={{ fontWeight: isTopN ? 600 : 400 }}>
+                            #{i + 1} {blindMode ? `Candidate #${c.id.slice(-4)}` : c.candidate_name}
+                            {isTopN ? (
+                              <span style={{ marginLeft: "6px", fontSize: "10px", color: "var(--brand-700)", fontWeight: 700 }}>
+                                [Shortlist]
+                              </span>
+                            ) : shortlistRejectRemaining ? (
+                              <span style={{ marginLeft: "6px", fontSize: "10px", color: "var(--danger-600, #dc2626)" }}>
+                                [Reject]
+                              </span>
+                            ) : null}
+                          </span>
+                          {c.job_match_reasons && (
+                            <span
+                              style={{
+                                fontSize: "11px",
+                                color: "var(--ink-500)",
+                                whiteSpace: "nowrap",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                              }}
+                              title={c.job_match_reasons}
+                            >
+                              {c.job_match_reasons}
+                            </span>
+                          )}
+                        </div>
+                        <ScoreBadge score={c.job_match_score ?? c.profile_interview_score} label="AI Score" />
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             ) : (

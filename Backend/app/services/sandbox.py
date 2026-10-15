@@ -39,6 +39,9 @@ _EVAL_RULES = """\
 Rules for grading:
 - Score 0-100 strictly against the rubric; an empty or near-empty submission
   scores close to 0.
+- CRITICAL: If the submission only contains the starter template or starter code
+  without implementing a functional solution or making substantive modifications,
+  it MUST score 0.
 - Coding: judge correctness against the statement and examples, the approach,
   time/space complexity against the constraints, edge-case handling, and
   readability. Do NOT execute the code; reason about it.
@@ -300,6 +303,20 @@ async def submit_sandbox(
         f"Sandbox {'auto-' if auto else ''}submitted for attempt {attempt['id']} "
         f"(status={session['status']}, score={evaluation.score})"
     )
+
+    # Synthesize holistic assessment evaluation and career roadmap for candidate applications page
+    try:
+        from app.services.ai_feedback import synthesize_application_feedback_and_scoring
+
+        await synthesize_application_feedback_and_scoring(
+            conn, attempt=attempt, settings=settings
+        )
+    except Exception as err:
+        logger.error(
+            f"Failed to synthesize application feedback for attempt {attempt['id']}: {err}",
+            exc_info=True,
+        )
+
     return {"status": session["status"], "score": evaluation.score}
 
 
@@ -344,7 +361,7 @@ def _chat_model(settings: Settings) -> Any:
     from langchain_openai import ChatOpenAI
 
     return ChatOpenAI(
-        model=settings.plan_generation_model,
+        model=settings.ai_model,
         api_key=settings.ai_api_key.get_secret_value() if settings.ai_api_key else None,
         timeout=float(settings.ai_timeout_seconds),
     )
@@ -426,6 +443,40 @@ def _submission_plain_text(session: dict[str, Any]) -> str:
     return str(submission.get("code") or "")
 
 
+def _is_unmodified_submission(session: dict[str, Any]) -> bool:
+    """Check if the candidate submitted without making any implementation changes."""
+    submission = session.get("submission") or {}
+    if session.get("type") == "written":
+        answers = submission.get("answers") or {}
+        if not isinstance(answers, dict) or not answers:
+            return True
+        return all(not str(v).strip() for v in answers.values())
+
+    problem = session.get("problem") or {}
+    starter = (problem.get("starter_code") or "").strip()
+    code = (submission.get("code") or "").strip()
+
+    if not code:
+        return True
+
+    def _clean(c: str) -> str:
+        lines = [
+            line.split("#")[0].strip()
+            for line in c.splitlines()
+            if line.split("#")[0].strip()
+        ]
+        return "".join(lines)
+
+    clean_starter = _clean(starter)
+    clean_code = _clean(code)
+
+    if clean_code == clean_starter:
+        return True
+    if clean_code.replace("pass", "") == clean_starter.replace("pass", ""):
+        return True
+    return False
+
+
 def _keyword_coverage(text: str, rubric: list[str]) -> float:
     if not rubric:
         return 0.0
@@ -439,7 +490,14 @@ def _keyword_coverage(text: str, rubric: list[str]) -> float:
 
 
 def _fallback_evaluation(session: dict[str, Any]) -> SandboxEvaluation:
-    """Deterministic score: non-empty + length + rubric keyword coverage."""
+    """Deterministic score: based strictly on volume and rubric keyword coverage."""
+    if _is_unmodified_submission(session):
+        return SandboxEvaluation(
+            score=0.0,
+            breakdown={"completeness": 0.0, "implementation": 0.0, "rubric_coverage": 0.0},
+            notes="The starter template was submitted without implementation changes. No solution attempted.",
+        )
+
     text = _submission_plain_text(session)
     if not text.strip():
         return SandboxEvaluation(
@@ -452,15 +510,14 @@ def _fallback_evaluation(session: dict[str, Any]) -> SandboxEvaluation:
     else:
         volume = min(1.0, len([ln for ln in text.splitlines() if ln.strip()]) / 20.0)
     coverage = _keyword_coverage(text, _rubric_items(session))
-    score = round(100.0 * (0.4 + 0.3 * volume + 0.3 * coverage), 1)
+    score = round(100.0 * (0.6 * volume + 0.4 * coverage), 1)
     return SandboxEvaluation(
         score=min(score, 100.0),
         breakdown={
-            "completeness": 100.0,
             "volume": round(volume * 100.0, 1),
             "rubric_coverage": round(coverage * 100.0, 1),
         },
-        notes="Deterministic fallback evaluation (AI key not configured).",
+        notes="Deterministic evaluation based on submission volume and keyword coverage.",
     )
 
 
@@ -468,6 +525,22 @@ async def evaluate_sandbox(
     session: dict[str, Any], settings: Settings
 ) -> SandboxEvaluation:
     """Grade the submission against the rubric (LLM + deterministic fallback)."""
+    if _is_unmodified_submission(session):
+        logger.info("Sandbox submission is unmodified starter code; grading as 0.")
+        return SandboxEvaluation(
+            score=0.0,
+            breakdown={
+                "correctness": 0.0,
+                "approach": 0.0,
+                "completeness": 0.0,
+                "code_quality": 0.0,
+            },
+            notes=(
+                "The assessment was submitted without modifying the starter template "
+                "or implementing a functional solution. No points awarded."
+            ),
+        )
+
     if not settings.ai_is_configured:
         return _fallback_evaluation(session)
     try:

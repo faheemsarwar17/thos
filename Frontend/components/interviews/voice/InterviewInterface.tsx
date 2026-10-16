@@ -1091,7 +1091,8 @@ export default function InterviewInterface({
 						gap: "14px",
 						flex: 1,
 						minHeight: 0,
-						overflow: "hidden",
+						overflowX: "hidden",
+						overflowY: "auto",
 						boxSizing: "border-box"
 					}}
 				>
@@ -1161,8 +1162,7 @@ export default function InterviewInterface({
 							gap: "14px",
 							gridTemplateColumns: "minmax(0, 1fr) minmax(260px, 300px)",
 							gridTemplateRows: "minmax(0, 1fr)",
-							alignItems: "start",
-							overflow: "hidden"
+							alignItems: "start"
 						}}
 					>
 						{/* Video — fixed 16:9, not stretched */}
@@ -1172,7 +1172,8 @@ export default function InterviewInterface({
 								flexDirection: "column",
 								gap: "10px",
 								minWidth: 0,
-								width: "min(100%, 640px)",
+								// Cap by viewport height too, so the 16:9 video and its controls fit on short laptop screens.
+								width: "min(100%, 640px, calc((100dvh - 300px) * 16 / 9))",
 								justifySelf: "center"
 							}}
 						>

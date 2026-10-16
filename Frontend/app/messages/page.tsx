@@ -51,7 +51,7 @@ export default function EmployerMessagesPage() {
 
   return (
     <DashboardShell>
-      <main className="content" style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 80px)", padding: "20px" }}>
+      <main className="content" style={{ display: "flex", flexDirection: "column", height: "calc(100dvh - var(--topbar-height))", minHeight: "480px", padding: "20px", boxSizing: "border-box" }}>
         <Breadcrumbs
           items={[
             { label: "Home", href: "/" },
@@ -88,7 +88,7 @@ export default function EmployerMessagesPage() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "360px 1fr",
+              gridTemplateColumns: "minmax(240px, 360px) minmax(0, 1fr)",
               gap: "16px",
               flex: 1,
               minHeight: 0,
@@ -195,7 +195,9 @@ export default function EmployerMessagesPage() {
                               overflow: "hidden",
                               textOverflow: "ellipsis",
                               whiteSpace: "nowrap",
-                              maxWidth: "240px",
+                              maxWidth: "100%",
+                              minWidth: 0,
+                              flex: 1,
                             }}
                           >
                             {conv.last_message_preview || "No messages yet."}

@@ -37,7 +37,7 @@ function CenterCard({
         alignItems: "center",
         justifyContent: "center",
         padding: "32px 20px",
-        minHeight: "calc(100vh - var(--topbar-height))",
+        minHeight: "calc(100dvh - var(--topbar-height))",
         backgroundColor: "var(--surface-app)",
       }}
     >

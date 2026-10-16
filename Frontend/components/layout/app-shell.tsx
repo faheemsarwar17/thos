@@ -57,13 +57,14 @@ function SidebarNavigation({
               <Link
                 className={active ? "is-active" : undefined}
                 href={item.href}
+                title={item.label}
                 aria-current={active ? "page" : undefined}
                 onClick={onNavigate}
               >
                 <span className="nav-icon" aria-hidden="true">
                   {item.icon}
                 </span>
-                <span>{item.label}</span>
+                <span className="nav-label">{item.label}</span>
                 {item.count !== undefined && item.count > 0 && (
                   <span className="nav-count tabular-nums">{item.count}</span>
                 )}
@@ -84,13 +85,14 @@ function SidebarNavigation({
                   <Link
                     className={active ? "is-active" : undefined}
                     href={item.href}
+                    title={item.label}
                     aria-current={active ? "page" : undefined}
                     onClick={onNavigate}
                   >
                     <span className="nav-icon" aria-hidden="true">
                       {item.icon}
                     </span>
-                    <span>{item.label}</span>
+                    <span className="nav-label">{item.label}</span>
                   </Link>
                 </li>
               );

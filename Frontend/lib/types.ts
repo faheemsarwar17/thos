@@ -371,15 +371,17 @@ export type Conversation = {
   unread_count?: number;
 };
 
+export type AutomationValue = string | number | boolean | null;
+
 export type AutomationCondition = {
   field: string;
   op: "eq" | "neq" | "gte" | "lte" | "contains";
-  value: any;
+  value: AutomationValue;
 };
 
 export type AutomationAction = {
   type: string;
-  config: Record<string, any>;
+  config: Record<string, AutomationValue>;
 };
 
 export type AutomationRule = {
@@ -388,7 +390,7 @@ export type AutomationRule = {
   name: string;
   description: string;
   trigger_event: string;
-  trigger_config: Record<string, any>;
+  trigger_config: Record<string, AutomationValue>;
   conditions: AutomationCondition[];
   actions: AutomationAction[];
   is_active: number;
@@ -412,3 +414,17 @@ export type AutomationRun = {
 };
 
 
+
+export type AutomationTestResult = {
+  matched?: boolean;
+  error?: string;
+  sample_candidate?: string | null;
+  condition_evaluations?: {
+    field: string;
+    op: string;
+    expected: AutomationValue;
+    actual: AutomationValue;
+    matched: boolean;
+  }[];
+  simulated_actions?: { type: string; output: string }[];
+};

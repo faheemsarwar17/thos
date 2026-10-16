@@ -24,7 +24,14 @@ import { Pill, type PillTone } from "@/components/ui/pill";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/state";
 import { api, ApiError } from "@/lib/api";
 import { useApi } from "@/lib/use-api";
-import type { AutomationAction, AutomationCondition, AutomationRule, AutomationRun } from "@/lib/types";
+import type {
+  AutomationAction,
+  AutomationCondition,
+  AutomationRule,
+  AutomationRun,
+  AutomationTestResult,
+  AutomationValue,
+} from "@/lib/types";
 
 const RECIPES = [
   {
@@ -63,7 +70,7 @@ const RECIPES = [
 
 export function AutomationBuilder() {
   const [isCreating, setIsCreating] = useState(false);
-  const [testResult, setTestResult] = useState<any | null>(null);
+  const [testResult, setTestResult] = useState<AutomationTestResult | null>(null);
   const [testingRuleId, setTestingRuleId] = useState<string | null>(null);
   const [isTesting, setIsTesting] = useState(false);
 
@@ -112,7 +119,7 @@ export function AutomationBuilder() {
     setFormError(null);
 
     const conditions: AutomationCondition[] = [];
-    const trigger_config: Record<string, any> = {};
+    const trigger_config: Record<string, AutomationValue> = {};
 
     if (triggerEvent === "stage_entered") {
       trigger_config.target_stage_id = targetStage;
@@ -195,7 +202,7 @@ export function AutomationBuilder() {
     setIsTesting(true);
     setTestResult(null);
     try {
-      const res = await api.post<any>(`/api/v1/automations/${ruleId}/test`, {});
+      const res = await api.post<AutomationTestResult>(`/api/v1/automations/${ruleId}/test`, {});
       setTestResult(res);
       await reload();
     } catch (err: unknown) {
@@ -378,7 +385,7 @@ export function AutomationBuilder() {
 
         {runs.length === 0 ? (
           <p style={{ margin: 0, color: "var(--ink-400)", fontSize: "13px" }}>
-            No automations have run yet. Trigger a stage move or click "Simulate" to test.
+            No automations have run yet. Trigger a stage move or click &ldquo;Simulate&rdquo; to test.
           </p>
         ) : (
           <div style={{ overflowX: "auto" }}>
@@ -479,7 +486,7 @@ export function AutomationBuilder() {
               <strong style={{ fontSize: "13px", color: "var(--brand-700)", textTransform: "uppercase" }}>
                 WHEN (Trigger Event)
               </strong>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginTop: "8px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "10px", marginTop: "8px" }}>
                 <div>
                   <select
                     value={triggerEvent}
@@ -655,7 +662,7 @@ export function AutomationBuilder() {
 
             <h4 style={{ margin: 0, fontSize: "13px", fontWeight: 600 }}>Condition Evaluations:</h4>
             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-              {(testResult.condition_evaluations ?? []).map((c: any, i: number) => (
+              {(testResult.condition_evaluations ?? []).map((c, i) => (
                 <div
                   key={i}
                   style={{
@@ -681,7 +688,7 @@ export function AutomationBuilder() {
               <>
                 <h4 style={{ margin: "10px 0 0", fontSize: "13px", fontWeight: 600 }}>Simulated Actions:</h4>
                 <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                  {testResult.simulated_actions.map((act: any, i: number) => (
+                  {testResult.simulated_actions.map((act, i) => (
                     <div
                       key={i}
                       style={{

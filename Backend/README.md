@@ -1,124 +1,161 @@
 # THOS Backend
 
-FastAPI backend implementing the THOS pilot MVP: multi-tenant organizations and roles, Education domain pack activation, versioned hiring workflows, candidate profiles and consent, **Profile Screening** and **Job Interview** voice sessions (LiveKit + OpenAI Realtime, ported from PTS) with anti-hallucination post-session scoring, job postings with locked question pools, idempotent applications, the canonical pipeline transition command with audit, reviewer scorecards, notifications, and schema-validated LangChain helpers.
+This is the FastAPI service behind THOS. It covers:
+- multi-tenant organizations, roles and verification
+- domain packs and versioned workflows
+- candidate profiles with CV parsing
+- job postings with locked question pools
+- the canonical, audited pipeline
+- **voice interviews**: an AI interviewer on LiveKit, using OpenAI STT/TTS and a LangGraph turn engine
+- a proctored sandbox
+- matching, messaging, email, analytics and automation rules
 
-Persistence uses **PostgreSQL** by default (`THOS_DATABASE_URL`). The store layer (`app/db`) stays engine-neutral with `?` placeholders; a thin adapter translates them for psycopg. Every tenant-owned query carries an explicit `tenant_id` predicate. Unit tests still use a temporary SQLite file so they stay isolated and dependency-free.
+For the system design, see [`../architecture.md`](../architecture.md).
 
-Authentication uses **JWT access tokens** plus opaque **refresh tokens** (hashed at rest). Register/login return both; clients send `Authorization: Bearer <access>`. In development/test only, `X-Development-Identity` remains a fallback when no Bearer token is present.
+## Stack
 
-## Requirements
-
-- Python 3.13
-- Docker (for local PostgreSQL)
-- [`uv`](https://docs.astral.sh/uv/) (recommended) or another `pyproject.toml`-compatible installer
+- **Python 3.13** (`>=3.13,<3.14`), packaged with **uv** and hatchling (`pyproject.toml`, `uv.lock`)
+- FastAPI and uvicorn, pydantic-settings, PyJWT and bcrypt, loguru
+- psycopg (PostgreSQL) or the stdlib `sqlite3`
+- langchain, langchain-openai, openai, and langgraph (which currently comes in transitively; see `architecture.md` §13)
+- livekit, livekit-api, livekit-agents, livekit-plugins-openai, livekit-plugins-silero
+- pypdf, python-docx, aiosmtplib, boto3
 
 ## Setup
 
-```sh
-# 1. Start PostgreSQL
+```powershell
+# from the repository root: start PostgreSQL 17 + pgvector on host port 5433
 docker compose -f infrastructure/local/docker-compose.yml up -d
 
-# 2. Configure and run the API
 cd Backend
-cp .env.example .env
+Copy-Item .env.example .env
 uv sync --dev
-uv run uvicorn app.main:app --reload
+uv run uvicorn app.main:app --reload --port 8000
 ```
 
-The API is available at `http://127.0.0.1:8000`; OpenAPI docs are at `/docs`. On first start the schema is created and demo data is seeded into Postgres.
+- API: `http://127.0.0.1:8000`
+- OpenAPI: `/docs`
+- Health checks: `/health/live` and `/health/ready`
+
+On startup the schema is created or migrated, and in `development` an empty database is seeded with demo data.
+
+### Database
+
+| Mode | How |
+| --- | --- |
+| PostgreSQL (default) | `THOS_DATABASE_URL=postgresql://thos:thos@localhost:5433/thos` |
+| SQLite | Leave `THOS_DATABASE_URL` unset. Uses `THOS_DATABASE_PATH` (default `./data/thos.db`). Tests always use temporary SQLite files. |
+
+**How the database layer works:**
+- `app/db/database.py` creates the 26 tables with idempotent DDL, then applies guarded `ALTER TABLE ... ADD COLUMN` migrations, committing each one separately.
+- There is no Alembic yet.
+- The store layer writes SQL with `?` placeholders, and an adapter translates them for psycopg.
+- Every tenant-owned query carries a `tenant_id` predicate.
 
 ### Demo accounts (password `Password123!`)
 
 | Email | Role |
 |---|---|
-| `superadmin@thos.local` | Platform superadmin (verify organizations) |
-| `ayesha.khan@nut.edu.pk` | Administrator · National University |
+| `superadmin@thos.local` | Platform superadmin (verifies organizations) |
+| `ayesha.khan@nut.edu.pk` | Owner / administrator, National University of Technology |
 | `bilal.hassan@nut.edu.pk` | Recruiter |
 | `samira.iqbal@nut.edu.pk` | Hiring manager |
-| `tariq.mahmood@riverside.edu.pk` | Administrator · Riverside College |
-| `hira.ahmed@gmail.com` | Candidate |
-| `omar.farooq@gmail.com` | Candidate |
+| `tariq.mahmood@riverside.edu.pk` | Owner / administrator, Riverside College |
+| `hira.ahmed@gmail.com`, `omar.farooq@gmail.com`, `daniyal.raza@gmail.com`, `nadia.omar@gmail.com`, `mahnoor.waheed@gmail.com` | Candidates |
+
+The seed includes the activated Education pack, a default workflow per org, four postings, profile-interview attempts, five applications at different stages, and an evaluated job interview with a sandbox submission (Hira).
 
 ## Configuration
 
-Copy `.env.example` to `.env`. Every setting uses the `THOS_` prefix. Secrets are optional at startup and are required only when the corresponding integration is called.
+Copy `.env.example` to `.env`. Every setting uses the `THOS_` prefix (`app/core/config.py`). Integrations are optional at startup: when one isn't configured, the endpoints that need it return a safe error.
 
-- `THOS_DATABASE_URL` — PostgreSQL connection string (default in `.env.example`). When unset, `THOS_DATABASE_PATH` (SQLite) is used instead.
-- `THOS_JWT_SECRET`, `THOS_JWT_ACCESS_TTL_SECONDS`, `THOS_JWT_REFRESH_TTL_SECONDS` — auth tokens
-- `THOS_SUPERADMIN_EMAILS` — emails that receive platform admin on register/seed
-- `THOS_CORS_ORIGINS` is a comma-separated allowlist. Wildcard CORS is rejected outside development.
-- LiveKit token issuance and voice interviews require `THOS_LIVEKIT_URL`, `THOS_LIVEKIT_API_KEY`, and `THOS_LIVEKIT_API_SECRET`.
-- `THOS_AI_API_KEY` is required for Profile Screening / Job Interview voice agents (OpenAI Realtime + analysis). Without it, voice start returns `503` with a clear configuration error. Optional LangChain helpers also use this key.
-- Voice runtime knobs (`THOS_CONVERSATION_MODEL`, `THOS_OPENAI_VOICE`, VAD/silence settings) are documented in `.env.example`. The `pts/` tree remains a reference implementation only.
+| Group | Variables |
+| --- | --- |
+| App | `THOS_ENVIRONMENT` (development / test / staging / production), `THOS_DEBUG`, `THOS_CORS_ORIGINS`, `THOS_DEVELOPMENT_IDENTITY` |
+| Data | `THOS_DATABASE_URL`, `THOS_DATABASE_PATH`, `THOS_SEED_DEMO_DATA`, `THOS_DOMAIN_PACKS_PATH` |
+| Auth | `THOS_JWT_SECRET`, `THOS_JWT_ACCESS_TTL_SECONDS` (900), `THOS_JWT_REFRESH_TTL_SECONDS` (14 days), `THOS_SUPERADMIN_EMAILS`, `THOS_AUTO_VERIFY_ORGANIZATIONS` |
+| Interview policy | `THOS_PROFILE_INTERVIEW_ATTEMPT_CAP` (3), `THOS_PROFILE_INTERVIEW_COOLDOWN_HOURS` (24) |
+| Mail | `THOS_SMTP_HOST`/`PORT`/`USER`/`PASSWORD`/`FROM_EMAIL`, `THOS_PUBLIC_BASE_URL`. An empty host means mail is logged to the console. |
+| Files | `THOS_AVATARS_DIR`, `THOS_RECORDINGS_DIR`, `THOS_VIDEOS_DIR` |
+| S3 (optional) | `THOS_S3_ENDPOINT`, `THOS_S3_ACCESS_KEY`, `THOS_S3_SECRET_KEY`, `THOS_S3_BUCKET_NAME`, `THOS_S3_REGION` |
+| LiveKit | `THOS_LIVEKIT_URL`, `THOS_LIVEKIT_API_KEY`, `THOS_LIVEKIT_API_SECRET`, `THOS_LIVEKIT_TOKEN_TTL_SECONDS` |
+| AI (OpenAI only) | `THOS_AI_PROVIDER=openai`, `THOS_AI_API_KEY`, `THOS_AI_MODEL` (gpt-4o-mini), `THOS_EMBEDDING_MODEL`, `THOS_AI_TIMEOUT_SECONDS` |
+| Voice runtime | `THOS_VOICE_INTERVIEW_ENABLED`, `THOS_STT_MODEL`, `THOS_TTS_MODEL`, `THOS_TTS_VOICE`, `THOS_TURN_ASSESSMENT_MODEL`, `THOS_TURN_ASSESSMENT_MAX_TOKENS`, `THOS_ENDPOINTING_DELAY_SECONDS`, `THOS_VAD_MIN_SILENCE_SECONDS`, `THOS_ANSWER_MAX_WORDS_FOLLOWUP_THRESHOLD`, `THOS_PLAN_GENERATION_MODEL`, `THOS_ANALYSIS_MODEL`, `THOS_DEFAULT_INTERVIEW_LANGUAGE`, `THOS_DEFAULT_INTERVIEW_LENGTH_MINUTES` |
 
-Never commit `.env`; only `.env.example` belongs in source control.
+Voice interviews are ready only when voice is enabled **and** both LiveKit and the AI key are set. The default local LiveKit (root `docker-compose.yml`) uses `ws://localhost:7880` with key `devkey` and the secret from `livekit.yaml`.
 
-## Auth routes
+Never commit `.env`.
 
-- `POST /api/v1/auth/register` — personal account
-- `POST /api/v1/auth/login` — email + password → access + refresh
-- `POST /api/v1/auth/refresh` — rotate refresh, new access
-- `POST /api/v1/auth/logout` — revoke refresh
-- `GET /api/v1/auth/me` — session profile
-- `POST /api/v1/organizations/applications` — company registration (pending)
-- `POST /api/v1/admin/organizations/{id}/verify|reject` — platform confirmation
-- `POST /api/v1/organizations/current/members` — create staff on company domain
+## Code layout
 
-## Local PostgreSQL
-
-```sh
-docker compose -f infrastructure/local/docker-compose.yml up -d
-docker compose -f infrastructure/local/docker-compose.yml ps
+```text
+app/
+├── main.py              create_app(): middleware, routers, dev seed
+├── core/                config, error envelope, id generation
+├── middleware/          request/correlation IDs
+├── api/dependencies.py  identity (Bearer JWT / dev header), tenant + role guards
+├── api/v1/              routers (see below)
+├── domain/              stages, permissions, deterministic evaluation
+├── db/                  database.py (connection + schema), store.py (queries), seed.py
+├── services/            matching, embeddings, cv_extract/cv_parse, job_description, ai_feedback,
+│                        sandbox, voice_interview, synthesis_service, identity, mail(+templates),
+│                        storage (S3), avatars, livekit, packs, auth_tokens, passwords, ai/
+├── ai/                  graph/ (LangGraph TurnEngine), plan/ (interview plans), runtime/ (LiveKit agent
+│                        session + manager + GraphLLM adapter), sandbox/ (exercise generation), prompts/
+└── websocket/           per-session connection manager for voice telemetry
 ```
 
-Defaults: user/password/database `thos`, port `5432`, URL `postgresql://thos:thos@localhost:5432/thos`.
+## Routes (`/api/v1`)
 
-## Routes
+| Router | Endpoints |
+| --- | --- |
+| `auth` | `POST auth/register`, `auth/login`, `auth/refresh`, `auth/logout`; `GET auth/me` |
+| `me` | `GET me`; `POST/GET/DELETE me/avatar` |
+| `organizations` | `POST organizations`, `organizations/applications`; `GET organizations/applications/mine`; `GET admin/organizations/pending`; `POST admin/organizations/{id}/verify`, `/reject`; `GET organizations/current`; `POST current/units`; `GET/POST current/members`; `POST current/members/{id}/roles`; `GET current/audit`; `GET/PUT/DELETE current/email-templates[/{key}]` |
+| `packs` | `GET/POST domain-packs`, `GET/PATCH/DELETE domain-packs/{id}`; `POST organizations/current/domain-packs/activations`; `GET …/active` |
+| `workflows` | `GET workflows/components`, `GET/POST workflows`, `GET workflows/current` (alias `active`), `PUT workflows/current` |
+| `postings` | `GET/POST postings`, `GET/PATCH postings/{id}`, `POST {id}/publish` (runs matching), `GET {id}/matches`, `POST {id}/close`, `POST {id}/question-pool/generate`, `PATCH {id}/question-pool`, `POST {id}/question-pool/lock`, `POST postings/generate-description` |
+| `jobs` | `GET jobs`, `jobs/{id}`; `POST applications`; `GET candidates/me/matches`, `me/applications`, `me/applications/{id}/timeline`; `POST me/applications/{id}/withdraw`; `GET/PATCH responses/POST submit` on `me/applied-interviews/{id}` |
+| `candidates` | `GET/PATCH candidates/me/profile`, `POST me/cv/upload`, `POST me/cv/parse`, `PUT me/consents/{purpose}`, `GET/POST me/profile-interview-attempts`; `GET profile-interview-attempts/{id}`, `PATCH …/responses`, `POST …/submit` |
+| `voice_interviews` | For both `…/profile-interview-attempts/{id}/voice` and `…/applied-interviews/{id}/voice`: `GET` status, `POST identity-check`, `POST livekit`, `POST start`, `POST complete`, **WS** `telemetry` |
+| `sandbox` | `candidates/me/applied-interviews/{id}/sandbox`: `GET`, `POST start`, `PUT progress`, `POST violations`, `POST recording`, `POST submit` |
+| `pipeline` | `GET pipeline`, `GET applications/{id}`, `POST applications/{id}/transitions`, `POST pipeline/bulk-transition`, `POST pipeline/applications/{id}/undo-transition`, `POST pipeline/screen-received`, `pipeline/shortlist`, `pipeline/invite-interviews`, `POST applications/{id}/applied-interview-invitations`, `/scorecards`, `/decision`, `GET applications/{id}/candidate-avatar`, `GET analytics/pipeline` |
+| `analytics` | `GET analytics/overview`, `funnel`, `velocity`, `sources`, `fairness`, `calibration` |
+| `automations` | `GET/POST automations`, `GET/PUT/DELETE automations/{id}`, `POST {id}/toggle`, `POST {id}/test` (dry run only; no live executor yet) |
+| `messages` | `GET/POST conversations`, `GET candidates/me/conversations`, `GET conversations/by-application/{id}`, `GET conversations/{id}`, `GET/POST conversations/{id}/messages`, `POST conversations/{id}/read` |
+| `notifications` · `search` · `storage` | `GET notifications`, `POST notifications/mark-read`; `GET search`, `talent`, `packs/catalog`; `POST storage/presigned-url` |
+| `router.py` | `POST interviews/token` (room-scoped LiveKit token), `POST ai/interview-questions` |
 
-- `GET /health/live`, `GET /health/ready` — probes
-- `GET /api/v1/me` — current user, memberships, and candidate ID
-- `POST /api/v1/organizations`, `/organizations/{id}/units`, `/organizations/{id}/members` — tenancy administration
-- `GET /api/v1/organizations/{id}/audit-records` — configuration and decision audit trail
-- `GET /api/v1/domain-packs`, `POST /api/v1/organizations/{id}/domain-packs/activations` — pack registry
-- `GET|POST /api/v1/workflows`, `POST /api/v1/workflows/{id}/publish` — versioned workflows
-- `GET|PATCH /api/v1/candidates/me/profile`, `PUT /api/v1/candidates/me/consents/{purpose}` — candidate self-service
-- `GET|POST /api/v1/candidates/me/profile-interview-attempts` — start/resume Profile Screening attempt
-- `POST .../profile-interview-attempts/{id}/voice/{livekit,start,complete}` + WS `.../voice/telemetry` — Profile Screening voice session
-- `GET|POST|PATCH /api/v1/postings`, `POST .../publish`, `POST .../close` — employer job lifecycle
-- `POST /api/v1/postings/{id}/question-pool/*` — generate, curate, and lock Job Interview pools
-- `GET /api/v1/jobs`, `POST /api/v1/applications` — candidate discovery and idempotent application
-- `GET /api/v1/pipeline`, `POST /api/v1/applications/{id}/transitions` — pipeline query and canonical transition command
-- `POST /api/v1/applications/{id}/applied-interview-invitations`, `POST /api/v1/applications/{id}/scorecards` — Job Interview invite and human review
-- `POST .../applied-interviews/{id}/voice/{livekit,start,complete}` + WS `.../voice/telemetry` — Job Interview voice session
-- `GET /api/v1/candidates/me/applications`, `GET .../applications/{id}/timeline` — candidate-facing status
-- `GET /api/v1/analytics/pipeline` — tenant funnel counts
-- `GET|POST /api/v1/notifications` — in-app notices
-- `POST /api/v1/interviews/token` — short-lived room-scoped LiveKit token (legacy lobby)
-- `POST /api/v1/ai/interview-questions` — structured interview question generation
+### Voice telemetry WebSocket
+- **Server → client events:**
+  - setup steps: `connecting_to_room`, `generating_persona`, `initializing_agents`
+  - `interviewer_identity`, `transcript_history`, `new_transcript_message`
+  - `agent_speech_started`/`ended`, `user_speech_started`/`ended`
+  - `agent_turn_pending`, `agent_turn_cleared`, `user_turn_granted`
+- **Client → server:** `user_requested_end`. `user_audio_activity` is accepted as a keepalive.
 
-Full schemas are on `/docs` (OpenAPI).
+## AI behaviour without a key
 
-## Demo data
+| Feature | Fallback |
+| --- | --- |
+| CV parse | Heuristic parser |
+| Embeddings / matching | `local-hash-v1` hash embedding + skill overlap |
+| Job description | Template |
+| Sandbox content / grading | Built-in problem bank / keyword coverage |
+| Rejection feedback | Heuristic |
+| Identity check | `unavailable` (non-blocking) |
+| Question-pool generator | `status="disabled"` |
+| Turn assessment / interview plan | Word-count heuristic / template plan |
+| Voice start | `503` with a clear configuration error |
 
-In `development`, an empty database is seeded on startup (`THOS_SEED_DEMO_DATA=true` by default) with two organizations, employer and candidate personas, a published workflow, postings, and in-flight applications. Identities match the persona switcher in the frontend (`local-developer`, `bilal-hassan`, `samira-iqbal`, `tariq-mahmood`, `hira-ahmed`, `omar-farooq`).
+## Authentication
 
-## Smoke test
-
-With the server running:
-
-```sh
-python scripts/smoke.py http://127.0.0.1:8000
-```
-
-It exercises the full hiring loop through the public API, including tenant isolation and the candidate interview lifecycle.
-
-## Temporary interview identity
-
-Authentication integration is intentionally not fabricated in this foundation. In `development`, the token endpoint uses `THOS_DEVELOPMENT_IDENTITY`; a caller may override it with `X-Development-Identity` using only a constrained opaque identifier. In `test`, the fixed configured identity is used and the header is ignored. In `staging` and `production`, token issuance returns `501 authentication_not_configured` until a trusted authentication dependency supplies the server-derived identity. Caller-chosen identity is therefore never accepted in production.
+- Register and login return a JWT **access token** (HS256, 15 min) and an opaque **refresh token**. The refresh token is hashed at rest and rotated on each refresh.
+- Clients send `Authorization: Bearer <access>`.
+- In `development` and `test` only, `X-Development-Identity` (a constrained opaque ID) works as a fallback when no Bearer token is sent. In `staging` and `production`, caller-chosen identity is refused.
+- Organizations register through `POST organizations/applications`, which creates a pending org. A superadmin then verifies or rejects it. `THOS_AUTO_VERIFY_ORGANIZATIONS=true` skips that step in development.
 
 ## Error contract
-
-Errors use one shape and include the opaque request ID:
 
 ```json
 {
@@ -131,11 +168,29 @@ Errors use one shape and include the opaque request ID:
 }
 ```
 
-Incoming request and correlation IDs are propagated only when they are valid UUIDs. Free-text values are replaced, preventing personal or sensitive caller data from entering request context.
+Incoming request and correlation IDs are propagated only when they are valid UUIDs.
 
-## Validation
+## Testing
 
-```sh
-uv run pytest
+```powershell
+uv run pytest            # ~100 tests; each uses a temporary SQLite database
 uv run ruff check .
+python scripts/smoke.py http://127.0.0.1:8000   # end-to-end smoke against a running server
 ```
+
+**What the suite covers:**
+- health and request IDs
+- auth and org onboarding
+- tenant isolation
+- workflows and packs
+- CV upload, parsing and matching
+- AI helpers and job descriptions
+- pipeline automation (screen, shortlist, invite, feedback)
+- the full hiring loop
+- profile interviews and identity/emails
+- LiveKit tokens and voice configuration
+- the interview engine (plan generator + turn engine)
+- the GraphLLM adapter
+- the sandbox flow and sandbox content
+
+`test_postgres.py` runs against `postgresql://thos:thos@localhost:5433/thos` and skips when it can't connect.

@@ -144,7 +144,7 @@ export default function InterviewSetup({
         </div>
 
         <div className="card animate-fade-up" style={{ overflow: "hidden" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))" }}>
             {/* Left column */}
             <div style={{ padding: "24px", borderRight: "1px solid var(--color-border)" }}>
               <div style={{ marginBottom: "18px" }}>

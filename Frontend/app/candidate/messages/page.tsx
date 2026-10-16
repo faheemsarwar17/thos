@@ -43,7 +43,7 @@ export default function CandidateMessagesPage() {
 
   return (
     <CandidateShell>
-      <main className="content" style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 80px)", padding: "20px" }}>
+      <main className="content" style={{ display: "flex", flexDirection: "column", height: "calc(100dvh - var(--topbar-height))", minHeight: "480px", padding: "20px", boxSizing: "border-box" }}>
         <Breadcrumbs
           items={[
             { label: "Overview", href: "/candidate" },
@@ -80,7 +80,7 @@ export default function CandidateMessagesPage() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "340px 1fr",
+              gridTemplateColumns: "minmax(240px, 340px) minmax(0, 1fr)",
               gap: "16px",
               flex: 1,
               minHeight: 0,
@@ -187,7 +187,9 @@ export default function CandidateMessagesPage() {
                               overflow: "hidden",
                               textOverflow: "ellipsis",
                               whiteSpace: "nowrap",
-                              maxWidth: "220px",
+                              maxWidth: "100%",
+                              minWidth: 0,
+                              flex: 1,
                             }}
                           >
                             {conv.last_message_preview || "No messages yet."}

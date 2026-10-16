@@ -19,10 +19,9 @@ function InterviewShell({ children }: { children: React.ReactNode }) {
         position: "relative",
         display: "flex",
         flexDirection: "column",
-        height: "calc(100vh - var(--topbar-height))",
-        minHeight: "calc(100vh - var(--topbar-height))",
-        maxHeight: "calc(100vh - var(--topbar-height))",
-        overflow: "hidden",
+        minHeight: "calc(100dvh - var(--topbar-height))",
+        overflowX: "hidden",
+        overflowY: "auto",
         boxSizing: "border-box",
         backgroundColor: "var(--surface-app)",
       }}

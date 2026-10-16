@@ -1,6 +1,6 @@
 # THOS — Build-Ready Implementation Plan
 
-Version: 1.0 · July 2026  
+Version: 2.0 · October 2026 (v1.0 July 2026)  
 Sources: `prd.md` · `phases.md` · `design.md` · `rules.md` · `architecture.md`
 
 ---
@@ -26,13 +26,49 @@ Status markers: `⬜ Not started` · `🟡 In progress` · `🟢 Complete` · `�
 
 | Item | Status | Owner | Target |
 |---|---|---|---|
-| Plan review and approval | ⬜ | TBD | Before repository scaffold |
-| Phase 0 decisions | 🟡 | TBD | Sprint 0 |
-| Technical foundation | 🟢 | TBD | Sprint 0 |
-| First vertical slice | 🟢 | TBD | Sprint 1 |
-| Pilot MVP (local pilot form) | 🟡 | TBD | End of Phase 4 |
+| Plan review and approval | 🟡 | TBD | Ongoing |
+| Phase 0 decisions | 🟡 | TBD | Remaining: hosting, event bus, search, sandbox runtime, OIDC provider |
+| Technical foundation | 🟢 | TBD | Done (local) |
+| First vertical slice | 🟢 | TBD | Done |
+| Pilot MVP (local pilot form) | 🟢 | TBD | Done, except isolated code execution (Slice 12) |
+| Production readiness | ⬜ | TBD | OIDC, RLS, CI/CD, workers, audits |
 
-**July 2026 status.** A working local pilot covers the full hiring loop end to end: tenancy and roles, Education Pack activation, versioned workflows, candidate profiles/consent, Profile Interviews with deterministic evaluation, postings with locked question pools, idempotent applications, the canonical transition command with audit, Applied Interviews, reviewer scorecards, candidate timelines, notifications, and both persona UIs. Slices 1–11 are functionally complete in simplified pilot form. Deliberate simplifications pending production decisions: SQLite instead of PostgreSQL+RLS (ADR-005), development-identity header instead of OIDC (ADR-003), deterministic evaluator with optional LangChain generation, and no technical sandbox runtime (Slice 12), resume parsing, search, messaging, or automation yet.
+**October 2026 status.** The local pilot runs the complete hiring loop on PostgreSQL + pgvector (host port 5433):
+- organization application and superadmin verification, tenancy and roles, domain packs, versioned workflows
+- candidate profiles with CV upload/parsing, consent and avatar
+- **voice** Profile Screening and Job Interviews over LiveKit + OpenAI (LangGraph turn engine, telemetry WebSocket, post-session synthesis) with an identity photo check
+- postings with an AI job-description generator and locked question pools, plus match-on-publish
+- AI screening, shortlisting and invitations
+- the canonical audited pipeline (Kanban + list, bulk moves, undo), scorecards and decisions with AI rejection feedback
+- a proctored coding/written sandbox
+- messaging, SMTP email templates, notifications, analytics, automation rules with dry run
+- responsive employer and candidate UIs
+
+Every AI feature has a fallback, so the app runs without an API key.
+
+### 0.2 Slice status
+
+| Slice | Status | Notes |
+|---|---|---|
+| 0 System heartbeat | 🟡 | Health/readiness, request IDs, seed, Docker Postgres. No CI, container builds or OIDC. |
+| 1 Organization and unit | 🟢 | Includes org application → superadmin verification. |
+| 2 Members and scoped roles | 🟢 | Members are created on the company domain. Invitations table exists. |
+| 3 Activate Education Pack | 🟢 | Plus the Software Engineering pack and tenant custom packs. |
+| 4 Publish workflow version | 🟢 | |
+| 5 Candidate profile and consent | 🟢 | CV upload and parsing, avatar. |
+| 6 Profile Interview | 🟢 | Delivered as a voice session (ADR-019). |
+| 7 Job and application | 🟢 | Idempotent apply. AI job description. |
+| 8 Canonical pipeline transition | 🟢 | Optimistic concurrency, audit, outbox events. |
+| 9 Kanban and candidate timeline | 🟢 | Keyboard moves, bulk, undo. Responsive (ADR-021). |
+| 10 Applied Interview pool | 🟢 | Generate, curate, lock. |
+| 11 Applied Interview and review | 🟢 | Voice interview, synthesis, scorecards, decision. Technical reset pending. |
+| 12 Technical assessment runtime | 🟡 | Proctored sandbox with LLM/keyword grading. **No isolated execution or hidden tests.** |
+| 13 Notifications and messaging | 🟡 | In-app, SMTP templates and conversations built. Preferences, retries and exception inbox pending. |
+| 14 Search and matching | 🟡 | Match-on-publish and talent search on the DB. OpenSearch, comparison tray and watchlists pending. |
+| 15 Automation | 🟡 | Rule CRUD, toggle, dry run, run history. No live executor. |
+| 16 Analytics and governance | 🟡 | Overview, funnel, velocity, sources, fairness, calibration endpoints. Governance workflow and retention pending. |
+
+The checklists in §7 describe the full target for each slice. Use the table above for current status.
 
 ---
 
@@ -464,7 +500,7 @@ Each slice must include UI, API, database, policy, audit/event, tests, async/err
 **Outcome:** a recruiter advances an application through validated stages using the accessible list.
 
 - [ ] Pipeline query with filters, pagination, valid destinations, SLA, and next action.
-- [ ] Single transition command exactly matching `architecture.md` §9.
+- [ ] Single transition command exactly matching `architecture.md` §6 (transition command).
 - [ ] Optimistic concurrency and exact conflict response.
 - [ ] Requirement/approval/reason evaluation.
 - [ ] Application transition + audit + outbox in one transaction.

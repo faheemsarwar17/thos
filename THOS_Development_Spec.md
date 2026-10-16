@@ -5,6 +5,14 @@ Universal Hiring Engine + swappable Domain Intelligence Packs, with a Two-Stage 
 Version: Revision 2 (July 2026) — Development reference derived from the formal proposal.
 This document is written for engineering use: architecture, services, data model, APIs, and build phases. For business framing, see the formal proposal document.
 
+> **Historical reference (October 2026).** This is the original consolidated spec, kept for its full target design and rationale. It is **not** updated as the code changes. For what is actually built and the current decisions, see:
+> - [`prd.md`](prd.md): requirements with build status
+> - [`architecture.md`](architecture.md): as-built system and planned evolution
+> - [`design.md`](design.md): design system and responsive rules
+> - [`phases.md`](phases.md): status, ADRs and next actions
+>
+> Where this spec and those documents disagree, those documents win.
+
 ---
 
 ## 1. System Overview

@@ -1,6 +1,6 @@
 # THOS — Rules
 
-Version: 1.0 · July 2026
+Version: 2.0 · October 2026 (v1.0 July 2026)
 Companion documents: `prd.md` (requirements) · `architecture.md` (technical design) · `phases.md` (delivery gates) · `design.md` (UX/UI system) · `implementation-plan.md` (build sequence)
 
 ---
@@ -15,10 +15,10 @@ Each rule is written as a **must** or **must never**. Anything not covered here 
 
 ## 1. Architectural Rules
 
-1. **The engine must never contain domain knowledge.** No `if (domain === "...")`, no hardcoded question text, rubric, or ontology term inside any engine service. If you're tempted to do this, the content belongs in a Domain Pack manifest instead (`architecture.md` §5).
+1. **The engine must never contain domain knowledge.** No `if (domain === "...")`, no hardcoded question text, rubric, or ontology term inside any engine service. If you're tempted to do this, the content belongs in a Domain Pack manifest instead (`architecture.md` §5.1).
 2. **A new industry must never require an engine-service code change.** Any exception must be logged as architecture debt immediately, not shipped silently and forgotten.
-3. **An application must have exactly one canonical stage**, engine-defined by category, tenant-configurable only by ID/label (`architecture.md` §11). No view is allowed to maintain its own copy of "where this candidate is."
-4. **All stage changes must go through the single transition command path** (`architecture.md` §9) — never a direct field update to `Application.stage` from any service or script.
+3. **An application must have exactly one canonical stage**, engine-defined by category, tenant-configurable only by ID/label (`architecture.md` §7). No view is allowed to maintain its own copy of "where this candidate is."
+4. **All stage changes must go through the single transition command path** (`architecture.md` §6) — never a direct field update to `Application.stage` from any service or script.
 5. **Domain Pack manifests must be validated before activation**, atomically. A partially-applied pack must never exist.
 
 ---
@@ -44,6 +44,8 @@ Each rule is written as a **must** or **must never**. Anything not covered here 
 7. **Consequential automation actions (reject, hire, stage-move) must default to creating a human task, not acting directly.** An administrator may explicitly configure a more autonomous path only with an approval gate and a visible audit trail.
 8. **Automation rules must be idempotent, versioned, dry-run-testable, and pausable** (globally and per-rule) before they can be published.
 9. **A failed AI or automation task must never silently block a candidate.** It must surface in an exception inbox with cause, owner, and a safe retry or manual fallback.
+10. **Every LLM-backed feature must have a deterministic fallback or return a specific `integration_not_configured` error.** A missing or failing AI provider must never crash startup, corrupt state, or silently block a candidate.
+11. **Provider calls must go through the service layer** (`app/services/*`, `app/ai/*`); routers and domain code must never call an AI SDK directly.
 
 ---
 
@@ -70,17 +72,19 @@ Each rule is written as a **must** or **must never**. Anything not covered here 
 
 1. **WCAG 2.2 AA is the minimum bar for every critical path** (onboarding, application, Applied Interview, Kanban movement, offer/decision) — not an aspirational target.
 2. **Every drag-and-drop interaction must have a complete keyboard-only equivalent.** No feature may ship as pointer-only.
-3. **Status, score, and severity must never be conveyed by color alone.** Always pair color with a text label and, where practical, an icon (`design.md` §Color).
+3. **Status, score, and severity must never be conveyed by color alone.** Always pair color with a text label and, where practical, an icon (`design.md` §3).
 4. **Every interactive element must have a visible focus state.** Suppressing focus outlines for aesthetic reasons is not permitted.
 5. **Countdown timers, autosave confirmations, and live status updates must use polite live regions**, not interrupt screen-reader users on every tick.
 6. **The Kanban board must degrade to an accessible list/table view** carrying identical actions — this is a required alternative, not a nice-to-have.
+7. **Layouts must work without horizontal page scroll, clipped controls, or overlapping text from 360px wide up, and specifically at 1280×620 CSS px** (a 1600×900 display at 125% scaling). Check the viewports listed in `design.md` §6.5 before merging layout changes.
+8. **Use `100dvh`, never `100vh`; never pair a fixed height with `overflow: hidden` on growing content;** dialogs and drawers must scroll within the viewport.
 
 ---
 
 ## 7. UX & Content Rules
 
 1. **A control's label and its resulting confirmation must use the same verb** ("Advance" produces "Advanced," never "Moved"). Vocabulary is fixed once it ships.
-2. **Candidates must never see internal stage names, private notes, or reviewer deliberation.** Only the mapped four-step candidate-facing status is shown (`architecture.md` §11.2).
+2. **Candidates must never see internal stage names, private notes, or reviewer deliberation.** Only the mapped four-step candidate-facing status is shown (`architecture.md` §7).
 3. **Every screen must show the next action, not just current state**, per the product delivery principle in `prd.md` §2 — a dashboard of numbers with no path to act on them is incomplete.
 4. **Empty states must teach the next action** and distinguish "no data" from "no permission" from "filtered to zero results" — these are three different messages, never one generic blank.
 5. **Errors must state exactly what's missing or wrong**, in the interface's voice, and must never apologize on the product's behalf or use vague language like "something went wrong" without a specific cause and next step.
@@ -126,8 +130,10 @@ Each rule is written as a **must** or **must never**. Anything not covered here 
 ## 12. Naming & Component Conventions
 
 1. **UI component names must match the vocabulary in `design.md`** (`score-badge`, `pill`, `kanban-card`, `pack-chip`, `drawer`, `attention-queue-card`, etc.) — design and code use one shared vocabulary, not a translated one.
-2. **Service and event names use the nouns and verbs defined in `architecture.md` §3 and §10** — do not introduce a synonym for an existing entity or event (e.g., no second name for "Applied Interview").
-3. **Any new reusable UI primitive must be added to the shared primitives list in `architecture.md` §14.2 before a second screen uses a copy of it.**
+2. **Service and event names use the nouns and verbs defined in `architecture.md` §3 and §5.2** — do not introduce a synonym for an existing entity or event (e.g., no second name for "Applied Interview").
+3. **Any new reusable UI primitive must be added to the shared primitives list in `design.md` §7 before a second screen uses a copy of it.**
+4. **Styles must use the canonical tokens in `Frontend/styles/tokens.css`.** Never reference an undefined CSS custom property or class; the compatibility aliases at the end of `tokens.css` are deprecated and must not be used in new code.
+5. **Grid columns must be shrinkable** (`minmax(0, 1fr)` or `repeat(auto-fit, minmax(min(100%, Npx), 1fr))`), not fixed `1fr 1fr` / `repeat(3, 1fr)` in inline styles.
 
 ---
 

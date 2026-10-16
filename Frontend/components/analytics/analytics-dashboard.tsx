@@ -422,7 +422,7 @@ export function AnalyticsDashboard() {
 
       {/* Tab 3: Fairness & Calibration */}
       {activeSubTab === "fairness" && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 360px), 1fr))", gap: "20px" }}>
           {/* Algorithmic Bias Audit Card */}
           <div className="panel" style={{ padding: "24px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "14px" }}>

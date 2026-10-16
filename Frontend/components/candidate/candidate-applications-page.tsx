@@ -293,13 +293,13 @@ export function CandidateApplicationsPage() {
                       )}
                       {application.applied_interview?.interview_score !== undefined &&
                         application.applied_interview?.interview_score !== null && (
-                          <Badge variant="neutral">
+                          <Badge variant="default">
                             Voice Interview: {Math.round(application.applied_interview.interview_score)}/100
                           </Badge>
                         )}
                       {application.applied_interview?.sandbox?.score !== undefined &&
                         application.applied_interview?.sandbox?.score !== null && (
-                          <Badge variant="neutral">
+                          <Badge variant="default">
                             Technical Sandbox: {Math.round(application.applied_interview.sandbox.score)}/100
                           </Badge>
                         )}

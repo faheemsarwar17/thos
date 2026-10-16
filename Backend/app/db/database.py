@@ -426,13 +426,41 @@ def is_postgres(database: str) -> bool:
     return database.startswith(("postgres://", "postgresql://"))
 
 
+class PostgresRow(dict):
+    """A dict row that also allows positional access, like ``sqlite3.Row``.
+
+    Code written against SQLite uses both ``row["column"]`` and ``row[0]``
+    (e.g. ``SELECT COUNT(*) ... fetchone()[0]``); plain dict rows break the latter.
+    """
+
+    __slots__ = ("_values",)
+
+    def __init__(self, names: Sequence[str], values: Sequence[Any]) -> None:
+        super().__init__(zip(names, values, strict=True))
+        self._values = tuple(values)
+
+    def __getitem__(self, key: Any) -> Any:
+        if isinstance(key, int):
+            return self._values[key]
+        return super().__getitem__(key)
+
+
+def _postgres_row_factory(cursor: Any) -> Any:
+    names = [column.name for column in cursor.description or ()]
+
+    def make_row(values: Sequence[Any]) -> PostgresRow:
+        return PostgresRow(names, values)
+
+    return make_row
+
+
 class PostgresConnection:
     """Adapts psycopg to the sqlite3-style surface used by the store layer.
 
     The store layer writes engine-neutral SQL with ``?`` placeholders;
     this adapter translates them to psycopg's ``%s`` style and returns
-    dict rows, so ``row["column"]`` and ``dict(row)`` behave identically
-    across both engines.
+    ``PostgresRow`` rows, so ``row["column"]``, ``row[0]`` and ``dict(row)``
+    behave identically across both engines.
     """
 
     def __init__(self, raw: Any) -> None:
@@ -518,6 +546,7 @@ def _apply_auth_migrations(connection: Connection) -> None:
     for table, column, definition in _AUTH_COLUMN_MIGRATIONS:
         if not _column_exists(connection, table, column):
             connection.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
+            connection.commit()
 
 
 def _enable_pgvector(connection: Connection) -> None:
@@ -548,9 +577,8 @@ def _apply_schema_postgres(connection: Connection) -> None:
 
 def _connect_postgres(database_url: str) -> PostgresConnection:
     import psycopg
-    from psycopg.rows import dict_row
 
-    raw = psycopg.connect(database_url, row_factory=dict_row)
+    raw = psycopg.connect(database_url, row_factory=_postgres_row_factory)
     connection = PostgresConnection(raw)
     with _lock:
         if database_url not in _initialized_databases:

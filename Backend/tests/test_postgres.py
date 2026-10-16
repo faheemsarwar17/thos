@@ -13,7 +13,7 @@ from app.main import create_app
 
 POSTGRES_URL = os.environ.get(
     "THOS_DATABASE_URL",
-    "postgresql://thos:thos@localhost:5432/thos",
+    "postgresql://thos:thos@localhost:5433/thos",
 )
 
 
@@ -69,3 +69,21 @@ def test_postgres_serves_seeded_employer_data(pg_client: TestClient) -> None:
     assert pipeline.status_code == 200
     cards = [c for col in pipeline.json()["columns"] for c in col["cards"]]
     assert len(cards) >= 1
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/api/v1/analytics/pipeline",
+        "/api/v1/analytics/overview",
+        "/api/v1/analytics/funnel",
+        "/api/v1/analytics/velocity",
+        "/api/v1/analytics/sources",
+        "/api/v1/analytics/fairness",
+        "/api/v1/analytics/calibration",
+    ],
+)
+def test_postgres_analytics_endpoints(pg_client: TestClient, path: str) -> None:
+    """Regression: analytics used positional row access (row[0]) that broke on dict rows."""
+    response = pg_client.get(path, headers={"X-Development-Identity": "local-developer"})
+    assert response.status_code == 200, response.text

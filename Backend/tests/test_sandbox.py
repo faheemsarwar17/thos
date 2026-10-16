@@ -8,6 +8,8 @@ from fastapi.testclient import TestClient
 
 from app.api.v1.postings import _default_sandbox_config
 from app.core.config import Settings
+from app.db import store
+from app.db.database import connect
 from app.services import sandbox as sandbox_service
 
 ADMIN = {"X-Development-Identity": "sandbox-admin"}
@@ -408,3 +410,46 @@ def test_sandbox_recording_upload_stores_path(
     )
     assert empty.status_code == 422
     assert empty.json()["error"]["code"] == "empty_recording"
+
+
+def test_sandbox_submit_synthesizes_holistic_feedback_without_error(
+    client: TestClient, settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Regression: the post-submit synthesis must not crash.
+
+    sandbox.submit catches and logs synthesis failures, so a crash inside it
+    (e.g. a missing import in ai_feedback) would otherwise go unnoticed.
+    """
+    errors: list[str] = []
+    monkeypatch.setattr(
+        sandbox_service.logger, "error", lambda msg, *a, **k: errors.append(str(msg))
+    )
+    attempt_id = _ready_attempt(client, SANDBOX_CODING)
+    # A real voice interview leaves a transcript; synthesis counts the candidate's words.
+    conn = connect(settings.database_path)
+    try:
+        store.update_applied_interview_voice(
+            conn,
+            attempt_id=attempt_id,
+            transcripts=[
+                {"role": "assistant", "content": "Tell me about your teaching approach."},
+                {"role": "user", "content": "I start from worked examples and build up."},
+            ],
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    client.post(_sb(attempt_id, "/start"), headers=CANDIDATE)
+    code = "def pair_sum(nums: list[int], target: int) -> list[int]:\n    return [0, 1]\n"
+    submitted = client.post(
+        _sb(attempt_id, "/submit"), headers=CANDIDATE, json={"auto": False, "code": code}
+    )
+    assert submitted.status_code == 200
+
+    applications = client.get(
+        "/api/v1/candidates/me/applications", headers=CANDIDATE
+    ).json()["applications"]
+    mine = [a for a in applications if (a.get("applied_interview") or {}).get("attempt_id") == attempt_id]
+    assert mine, "submitted attempt should appear in the candidate's applications"
+    assert mine[0]["ai_improvement_feedback"]
+    assert not [e for e in errors if "synthesize" in e], errors

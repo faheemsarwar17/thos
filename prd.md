@@ -1,230 +1,263 @@
 # THOS — Product Requirements Document (PRD)
 
-Version: 1.0 · July 2026
-Companion documents: `architecture.md` (technical design) · `rules.md` (binding constraints) · `phases.md` (delivery gates) · `design.md` (UX/UI system) · `implementation-plan.md` (build sequence)
+Version: 2.0 · October 2026 (v1.0 July 2026)
+
+Companion documents:
+- `architecture.md`: technical design
+- `rules.md`: binding constraints
+- `phases.md`: delivery gates
+- `design.md`: UX/UI system
+- `implementation-plan.md`: build sequence
 
 ---
 
 ## 1. Purpose & Audience
 
-This PRD defines **what** THOS must do and **why**, independent of implementation detail. It is written for product, design, engineering leads, and any AI coding agent using this repository as context — when in doubt about a feature's intent, this is the source of truth over any individual code comment or Slack thread.
+This PRD defines **what** THOS must do and **why**, and records **how much of it is built today**. It is written for product, design and engineering leads, and for any AI coding agent that uses this repository as context. When a feature's intent is unclear, this document is the source of truth over any individual code comment.
 
-If a requirement here conflicts with `architecture.md`, this document wins on intent; `architecture.md` wins on technical feasibility trade-offs, and conflicts should be logged as a decision (see `phases.md` §Decision Log).
+- **Intent:** if a requirement here conflicts with `architecture.md`, this document wins.
+- **Technical feasibility:** `architecture.md` wins on trade-offs.
+- **Logging conflicts:** record them as a decision in `phases.md` §16.
+
+**Build-status legend** (used in §7 and §9):
+- ✅ **Built**: works end to end in the local pilot.
+- 🟡 **Partial**: works in simplified form; the gap is noted.
+- ⬜ **Planned**: not started.
 
 ---
 
 ## 2. Product Summary
 
-THOS is a multi-tenant, AI-native **hiring operating system**. It separates hiring into two layers:
+THOS is a multi-tenant, AI-native **hiring operating system** with two layers:
 
-- A **Universal Hiring Engine** — auth, tenancy, ATS workflow, interview orchestration, sandboxed assessment execution, matching, search, analytics — built once and shared by every customer, in every industry.
-- **Domain Intelligence Packs** — swappable modules (Education, Software Engineering, Business & Marketing, Healthcare, Finance, …) that supply the ontology, question generation, and grading rubrics for a specific field.
+- **Universal Hiring Engine.** Shared by every customer in every industry, it covers:
+  - auth and tenancy
+  - the ATS workflow
+  - interview orchestration
+  - proctored practical assessments
+  - matching and search
+  - messaging and analytics
+- **Domain Intelligence Packs.** Swappable JSON manifests for Education, Software Engineering and future fields. Each pack supplies the ontology, resume signals, matching weights, interview configuration and grading rubrics for its field.
 
-The platform runs a **two-stage AI interview model**:
-1. A **Profile Interview** — self-directed, candidate-owned, retakeable, general to a domain. Produces a portable Skill Score.
-2. An **Applied Interview** — employer-owned, generated from a specific job description, curated by the hiring org, locked, one attempt per candidate.
+The platform runs a **two-stage AI interview model**, delivered as **real-time voice conversations** with an AI interviewer:
+1. **Profile Screening (Profile Interview).** Self-directed, owned by the candidate, retakeable after a cooldown and specific to one domain. It produces a portable Skill Score.
+2. **Job Interview (Applied Interview).** Owned by the employer and generated from a specific posting's locked question pool. Each candidate gets one attempt, followed by a **proctored sandbox** exercise (coding or written).
 
-THOS originated as PATN (Pakistan Academic Talent Network), a single-domain academic hiring tool. The Education Pack is the founding, flagship Domain Pack; the underlying engine is built generically from day one.
+THOS originated as PATN (Pakistan Academic Talent Network). The Education Pack is the founding pack. The engine has been built generically from day one, and a second pack (Software Engineering) already ships.
 
 ---
 
 ## 3. Problem Statement
 
-**Generic job portals** (LinkedIn, Indeed-style boards) have reach but no domain intelligence: they cannot verify an academic credential, run a subject-specific technical interview, or evaluate teaching ability. Screening remains manual after the platform does little more than collect applications. Opportunity discovery is entirely candidate-driven.
+**Generic job portals** have reach but no domain intelligence:
+- They cannot verify an academic credential, run a subject-specific interview or evaluate teaching ability.
+- Once applications are collected, screening is still manual.
 
-**Single-domain vertical tools** (the original PATN concept) go deep in one field but cap their addressable market there, and every new industry traditionally means rebuilding a near-duplicate product.
+**Single-domain vertical tools** go deep in one field. But that caps their market, and each new industry means rebuilding a near-duplicate product.
 
-Within Pakistani academia specifically: chronic faculty shortages, paper-heavy recruitment, job postings scattered across disconnected channels, no shared visibility into visiting faculty availability, and no shared infrastructure for inter-university collaboration.
+**Pakistani academia** has its own problems:
+- chronic faculty shortages
+- paper-heavy recruitment
+- job postings scattered across disconnected channels
+- no shared visibility into which visiting faculty are available
 
-**The question THOS answers:** can one platform be both wide (general enough for any industry) and deep (expert enough to be genuinely useful in each one), while proactively connecting proven candidates to roles they haven't searched for — rather than trading off reach against depth?
+**The question THOS answers:** can one platform be both wide and deep, and proactively connect proven candidates to roles they haven't searched for?
 
 ---
 
 ## 4. Goals & Success Metrics
 
-| Goal | Metric | Target (directional — confirm in Phase 0) |
-|---|---|---|
-| Prove the two-layer architecture | Zero engine-service code changes required to add the second Domain Pack (Phase 7) | 0 required changes; every exception logged as architecture debt |
-| Reduce hiring time | Median time-to-hire, Education Pack pilot | ≥30% reduction vs. baseline manual process |
-| Build reusable candidate proof of ability | % of candidates who reuse a Profile Interview result across ≥2 applications | Track from Phase 2 onward |
-| Increase passive discovery | Notification-to-application conversion rate | Track from Phase 5 onward; feed back into matching weights |
-| Keep humans in control of decisions | % of reject/hire/offer decisions with a human actor of record | 100% — non-negotiable (see `rules.md` §4) |
-| Screening quality | Reviewer/AI rubric agreement rate | Defined and monitored from Phase 6 (fairness/calibration workflow) |
-| Platform trust | WCAG 2.2 AA pass rate on critical paths | 100% of Phase 0 keyboard/screen-reader critical paths |
+| Goal | Metric | Target | Instrumented today? |
+|---|---|---|---|
+| Prove the two-layer architecture | Engine code changes required to add a Domain Pack | 0 | 🟡 The second pack (Software Engineering) loaded with no engine changes. Formal Phase 7 audit pending. |
+| Reduce hiring time | Median time-to-hire in the Education pilot | ≥30% reduction vs. baseline | 🟡 `analytics/velocity` reports time-in-stage. No baseline captured yet. |
+| Reusable proof of ability | % of candidates reusing a Profile Screening score across ≥2 applications | Track | 🟡 The score is snapshotted onto each application. No report yet. |
+| Passive discovery | Notification-to-application conversion | Track | ⬜ Match notifications exist; conversion is not tracked. |
+| Humans control decisions | % of reject/hire/offer decisions with a human actor of record | **100%** | ✅ Enforced by the transition command and the audit log. |
+| Screening quality | Reviewer vs. AI agreement rate | Monitor | 🟡 `analytics/calibration` exists; no review workflow yet. |
+| Platform trust | WCAG 2.2 AA on critical paths | 100% | 🟡 Keyboard Kanban, focus rings and labels are done. No formal audit yet. |
 
 ---
 
 ## 5. Personas
 
-| Persona | Summary | Primary workspace |
-|---|---|---|
-| **Organization Administrator** | Sets up the tenant, units/departments, activates Domain Packs, configures workflow templates and retention policy. | Employer — Administration |
-| **Hiring Manager / Head of Department** | Creates and publishes postings, curates Applied Interview question pools, reviews candidates, makes hiring decisions. | Employer — Jobs, Pipeline, Interviews |
-| **HR / Talent Team** | Manages pipeline operations, compliance, documentation, offers, communications. | Employer — Pipeline, Messages, Analytics |
-| **Candidate / Member** | Builds a verified profile, takes Profile Interviews, applies to postings, takes Applied Interviews, tracks status. | Candidate — Overview, Profile, Skill Profile, Applications |
-| **Short-Term / Visiting Talent** | Lists availability for short-term/visiting engagements. | Candidate — Opportunities (marketplace mode) |
-| **Specialist / Collaborator** | Specialized profile for research or project collaboration, not a standard hire. | Candidate — Profile (specialist mode) |
-
-Full role/permission scope lives in `architecture.md` §12 (Security & Tenancy).
+| Persona | Summary | Primary workspace | Seeded demo user |
+|---|---|---|---|
+| **Platform Superadmin** | Verifies organization applications | `/admin` (pending orgs) | `superadmin@thos.local` |
+| **Organization Administrator / Owner** | Sets up units, members, roles, domain packs, workflows, email templates, automations | Employer: Administration, Automations | `ayesha.khan@nut.edu.pk` |
+| **Hiring Manager** | Creates postings, curates question pools, reviews candidates, decides | Employer: Jobs, Pipeline | `samira.iqbal@nut.edu.pk` |
+| **Recruiter / HR** | Runs the pipeline, screening, invitations, messages, analytics | Employer: Pipeline, Messages, Analytics | `bilal.hassan@nut.edu.pk` |
+| **Candidate** | Builds a profile, uploads a CV, takes Profile Screening, applies, takes Job Interviews and the sandbox, tracks status | Candidate portal | `hira.ahmed@gmail.com` |
+| **Short-term / Visiting Talent** | Lists availability for visiting engagements | Candidate: Opportunities | ⬜ Planned |
+| **Specialist / Collaborator** | Research and project collaboration profile | Candidate: Profile | ⬜ Planned |
 
 ---
 
 ## 6. Scope
 
-### 6.1 In scope (platform-wide, all phases)
-- Universal Hiring Engine: multi-tenancy, ATS pipeline, Two-Stage Interview Orchestrator, Practical Assessment Sandbox, Proactive Matching & Notification Engine, Talent Discovery Engine, Analytics & Workforce Planning, Automation engine.
-- Domain Pack Registry and the Education Pack (founding pack).
-- Candidate-owned Profile Interview (retakeable) and employer-owned Applied Interview (one-shot, curated, locked).
+### 6.1 In scope (platform-wide)
+- The Universal Hiring Engine, made up of:
+  - multi-tenancy
+  - the ATS pipeline
+  - two-stage voice interviews
+  - the proctored assessment sandbox
+  - matching and notifications
+  - talent discovery
+  - analytics
+  - automation
+  - messaging
+- The Domain Pack Registry, with the Education (founding) and Software Engineering packs.
 - Human-in-the-loop control over every consequential hiring decision.
 
-### 6.2 In scope (later phases, see `phases.md`)
-- Second and third Domain Packs (Software Engineering; Business & Marketing) to prove portability.
-- Visual automation builder, workforce planning analytics, fairness/calibration governance tooling.
-- External pack-authoring SDK (evaluated, not committed, for opening to third parties).
+### 6.2 Later phases (see `phases.md`)
+- A third pack (Business & Marketing) and a formal portability audit.
+- An automation **executor**, which runs rules on live events. Today rules are authored and dry-run only.
+- A fairness and calibration governance workflow, workforce planning, and an external pack-authoring SDK.
+- Production identity (OIDC/MFA), row-level security, an event bus and workers, and an isolated code-execution runtime.
 
-### 6.3 Explicitly out of scope (Phase 1 and until revisited)
-- AI making a final hire/reject/offer decision without a human action.
-- Any domain-specific logic implemented inside an engine service rather than a Domain Pack.
-- Native mobile apps (responsive web is the Phase 0 assumption — confirm in `phases.md` §12.1).
-- Public/open pack authorship by third parties (Phase 7 evaluates only whether to open this later).
-- Payroll, background-check, or full HRIS/onboarding functionality beyond a hire event and (optional) webhook handoff to existing systems.
+### 6.3 Explicitly out of scope
+- AI making a final hire, reject or offer decision.
+- Domain-specific logic inside engine services.
+- Native mobile apps. The product is a responsive web app.
+- Third-party pack authorship, payroll, background checks, or full HRIS and onboarding.
 
 ---
 
-## 7. Functional Requirements
-
-Requirements are grouped by capability area. Each includes representative user stories with acceptance criteria; not every acceptance criterion for every minor variant is enumerated — see `phases.md` epic backlog for sprint-level breakdown.
+## 7. Functional Requirements & Build Status
 
 ### 7.1 Organization Onboarding & Configuration
-**FR-1.1 — Tenant setup.** An organization can sign up, verify (including accreditation/HEC recognition for universities), and configure its internal unit/department structure.
-> *As an Organization Administrator, I want to define campuses/departments or business units, so hiring can be scoped and reported at the right level.*
-> Acceptance: units form a tree; roles can be scoped to a unit; audit log records all changes.
-
-**FR-1.2 — Domain Pack activation.** An org can browse, activate, and version-pin one or more Domain Packs.
-> Acceptance: activating a pack validates its manifest against the Domain Pack contract (`architecture.md` §5); an invalid manifest is rejected with a specific validation error, never partially activated.
-
-**FR-1.3 — Workflow configuration.** An org can start from a default hiring workflow or build a reusable, versioned workflow template (stages, required fields, approvals, SLA targets, rejection reasons, permitted transitions).
-> Acceptance: publishing a new workflow version does not retroactively change the workflow version pinned to already-published postings (see `architecture.md` §11 canonical state model).
+| ID | Requirement | Status | Notes |
+|---|---|---|---|
+| FR-1.1 | Tenant setup: sign-up, verification, unit tree | ✅ | `/register/organization` → pending → the superadmin verifies or rejects (`/admin/organizations/*`). Units and members are managed under `/organizations/current`. Changes are audited. |
+| FR-1.2 | Domain Pack activation with manifest validation | ✅ | `PackRegistry` validates the required keys and a semantic version. Tenants can also create custom packs (`tenant_domain_packs`). |
+| FR-1.3 | Versioned workflow configuration | ✅ | The `/workflows` API provides components, current/active, publish and versioning. Postings pin the workflow version. |
+| FR-1.4 | Configurable candidate emails | ✅ | Per-tenant email templates (`/organizations/current/email-templates`) for stage progression, acceptance and rejection. Sent over SMTP, or logged to the console. |
 
 ### 7.2 Candidate Profile & Skill Profile
-**FR-2.1 — Profile creation & resume parsing.** A candidate can create an account, upload a resume or enter data manually, and review/correct AI-extracted fields before anything is treated as verified.
-> Acceptance: extraction review screen highlights fields and confidence; nothing is silently accepted as verified; candidate can edit every field.
-
-**FR-2.2 — Domain selection.** A candidate selects one or more target domains from active packs (e.g. "Assistant Professor, Computer Science," "Backend Developer").
-
-**FR-2.3 — Profile Interview.** A candidate can take a self-directed, pack-generated interview ending in a practical task (code sandbox for technical domains; structured scenario workspace for non-technical domains).
-> *As a candidate, I want to demonstrate my ability once and reuse that proof across applications, so I don't re-prove myself from scratch every time.*
-> Acceptance: interview is resumable after disconnect without creating a duplicate attempt; submission is explicit and produces a Skill Score, rubric-dimension breakdown, and an evidence-based strengths/gaps summary; retake is available after a cooldown window with a randomized question/task pool.
-
-**FR-2.4 — Score visibility control.** A candidate can choose (subject to org policy) whether organizations see their best or most recent Profile Interview attempt, not full history by default.
-
-**FR-2.5 — Consent & cross-org visibility.** A candidate controls whether their profile is discoverable across organizations; revoking consent removes them from discovery within a defined SLA without corrupting existing lawful records (e.g. completed applications).
+| ID | Requirement | Status | Notes |
+|---|---|---|---|
+| FR-2.1 | Profile creation and resume parsing with review | ✅ | `cv/upload` accepts PDF, DOCX and text (≤5 MB). `cv/parse` uses an LLM or a heuristic. The candidate edits every field. |
+| FR-2.2 | Domain selection from active packs | ✅ | `packs/catalog`, plus target domains on the profile. |
+| FR-2.3 | Profile Screening (voice) | ✅ | A LiveKit voice session with an AI interviewer and a LangGraph turn engine with follow-ups. Post-session analysis gives a Skill Score, rubric breakdown, strengths and gaps. Resumable. Attempt cap 3, cooldown 24h. |
+| FR-2.4 | Score visibility control (best / most recent) | 🟡 | Scores are snapshotted to applications. The candidate-facing best/most-recent toggle is pending. |
+| FR-2.5 | Consent & cross-org visibility | ✅ | `PUT /candidates/me/consents/{purpose}`. Matching and talent search only include consenting candidates. |
+| FR-2.6 | Profile photo & identity check | ✅ | Avatar upload, then a webcam-frame comparison by a vision model before the interview. If AI is unavailable the result is "unavailable"; it never blocks the candidate. |
 
 ### 7.3 Job Creation & Publishing
-**FR-3.1 — Job authoring.** A hiring manager selects a unit, Domain Pack, and workflow template, and enters structured requirements plus a raw JD/course outline.
-
-**FR-3.2 — AI-generated question pool.** On posting creation, the active pack generates a large candidate question pool, a practical task, and a draft rubric scoped to that posting.
-
-**FR-3.3 — Curation.** The hiring team can keep, edit, reorder, remove, or regenerate individual pool items, and append custom closing questions the pack didn't generate.
-> Acceptance: a coverage meter flags any competency with zero questions before publish; preview mode shows the exact candidate experience and estimated duration.
-
-**FR-3.4 — Lock & publish.** Once approved, the question pool and workflow version are locked; every applicant to that posting draws from the identical locked pool.
-> Acceptance: locking requires an explicit action and a final diff; unlocking requires creating a new version and cannot mutate any already-completed attempt.
+| ID | Requirement | Status | Notes |
+|---|---|---|---|
+| FR-3.1 | Job authoring (unit, pack, workflow, requirements, JD) | ✅ | Includes work mode and sandbox settings per posting. |
+| FR-3.2 | AI-generated question pool | ✅ | `question-pool/generate`. Returns `disabled` without an AI key. |
+| FR-3.3 | Curation (keep / edit / reorder / remove / add) | ✅ | `PATCH question-pool`. |
+| FR-3.4 | Lock & publish | ✅ | `question-pool/lock` and `publish`. Every applicant draws from the same locked pool. |
+| FR-3.5 | AI job-description generator | ✅ | `postings/generate-description`, with a template fallback. |
 
 ### 7.4 Application, Screening & Pipeline
-**FR-4.1 — Apply.** A candidate applies using a profile snapshot plus any job-specific screening questions; duplicate submission is prevented idempotently.
+| ID | Requirement | Status | Notes |
+|---|---|---|---|
+| FR-4.1 | Apply idempotently with a profile snapshot | ✅ | `POST /applications` with an idempotency key. |
+| FR-4.2 | AI CV screening and ranking | ✅ | `pipeline/screen-received` and `pipeline/shortlist` use embedding similarity, skill overlap and the pack's matching weights. The result is a suggestion; a human applies it. |
+| FR-4.3 | Pipeline movement (Kanban + list) | ✅ | One canonical transition command. Drag-and-drop or keyboard. Bulk transition and undo. Reasons are required on consequential moves. Everything is audited. |
+| FR-4.4 | Candidate-facing 4-step status | ✅ | `/candidates/me/applications/{id}/timeline`. Internal stage names and notes are never exposed. |
+| FR-4.5 | AI improvement feedback on rejection | ✅ | Stored as `applications.ai_improvement_feedback`, with a heuristic fallback. |
+| FR-4.6 | Candidate withdrawal | ✅ | `POST .../applications/{id}/withdraw`. |
 
-**FR-4.2 — AI resume/CV screening.** Applications are ranked using the active pack's extraction rules, existing Profile Interview score, and matching weights, while preserving human control over any resulting decision.
-
-**FR-4.3 — Pipeline movement.** Recruiters move candidates through configurable stages (default: Received → Screened → Shortlisted → Applied Interview → Offer → Hired) via an accessible Kanban or list view, with required fields, approvals, and audit recorded on every transition.
-> Acceptance: every stage move is authorized and validated server-side; reversible moves support Undo; irreversible/consequential moves require a reason and are logged with actor, timestamp, and old/new state.
-
-**FR-4.4 — Candidate-facing status.** Candidates see a simplified four-step timeline (Application received → Under review → Interview → Decision) mapped from the internal workflow, never the internal stage names or notes.
-
-### 7.5 Applied Interview
-**FR-5.1 — Invitation.** Moving a candidate to the Applied Interview stage creates/activates an invitation from the posting's locked pool, showing deadline, expected duration, accommodations, and consent.
-
-**FR-5.2 — One-shot, immutable submission.** The candidate completes the interview and practical task once; autosave and reconnection protect progress; submission is explicit and immutable.
-> Acceptance: no candidate-initiated retake exists; only an org-authorized, reason-logged technical reset can reopen an attempt.
-
-**FR-5.3 — Evaluation.** AI evaluation produces rubric-dimension scores, evidence citations, integrity flags, and stated limitations; human reviewers complete scorecards and record the decision.
-> Acceptance: AI output can never itself advance, reject, or hire a candidate.
+### 7.5 Job Interview (Applied Interview) & Sandbox
+| ID | Requirement | Status | Notes |
+|---|---|---|---|
+| FR-5.1 | Invitation from the locked pool | ✅ | Single invite or bulk (`pipeline/invite-interviews`), plus an email. |
+| FR-5.2 | One-shot, immutable submission | ✅ | A voice session keeps the locked questions word for word, then submits explicitly. No candidate-initiated retake. |
+| FR-5.3 | Evaluation with evidence and a human decision | ✅ | Transcript synthesis with guards against thin transcripts, plus reviewer scorecards and `POST /applications/{id}/decision`. AI never moves a stage by itself. |
+| FR-5.4 | Proctored practical sandbox | 🟡 | A coding or written exercise (AI-generated or from the fallback bank), with timer, autosave, tab and focus violations, and webcam recording. **Grading is done by an LLM or by keyword coverage. Code is not executed against test cases yet.** |
+| FR-5.5 | Org-authorized technical reset | ⬜ | Planned. |
 
 ### 7.6 Proactive Matching & Notifications
-**FR-6.1 — Automatic matching.** On posting publish, the matching engine evaluates all candidates in that domain (respecting tenant and consent boundaries) and dispatches explainable match notifications.
-
-**FR-6.2 — Candidate preferences.** Candidates control notification scope (domain, seniority, location, comp band, remote/on-site) to prevent noise at scale.
-
-**FR-6.3 — Employer watch.** A hiring manager can watch for candidates newly crossing a Skill Score threshold, even before a requisition is open.
+| ID | Requirement | Status | Notes |
+|---|---|---|---|
+| FR-6.1 | Automatic matching on publish | ✅ | Runs on publish and is stored in `posting_matches`. Candidates see `/candidates/me/matches`; employers see `/postings/{id}/matches`. |
+| FR-6.2 | Candidate notification preferences | ⬜ | Planned. |
+| FR-6.3 | Employer score-threshold watch | 🟡 | Possible as an automation trigger (`score_threshold`); it runs only as a dry run. |
+| FR-6.4 | In-app notifications | ✅ | `/notifications` and `mark-read`, with a bell count in the top bar. |
 
 ### 7.7 Talent Discovery
-**FR-7.1 — Faceted search.** Employers can search the verified talent pool by expertise, qualification, Skill Score, availability, and location.
+| ID | Requirement | Status | Notes |
+|---|---|---|---|
+| FR-7.1 | Faceted talent search | 🟡 | `/talent` and global `/search`. Filters are basic; OpenSearch is planned. |
+| FR-7.2 | Explainable match | 🟡 | Match score and skill overlap. The full required/preferred/missing split is pending. |
+| FR-7.3 | Comparison tray | ⬜ | Planned. |
 
-**FR-7.2 — Explainable match.** Results separate required-criteria-met, preferred-criteria-met, and missing/unknown evidence — never a single opaque rank.
+### 7.8 Messaging
+| ID | Requirement | Status | Notes |
+|---|---|---|---|
+| FR-11.1 | Conversations tied to an application | ✅ | `/conversations` (by application, messages, read receipts). Employer and candidate inboxes. |
 
-**FR-7.3 — Comparison.** A small, explicit comparison tray compares candidates by rubric dimension.
+### 7.9 Automation
+| ID | Requirement | Status | Notes |
+|---|---|---|---|
+| FR-8.1 | Rule builder (WHEN / IF / THEN) | ✅ | CRUD and toggle in `/automations`. Triggers: stage entered, score threshold, SLA exceeded. |
+| FR-8.2 | Safety: dry run, pause, versioning, loop detection | 🟡 | Dry-run (`/automations/{id}/test`) and per-rule toggle are built. **No executor runs rules on live events yet.** Versioning and loop detection are planned. |
 
-### 7.8 Automation
-**FR-8.1 — Rule builder.** Administrators can build WHEN/IF/THEN/WAIT automation rules from triggers, conditions, actions, and delays, using recipes as starting points.
+### 7.10 Analytics & Governance
+| ID | Requirement | Status | Notes |
+|---|---|---|---|
+| FR-9.1 | Operational dashboards | ✅ | `analytics/overview`, `funnel`, `velocity`, `sources`, plus `analytics/pipeline`. |
+| FR-9.2 | Fairness monitoring and appeals | 🟡 | `analytics/fairness` and `calibration` show score distributions. Restricted access, sample thresholds and an appeals path are planned. |
 
-**FR-8.2 — Safety by construction.** Consequential actions (reject, hire, stage-move) default to creating a human task rather than executing automatically; every rule supports dry-run/test, versioning, an impact preview, loop detection, duplicate-notification suppression, and a global/per-rule pause.
-
-### 7.9 Analytics & Governance
-**FR-9.1 — Operational dashboards.** Funnel, time-to-hire, time-in-stage, source quality, and notification-conversion metrics, every metric linking to the underlying filtered record list.
-
-**FR-9.2 — Fairness monitoring.** Recurring bias audits per Domain Pack with minimum sample thresholds and restricted access; a documented appeals path for a candidate who believes an AI-graded result misrepresented them.
-
-### 7.10 Domain Pack System
-**FR-10.1 — Pack contract.** A pack supplies ontology, knowledge graph, resume extraction rules, matching weights, Profile/Applied Interview generators, evaluation rubric, and (optional) compliance rules — see `architecture.md` §5 for the manifest schema.
-
-**FR-10.2 — Zero engine changes.** Adding a new industry must require authoring and registering a new pack only; any engine-service change required to support a new pack is logged as architecture debt and resolved before the pack is considered complete (validated explicitly in Phase 7).
+### 7.11 Domain Pack System
+| ID | Requirement | Status | Notes |
+|---|---|---|---|
+| FR-10.1 | Pack contract | ✅ | Manifest keys: `pack_id`, `pack_version`, `display_name`, `domain`, `ontology`, `resume_extraction_rules`, `matching_weights`, `profile_interview`, `applied_interview`, `evaluation_rubric`, `compliance_rules`. |
+| FR-10.2 | Zero engine changes for a new pack | 🟡 | The Software Engineering pack was added as a manifest only. A formal audit is part of Phase 7. |
 
 ---
 
 ## 8. Non-Functional Requirements
 
-| Category | Requirement |
-|---|---|
-| **Accessibility** | WCAG 2.2 AA on all critical paths; full keyboard equivalents for drag-and-drop; visible focus states; color never the sole carrier of status. |
-| **Privacy & consent** | Candidate consent required for cross-org profile sharing; consent revocation reflected in search/visibility within a defined SLA; export/deletion/retention policies configurable per tenant. |
-| **Security** | Mandatory tenant context on every request/query/cache/event/storage/search boundary; sandboxed, network-isolated code execution; signed short-lived object URLs; malware scanning on uploads. |
-| **AI governance** | Every AI-generated/evaluated artifact stores prompt/model/pack/rubric/policy version; structured output is schema-validated; protected characteristics excluded from scoring context unless a legally approved audit requires them; AI never silently rejects, hires, or overrides a human decision. |
-| **Reliability** | Async/AI-driven operations always expose a visible state (`Queued → Processing → Completed` or `Needs attention → Retrying → Resolved/Cancelled`); failures never silently block a candidate; manual fallback exists for critical hiring actions. |
-| **Performance** | p95 targets for navigation, API reads/writes, search, and board interaction defined in Phase 0 and tracked as release gates (`phases.md` §Non-Functional Release Gates). |
-| **Auditability** | Append-only audit records for permissions, configuration, candidate decisions, score changes, exports, and overrides. |
-| **Localization readiness** | English at launch; UI and content structured for localization from the start (no hardcoded strings in engine logic). |
+| Category | Requirement | Current state |
+|---|---|---|
+| **Accessibility** | WCAG 2.2 AA on critical paths; keyboard equivalents for drag-and-drop; visible focus; never color alone | 🟡 Keyboard Kanban, focus rings, skip link, labelled pills and reduced-motion support. No formal audit yet. |
+| **Responsive layout** | Usable from 360px phones to wide desktops; **no horizontal page scroll or clipped controls at 1280×620 CSS px** (e.g. 1600×900 at 125% scaling) | ✅ Icon-rail sidebar between 821 and 1366px, `dvh` heights, scrollable dialogs. See `design.md` §6. |
+| **Privacy & consent** | Consent for cross-org sharing; revocation honoured; retention configurable | 🟡 Consent is enforced in matching and search. Retention and export are planned. |
+| **Security** | Tenant context on every query; sandboxed execution; signed URLs; upload checks | 🟡 Tenant predicates on every store query, plus a cross-tenant test suite. Uploads are type- and size-checked. S3 presigned URLs are optional. RLS and malware scanning are planned. |
+| **AI governance** | Version stamps; schema-validated output; protected characteristics excluded; AI never decides | 🟡 Structured outputs are validated and every LLM path has a fallback. Full prompt and model version stamping is partial. |
+| **Reliability** | Async work is visible; no silent failure; manual fallback | 🟡 Voice setup steps are streamed over WebSocket, and safe errors return 503s. No job queue yet. |
+| **Auditability** | Append-only audit for permissions, config, decisions, overrides | ✅ `audit_records`, written in the same transaction as the change. |
+| **Localization** | English first; ready for localization | 🟡 English only. The interview language is configurable (`THOS_DEFAULT_INTERVIEW_LANGUAGE`). |
 
 ---
 
-## 9. Release Criteria (MVP)
+## 9. Release Criteria (Pilot MVP)
 
-Phase 1 (see `phases.md`) is the MVP boundary: Universal Hiring Engine + Education Pack, validated end-to-end through Pakistani academic hiring. MVP is releasable when:
-- A candidate can complete onboarding, a Profile Interview, an application, and an Applied Interview end-to-end.
-- A hiring team can process a candidate from Received to Hired or Rejected with every move authorized, validated, and auditable.
-- No internal-only status or note is ever exposed to a candidate.
-- Tenant isolation is proven by an automated cross-tenant denial test suite.
-- WCAG 2.2 AA passes on the above critical paths.
+| Criterion | Status |
+|---|---|
+| A candidate completes onboarding, Profile Screening, an application, a Job Interview and the sandbox end to end | ✅ Requires LiveKit and OpenAI for the voice steps. |
+| A hiring team moves a candidate from Received to Hired or Rejected, with every move authorized, validated and audited | ✅ |
+| No internal-only status or note is ever exposed to a candidate | ✅ Covered by the timeline mapping. |
+| Tenant isolation is proven by an automated cross-tenant denial suite | ✅ `Backend/tests/test_tenancy.py` |
+| WCAG 2.2 AA passes on the critical paths | 🟡 No formal audit yet. |
+| Production identity (OIDC), RLS, and isolated code execution | ⬜ Required before staging. |
 
 ---
 
 ## 10. Assumptions & Dependencies
 
-- Initial market is Pakistani academic hiring (Education Pack); initial locale is English.
-- One tenant may contain multiple units/departments.
-- Web client is a responsive browser application at launch (no native mobile app committed for Phase 1).
-- Human approval is required for rejection, offer, and hire actions in every workflow, by default.
-- MVP notification channels are in-app and email.
-- These are **working assumptions** pending confirmation in Phase 0 (`phases.md` §12.1) — treat as provisional until the linked decision is recorded.
+- The initial market is Pakistani academic hiring (Education Pack), in English.
+- One tenant contains multiple units.
+- Responsive web only; no native app.
+- Human approval is required for reject, offer and hire.
+- Notification channels are in-app and email (SMTP).
+- **OpenAI is the only AI provider today.** LiveKit (self-hosted or Cloud) carries real-time media. Both are optional for non-voice features.
 
 ---
 
 ## 11. Risks
 
-Tracked and owned in `phases.md` §Risk Register. Headline product risks:
-- Domain logic leaking into the engine, eroding the "new industry = new pack, not a new product" claim.
-- Inconsistent AI grading on open-ended, non-technical tasks relative to objectively-testable code tasks.
-- Candidate trust erosion if status communication is silent between pipeline gates (directly addressed by FR-4.4).
-- Compute cost of live sandbox execution and AI-graded scenario tasks at scale.
+These are tracked in `phases.md` §15. The headline product risks are:
+- Domain logic leaking into the engine.
+- Inconsistent AI grading of open-ended tasks. This matters more now that sandbox grading is LLM- or keyword-based rather than test-based.
+- Candidate trust eroding if status communication goes silent.
+- The compute and API cost of voice interviews and AI grading at scale.
+- Depending on a single AI provider.
 
 ---
 
@@ -232,10 +265,12 @@ Tracked and owned in `phases.md` §Risk Register. Headline product risks:
 
 | Term | Definition |
 |---|---|
-| **Engine** | The Universal Hiring Engine — domain-agnostic services shared by every tenant and pack. |
-| **Domain Pack** | A swappable module supplying ontology, question generation, and rubrics for one industry/field. |
-| **Profile Interview** | Candidate-owned, general, retakeable interview producing a portable Skill Score. |
-| **Applied Interview** | Employer-owned, job-specific, one-shot interview generated from a posting's JD/course outline. |
-| **Skill Score** | The scored, evidence-backed output of a Profile Interview attempt, presented with a tier (e.g. Gold/Silver/Bronze). |
-| **Locked pool** | The finalized, immutable Applied Interview question set for one specific posting. |
-| **Canonical state** | The single, engine-defined source of truth for an application's stage category (see `architecture.md` §11). |
+| **Engine** | Domain-agnostic services shared by every tenant and pack |
+| **Domain Pack** | A JSON manifest that supplies the ontology, signals, weights, interview config and rubrics for one field |
+| **Profile Screening / Profile Interview** | A voice interview owned by the candidate, retakeable, that produces a portable Skill Score |
+| **Job Interview / Applied Interview** | A one-shot voice interview owned by the employer, drawn from a posting's locked pool |
+| **Sandbox** | A proctored coding or written exercise that follows a Job Interview |
+| **Skill Score** | The evidence-backed score from Profile Screening, shown with a tier (Gold / Silver / Bronze) |
+| **Locked pool** | The finalized, immutable Job Interview question set for one posting |
+| **Canonical transition** | The single authorized and audited command for every pipeline stage change |
+| **Turn engine** | The LangGraph state machine that decides whether to follow up, advance, redirect or wrap up after each spoken answer |

@@ -8,7 +8,7 @@ word-count heuristic keeps the engine fully functional in dev/tests.
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel
 

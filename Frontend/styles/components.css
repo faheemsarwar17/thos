@@ -755,6 +755,9 @@ textarea[aria-invalid="true"]:focus {
   background: var(--surface-card);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-overlay);
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   animation: scaleUp var(--duration-fast) var(--ease-spring);
 }
 
@@ -764,7 +767,7 @@ textarea[aria-invalid="true"]:focus {
 
 .drawer {
   width: min(600px, 100vw);
-  height: 100vh;
+  height: 100dvh;
   overflow-y: auto;
   background: var(--surface-card);
   border-left: 1px solid var(--border);
@@ -865,7 +868,7 @@ textarea[aria-invalid="true"]:focus {
   padding-bottom: 24px;
 }
 
-@media (max-width: 1180px) {
+@media (max-width: 1024px) {
   .kanban--fit {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -997,6 +1000,8 @@ textarea[aria-invalid="true"]:focus {
   padding: 12px;
   flex: 1;
   min-height: 140px;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .kanban__empty {
@@ -1550,4 +1555,74 @@ textarea[aria-invalid="true"]:focus {
 .history-list span {
   font-size: 12px;
   color: var(--ink-500);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Compatibility classes                                                      */
+/* Several screens use these generic names; they map onto the design system   */
+/* so those screens are styled consistently instead of rendering bare.        */
+/* -------------------------------------------------------------------------- */
+.content {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-card);
+  min-width: 0;
+}
+
+.btn {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+  color: var(--ink-700);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  white-space: nowrap;
+  text-decoration: none;
+  transition: background var(--duration-fast) ease, border-color var(--duration-fast) ease, color var(--duration-fast) ease;
+}
+.btn:hover:not(:disabled) { background: var(--surface-card-hover); color: var(--ink-900); }
+.btn:disabled { cursor: not-allowed; opacity: 0.55; }
+.btn-primary { border-color: transparent; background: var(--brand-600); color: #ffffff; }
+.btn-primary:hover:not(:disabled) { background: var(--brand-700); color: #ffffff; }
+.btn-secondary { border-color: var(--border-strong); background: var(--surface-card); color: var(--ink-700); }
+.btn-ghost { border-color: transparent; background: transparent; color: var(--ink-700); }
+.btn-ghost:hover:not(:disabled) { background: var(--surface-sunken); }
+.btn-danger { border-color: transparent; background: var(--red-600); color: #ffffff; }
+.btn-danger:hover:not(:disabled) { background: var(--red-700); color: #ffffff; }
+
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+}
+
+.animate-fade-up {
+  animation: slideUp var(--duration-normal) var(--ease-spring) both;
+}
+
+/* Short viewports (laptops at 125-150% scaling): reclaim vertical space. */
+@media (max-height: 760px) {
+  .dialog { padding: 20px; gap: 12px; }
+  .drawer__header { padding: 14px 20px; }
+  .drawer__body { padding: 18px 20px; gap: 18px; }
 }

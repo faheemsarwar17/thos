@@ -1,61 +1,104 @@
 # THOS
 
-**Talent & Hiring Operating System** is an AI-assisted, multi-tenant applicant tracking system for employer hiring teams and candidates. The repository contains a FastAPI backend, a Next.js employer/candidate application, PostgreSQL infrastructure, optional LiveKit voice interviews, and swappable domain packs.
+**Talent & Hiring Operating System** is an AI-assisted, multi-tenant applicant tracking system for employer hiring teams and candidates. It has three parts:
 
-> This repository is an internal pilot/MVP. AI can assist with questions, evidence, scoring, and summaries; final hiring decisions remain human actions recorded through the application workflow.
+- a FastAPI backend
+- a Next.js web app with an employer workspace and a candidate portal
+- AI voice interviews and proctored skill assessments that run on LiveKit and OpenAI
 
-## What is included
+Industry-specific behaviour comes from swappable **domain packs** (Education and Software Engineering today).
 
-- Employer workspace for dashboards, jobs, question pools, pipeline review, analytics, automations, messages, talent, administration, domain packs, workflows, and audit records.
-- Candidate portal for profiles, consent, job discovery, applications, application timelines, messages, profile screening, applied interviews, and sandbox assessments.
-- Multi-tenant organizations, units, memberships, role checks, tenant-scoped queries, canonical application transitions, idempotency, and request IDs.
-- JWT access and refresh-token authentication, with a development-only persona fallback for local demos.
-- Education and software-engineering domain-pack manifests in `domain-packs/`.
-- Optional LiveKit WebRTC rooms and OpenAI-powered voice interview orchestration.
-- PostgreSQL 17 with pgvector for local development; isolated SQLite-backed tests when a database URL is not supplied.
+> **Status — October 2026: working local pilot.** The full hiring loop runs end to end on a developer machine:
+> organization onboarding → job + locked question pool → candidate application → AI screening → voice interview → proctored sandbox → human review and decision.
+>
+> AI assists with questions, evidence, scores and summaries. Final hiring decisions are always human actions, recorded with an audit trail. See [`prd.md`](prd.md) for the per-requirement build status.
+
+## What is built
+
+**Employer workspace**
+- A dashboard with an attention queue.
+- Job authoring, including AI job-description generation, an AI question-pool generator, curation and locking.
+- A pipeline shown as a list and as a 4-lane Kanban board, with:
+  - drag-and-drop and keyboard moves
+  - bulk moves and undo
+  - auto-screen, shortlist and invite actions
+  - an application drawer with scorecards and the decision
+- Talent discovery.
+- Analytics: overview, funnel, velocity, sources, fairness and calibration.
+- Automation rules, which can be built and dry-run.
+- Messaging and notifications.
+- Administration: units, members, roles, domain packs, workflows, email templates and the audit log.
+
+**Candidate portal**
+- Profile and privacy consents, with a profile photo.
+- CV upload: PDF, DOCX or text, which is parsed into the profile.
+- Job discovery with match scores, and applications.
+- An application timeline (Received → Under review → Interview → Decision).
+- Messages.
+- Voice **Profile Screening**: retakeable, with a cooldown.
+- Voice **Job Interviews** from an employer's locked pool, plus a **proctored sandbox** (coding or written exercise, with webcam recording and violation tracking).
+
+**Platform**
+- Multi-tenant organizations with units, memberships and role checks. Every tenant-owned query is scoped to its tenant.
+- The organization sign-up and verification flow, with superadmin approval.
+- JWT access tokens plus refresh tokens. Request IDs, idempotency keys and append-only audit records.
+- Matching on embeddings plus skill overlap, which only includes candidates who have given consent.
+- Stage-change emails through SMTP. Without SMTP configured they are logged to the console.
 
 ## Architecture
 
 ```text
-Next.js 15 / React 19
-        | HTTP JSON, server-side LiveKit token proxy, WebSocket telemetry
-        v
-FastAPI / Python 3.13
-  auth, tenancy, jobs, applications, interviews, sandbox, analytics, AI helpers
-        |                         |
-        v                         v
-PostgreSQL + pgvector       LiveKit + optional OpenAI services
+ Browser ──► Next.js 15 / React 19 (Frontend/)
+   │            employer routes · candidate routes · /api/interviews/token proxy
+   │ HTTP JSON (Bearer JWT)            │ WebSocket telemetry      │ WebRTC media
+   ▼                                   ▼                          ▼
+ FastAPI · Python 3.13 (Backend/) ◄──────────────────────► LiveKit server
+   api/v1 routers → services → db/store (tenant-scoped SQL)      ▲
+   ai/: LangGraph turn engine · plan generator · sandbox content  │ backend joins room as
+   │                                                              │ the AI interviewer
+   ├─► PostgreSQL 17 + pgvector  (SQLite fallback for tests)      │ (Silero VAD → OpenAI STT
+   ├─► OpenAI (chat, embeddings, STT, TTS, vision) — optional     │  → turn engine → OpenAI TTS)
+   ├─► SMTP (optional) · S3-compatible storage (optional)         │
+   └─► domain-packs/*.json (Education, Software Engineering) ─────┘
 ```
 
-The backend is the authority for authentication, authorization, tenancy, workflow transitions, persistence, and integration readiness. The frontend renders employer and candidate experiences and never stores LiveKit credentials.
+- The backend is the authority for authentication, authorization, tenancy, workflow transitions and persistence.
+- The frontend never holds LiveKit or OpenAI secrets.
+- Full details are in [`architecture.md`](architecture.md).
 
 ## Repository map
 
 ```text
 .
-├── Backend/                   FastAPI app, database layer, services, tests, smoke test
-├── Frontend/                  Next.js App Router app, components, client API, Vitest tests
-├── domain-packs/              JSON manifests for education and software engineering
-├── infrastructure/local/      PostgreSQL + pgvector Docker Compose definition
-├── docker-compose.yml         Optional local LiveKit server and Redis
-├── livekit.yaml               LiveKit server configuration
-├── architecture.md            Technical architecture
-├── design.md                  UX, accessibility, and design tokens
-├── implementation-plan.md     Delivery sequence
-├── phases.md                  Roadmap and phase gates
-├── prd.md                     Product requirements
+├── Backend/                   FastAPI app (app/), tests/, scripts/smoke.py, pyproject.toml, uv.lock
+│   └── app/
+│       ├── api/v1/            HTTP + WebSocket routers (auth, postings, pipeline, sandbox, voice…)
+│       ├── services/          Business services (matching, CV, mail, sandbox, voice, identity…)
+│       ├── ai/                graph/ (LangGraph turn engine), plan/, runtime/ (LiveKit agent), sandbox/, prompts/
+│       ├── db/                database.py (Postgres/SQLite + schema), store.py (queries), seed.py
+│       └── domain/            stages, permissions, evaluation rules
+├── Frontend/                  Next.js App Router app, components, styles (design tokens), Vitest tests
+├── domain-packs/              education/ and software-engineering/ manifests
+├── infrastructure/local/      PostgreSQL 17 + pgvector Docker Compose (host port 5433)
+├── docker-compose.yml         Optional local LiveKit server + Redis (livekit-docker-compose.yml is a copy)
+├── livekit.yaml               Local LiveKit server config (dev key/secret)
+├── prd.md                     Product requirements and build status
+├── architecture.md            As-built technical architecture and planned evolution
+├── design.md                  Design system, tokens, responsive layout rules
+├── phases.md                  Roadmap, phase gates, decision log
+├── implementation-plan.md     Build sequence and vertical-slice status
 ├── rules.md                   Binding engineering and governance rules
-└── THOS_Development_Spec.md   Consolidated development specification
+└── THOS_Development_Spec.md   Original consolidated spec (historical reference)
 ```
 
 ## Requirements
 
-- Python 3.13 (the backend requires `>=3.13,<3.14`)
-- [`uv`](https://docs.astral.sh/uv/)
-- Node.js 20.9 or newer and npm 10 or newer
+- Python 3.13 (the backend requires `>=3.13,<3.14`) and [`uv`](https://docs.astral.sh/uv/)
+- Node.js 20.9+ and npm 10+
 - Docker Desktop with Docker Compose
+- Optional: an OpenAI API key, plus LiveKit (local via Docker or LiveKit Cloud) for voice interviews
 
-## Quickstart
+## Quickstart (Windows PowerShell; the same commands work in bash)
 
 Run each long-lived process in its own terminal from the repository root.
 
@@ -66,28 +109,25 @@ docker compose -f infrastructure/local/docker-compose.yml up -d
 docker compose -f infrastructure/local/docker-compose.yml ps
 ```
 
-The local database uses `thos` as the user, password, and database name, on port `5432`. Its default URL is `postgresql://thos:thos@localhost:5432/thos`.
+The container listens on **host port 5433**, which avoids clashing with a locally installed Postgres. The user, password and database are all `thos`.
+URL: `postgresql://thos:thos@localhost:5433/thos`.
 
-### 2. Configure and start the backend
+### 2. Backend
 
 ```powershell
 cd Backend
-Copy-Item .env.example .env
+Copy-Item .env.example .env      # then add THOS_AI_API_KEY / LiveKit values if you have them
 uv sync --dev
 uv run uvicorn app.main:app --reload --port 8000
 ```
 
-The API is available at `http://127.0.0.1:8000`.
+- API: `http://127.0.0.1:8000`
+- Swagger UI: `/docs`
+- Health checks: `/health/live` and `/health/ready`
 
-- OpenAPI UI: `http://127.0.0.1:8000/docs`
-- Liveness: `http://127.0.0.1:8000/health/live`
-- Readiness: `http://127.0.0.1:8000/health/ready`
+On first start the schema is created and, in development, demo data is seeded into an empty database (`THOS_SEED_DEMO_DATA=true`).
 
-In development, an empty database is seeded automatically when `THOS_SEED_DEMO_DATA=true`.
-
-### 3. Configure and start the frontend
-
-In a second terminal:
+### 3. Frontend
 
 ```powershell
 cd Frontend
@@ -96,123 +136,154 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:3000`.
+Open `http://localhost:3000` and sign in with a demo account.
 
-| Area | URL |
-| --- | --- |
-| Employer dashboard | `/` |
-| Jobs and question pools | `/jobs` |
-| Pipeline | `/pipeline` |
-| Analytics | `/analytics` |
-| Administration | `/admin` |
-| Candidate portal | `/candidate` |
-| Candidate jobs | `/candidate/jobs` |
-| Candidate applications | `/candidate/applications` |
-| Profile screening | `/candidate/interview` |
-| LiveKit room lobby | `/interviews/<roomName>` |
+### 4. (Optional) Voice interviews
 
-## Demo access
+```powershell
+docker compose up -d     # LiveKit on :7880 + Redis
+```
 
-All seeded accounts use the password `Password123!`.
+Set the following in `Backend/.env`:
+- `THOS_LIVEKIT_URL=ws://localhost:7880`
+- `THOS_LIVEKIT_API_KEY=devkey`
+- `THOS_LIVEKIT_API_SECRET=<secret from livekit.yaml>`
+- `THOS_AI_API_KEY`
 
-| Email | Role |
-| --- | --- |
-| `superadmin@thos.local` | Platform superadmin |
-| `ayesha.khan@nut.edu.pk` | Organization administrator |
-| `bilal.hassan@nut.edu.pk` | Recruiter |
-| `samira.iqbal@nut.edu.pk` | Hiring manager |
-| `tariq.mahmood@riverside.edu.pk` | Organization administrator |
-| `hira.ahmed@gmail.com` | Candidate |
-| `omar.farooq@gmail.com` | Candidate |
+Without these values, voice endpoints return a clear `503`. Everything else keeps working.
 
-The frontend includes a development persona switcher. The backend accepts `X-Development-Identity` only in development/test scenarios; production must use server-derived authentication.
+## Demo accounts
+
+Every seeded account uses the password `Password123!`.
+
+| Email | Role | Organization |
+| --- | --- | --- |
+| `superadmin@thos.local` | Platform superadmin (verifies organizations) | — |
+| `ayesha.khan@nut.edu.pk` | Owner / administrator | National University of Technology |
+| `bilal.hassan@nut.edu.pk` | Recruiter | National University of Technology |
+| `samira.iqbal@nut.edu.pk` | Hiring manager | National University of Technology |
+| `tariq.mahmood@riverside.edu.pk` | Owner / administrator | Riverside College |
+| `hira.ahmed@gmail.com` | Candidate (has an evaluated job interview + sandbox) | — |
+| `omar.farooq@gmail.com` | Candidate | — |
+| `daniyal.raza@gmail.com`, `nadia.omar@gmail.com`, `mahnoor.waheed@gmail.com` | Candidates | — |
+
+**Seeded postings:**
+- Assistant Professor, Computer Science
+- Lecturer, Data Science
+- Visiting Faculty, Cybersecurity (draft)
+- Lecturer, Business Analytics (Riverside)
+
+## Application routes
+
+| Area | URL | Persona |
+| --- | --- | --- |
+| Sign in / register | `/login`, `/register` | Public |
+| Organization application | `/register/organization` | Public |
+| Employer dashboard | `/` | Employer |
+| Jobs, job detail and question pool | `/jobs`, `/jobs/<postingId>` | Employer |
+| Pipeline (list + Kanban) | `/pipeline` | Employer |
+| Talent discovery | `/talent` | Employer |
+| Analytics | `/analytics` | Employer |
+| Messages | `/messages` | Employer |
+| Automations | `/automations` | Employer admin |
+| Administration | `/admin` | Employer admin |
+| Candidate overview | `/candidate` | Candidate |
+| Find jobs / my applications | `/candidate/jobs`, `/candidate/applications` | Candidate |
+| Messages | `/candidate/messages` | Candidate |
+| Profile & privacy | `/candidate/profile` | Candidate |
+| Skill screening (voice) | `/candidate/interview` | Candidate |
+| Job interview (voice) | `/candidate/applied/<attemptId>` | Candidate |
+| Proctored sandbox | `/candidate/sandbox/<attemptId>` | Candidate |
+| Legacy LiveKit lobby | `/interviews/<roomName>` | — |
 
 ## Configuration
 
-Backend settings are in [`Backend/.env.example`](Backend/.env.example), and frontend settings are in [`Frontend/.env.example`](Frontend/.env.example). Never commit `.env` or `.env.local`.
+Backend settings live in [`Backend/.env.example`](Backend/.env.example) and frontend settings in [`Frontend/.env.example`](Frontend/.env.example). Never commit `.env` or `.env.local`.
 
-Important backend settings:
-
-| Variable | Purpose |
+| Backend variable | Purpose |
 | --- | --- |
-| `THOS_DATABASE_URL` | PostgreSQL connection string; falls back to SQLite when unset |
-| `THOS_CORS_ORIGINS` | Comma-separated frontend origin allowlist |
-| `THOS_JWT_SECRET` | JWT signing secret; replace the development value outside local work |
-| `THOS_SEED_DEMO_DATA` | Seed demo data on an empty development database |
-| `THOS_DOMAIN_PACKS_PATH` | Domain-pack manifest directory, normally `../domain-packs` from `Backend/` |
-| `THOS_LIVEKIT_URL`, `THOS_LIVEKIT_API_KEY`, `THOS_LIVEKIT_API_SECRET` | LiveKit token issuance and voice rooms |
-| `THOS_AI_API_KEY` | OpenAI-backed question generation and voice interview processing |
+| `THOS_DATABASE_URL` | PostgreSQL URL. When it is unset, SQLite at `THOS_DATABASE_PATH` is used. |
+| `THOS_CORS_ORIGINS` | Comma-separated list of allowed origins. A `*` wildcard is rejected outside development. |
+| `THOS_JWT_SECRET`, `THOS_JWT_*_TTL_SECONDS` | Token signing secret and lifetimes |
+| `THOS_SUPERADMIN_EMAILS` | Emails that get platform superadmin |
+| `THOS_SEED_DEMO_DATA` | Seed an empty development database |
+| `THOS_DOMAIN_PACKS_PATH` | Manifest directory (`../domain-packs`) |
+| `THOS_SMTP_*`, `THOS_PUBLIC_BASE_URL` | Outbound email. An empty host means mail is logged to the console. |
+| `THOS_S3_ENDPOINT`, `THOS_S3_ACCESS_KEY`, `THOS_S3_SECRET_KEY`, `THOS_S3_BUCKET_NAME`, `THOS_S3_REGION` | Optional S3 presigned uploads |
+| `THOS_LIVEKIT_URL`, `THOS_LIVEKIT_API_KEY`, `THOS_LIVEKIT_API_SECRET` | Voice rooms and tokens |
+| `THOS_AI_API_KEY`, `THOS_AI_MODEL`, `THOS_EMBEDDING_MODEL` | OpenAI. It is the only supported provider. |
+| `THOS_STT_MODEL`, `THOS_TTS_MODEL`, `THOS_TTS_VOICE`, `THOS_PLAN_GENERATION_MODEL`, `THOS_ANALYSIS_MODEL`, `THOS_TURN_ASSESSMENT_*` | Voice-interview runtime |
+| `THOS_PROFILE_INTERVIEW_ATTEMPT_CAP`, `THOS_PROFILE_INTERVIEW_COOLDOWN_HOURS` | Retake policy for profile screening |
 
-Frontend settings:
+**Frontend variables:**
+- `NEXT_PUBLIC_API_URL`: the browser API base URL.
+- `BACKEND_API_URL`: the server-only URL for the LiveKit token proxy.
+- `BACKEND_LIVEKIT_TOKEN_PATH`: an optional override for the token path.
 
-- `NEXT_PUBLIC_API_URL` — browser API base URL, normally `http://localhost:8000`.
-- `BACKEND_API_URL` — server-only backend URL used by the LiveKit token proxy.
-- `BACKEND_LIVEKIT_TOKEN_PATH` — optional backend token endpoint override.
+### Running without an AI key
 
-### Optional LiveKit
+Most features have a deterministic fallback, so the app is fully demoable offline:
 
-The web application and backend run without voice integrations. To run the local LiveKit server and Redis:
+| Feature | With `THOS_AI_API_KEY` | Without |
+| --- | --- | --- |
+| CV parsing | LLM extraction | Heuristic parser |
+| Embeddings / matching | `text-embedding-3-small` | Local hash embedding + skill overlap |
+| Job description generator | LLM | Template |
+| Sandbox problem + grading | LLM-generated / LLM-graded | Built-in problem bank, keyword-coverage scoring |
+| Rejection feedback | LLM | Heuristic |
+| Identity photo check | Vision model | Recorded as "unavailable" (never blocks) |
+| Question-pool generator | LLM | Returns `disabled` |
+| Voice interviews | OpenAI STT/TTS + turn assessment | `503 integration_not_configured` |
 
-```powershell
-docker compose up -d
-```
-
-Set the `THOS_LIVEKIT_*` values in `Backend/.env`; voice interviews also require `THOS_AI_API_KEY`. Missing integration configuration is reported as a safe API error rather than failing backend startup. For LiveKit Cloud, use the project URL and credentials instead of the local compose service.
-
-## Testing and quality checks
-
-Backend tests use isolated temporary databases by default:
+## Testing
 
 ```powershell
 cd Backend
-uv run pytest
+uv run pytest                 # ~100 tests on isolated temp SQLite DBs; test_postgres.py skips if Postgres is unreachable
 uv run ruff check .
-python scripts/smoke.py http://127.0.0.1:8000  # backend must be running
-```
+python scripts/smoke.py http://127.0.0.1:8000   # backend must be running
 
-Frontend checks:
-
-```powershell
-cd Frontend
-npm test
+cd ..\Frontend
+npm test                      # Vitest
 npm run typecheck
 npm run lint
 npm run build
 ```
 
-The smoke test exercises health checks, seeded employer data, tenant isolation, candidate profiles, profile interviews, applications, timelines, and authorization boundaries.
-
 ## API overview
 
-The versioned API is under `/api/v1`. Main areas are:
+The versioned API is under `/api/v1`. Use `/docs` for the full schemas. The router map is in [`Backend/README.md`](Backend/README.md).
 
-- `auth`, `me`, organizations, memberships, units, audit records, and domain-pack activation
-- workflows, postings, question-pool generation/curation/locking, jobs, applications, and pipeline transitions
-- candidate profiles, consents, profile/applied interviews, scorecards, sandbox attempts, and timelines
-- analytics, notifications, messages, automations, storage, search, and AI question generation
-- LiveKit token issuance plus voice-session lifecycle and telemetry WebSockets
+| Group | What it covers |
+| --- | --- |
+| Identity and organizations | `auth`, `me` (with avatar), organizations, applications and verification, units, members, audit, email templates |
+| Configuration | `domain-packs` and activation, `workflows` |
+| Hiring | `postings` (generate description, question pool generate/curate/lock, publish, matches, close), `jobs`, `applications` |
+| Pipeline | `pipeline` transitions, bulk moves and undo, screening, shortlist, invitations, scorecards, decisions |
+| Candidates | profile, CV upload and parse, consents, matches, applications, timelines, withdraw |
+| Interviews | profile-interview attempts, applied interviews, `/voice` (status, identity-check, livekit, start, complete, WebSocket telemetry), sandbox (start, progress, violations, recording, submit) |
+| Operations | `analytics/*`, `automations` (CRUD, toggle, dry-run test), `conversations`/messages, `notifications`, `search`, `talent`, `storage/presigned-url` |
 
-Use `/docs` for the complete schemas and endpoint contracts. Backend-specific route and error details are in [`Backend/README.md`](Backend/README.md); frontend behavior and token-proxy details are in [`Frontend/README.md`](Frontend/README.md).
+## Engineering rules (summary)
 
-## Engineering rules
+- Domain knowledge belongs in domain packs, not in engine code.
+- Every stage change goes through the canonical transition command, so it is authorized and audited.
+- Every tenant-owned query and command carries a tenant scope.
+- AI output is evidence. Humans own reject, offer and hire decisions.
+- Every LLM feature needs a safe fallback or a clear "not configured" error.
+- The frontend uses design tokens only, layouts must hold from 1280×620 CSS px upward, and `100dvh` replaces `100vh`. See [`design.md`](design.md).
+- Never expose provider secrets to the browser or commit environment files.
 
-- Keep domain-specific knowledge in domain packs, not in the core engine.
-- Route application stage changes through the canonical transition command so audit and authorization checks are preserved.
-- Include tenant scope in tenant-owned persistence and service operations.
-- Treat AI output as assistive evidence; human actors own final hiring decisions.
-- Preserve keyboard-accessible alternatives for interactive pipeline controls.
-- Do not expose provider secrets in browser code or commit local environment files.
-
-See [`rules.md`](rules.md) for the binding constraints and [`architecture.md`](architecture.md) for the system design.
+The binding version is [`rules.md`](rules.md).
 
 ## Further reading
 
-- [`prd.md`](prd.md) — product goals, personas, and requirements
-- [`design.md`](design.md) — visual system and accessibility guidance
-- [`implementation-plan.md`](implementation-plan.md) — implementation sequence
-- [`phases.md`](phases.md) — milestones and delivery gates
-- [`THOS_Development_Spec.md`](THOS_Development_Spec.md) — consolidated technical reference
+- [`prd.md`](prd.md): product goals, personas, requirements and build status
+- [`architecture.md`](architecture.md): modules, data model, AI and voice pipeline, planned evolution
+- [`design.md`](design.md): tokens, components, responsive and accessibility rules
+- [`phases.md`](phases.md) and [`implementation-plan.md`](implementation-plan.md): roadmap, gates, decisions
+- [`Backend/README.md`](Backend/README.md) and [`Frontend/README.md`](Frontend/README.md): per-app details
 
 ## License
 
-This is proprietary/internal software. No public license is granted.
+Proprietary and internal software. No public license is granted.

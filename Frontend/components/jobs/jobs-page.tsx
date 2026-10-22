@@ -302,7 +302,7 @@ function CreateJobForm({
           </label>
 
           {sandboxRequired && (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "12px", marginTop: "14px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 160px), 1fr))", gap: "12px", marginTop: "14px" }}>
               <FormField label="Sandbox Type">
                 <select
                   className="select"

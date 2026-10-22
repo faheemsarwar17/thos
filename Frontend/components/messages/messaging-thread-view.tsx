@@ -118,7 +118,7 @@ export function MessagingThreadView({
         display: "flex",
         flexDirection: "column",
         height: isCompact ? "460px" : "100%",
-        minHeight: isCompact ? "400px" : "550px",
+        minHeight: isCompact ? "400px" : 0,
         background: "var(--surface)",
         borderRadius: isCompact ? "10px" : "12px",
         border: "1px solid var(--border)",

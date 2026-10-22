@@ -1,6 +1,6 @@
 # THOS — Phases & Delivery Plan
 
-Version: 1.0 · July 2026
+Version: 2.0 · October 2026 (v1.0 July 2026)
 Companion documents: `prd.md` (requirements) · `architecture.md` (technical design) · `rules.md` (binding constraints) · `design.md` (UX/UI system) · `implementation-plan.md` (build sequence)
 
 ---
@@ -9,7 +9,27 @@ Companion documents: `prd.md` (requirements) · `architecture.md` (technical des
 
 Phases are **implementation gates, not fixed calendar promises** — add dates and owners once team capacity is known. Each phase has a goal, a scope checklist, and exit criteria that must be true before the next phase begins in earnest (some overlap is fine; skipping exit criteria is not). Status markers for checklist items: `⬜ Not started` · `🟡 In progress` · `🟢 Complete` · `🔴 Blocked` · `⚪ Deferred`.
 
-> **Status — July 2026.** A working local pilot delivers the core hiring loop across Phases 1–4 in simplified form: tenancy/roles with automated isolation tests, Education Pack activation, versioned workflows, candidate profiles and consent, Profile and Applied Interviews with autosave and deterministic evidence-cited evaluation, postings with locked question pools, idempotent applications, canonical audited pipeline transitions with list + Kanban UIs, reviewer scorecards, candidate timelines, and in-app notifications. See `implementation-plan.md` §0.1 for what is intentionally deferred (OIDC, PostgreSQL/RLS, resume parsing, technical sandbox, search/matching, messaging, automation). Epic statuses are tracked in §11; new decisions are in §16.
+> **Status — October 2026.** The local pilot delivers the full hiring loop through Phase 4, and much of Phases 5–6 in simplified form. It includes:
+> - PostgreSQL + pgvector, and JWT auth
+> - organization onboarding with superadmin verification
+> - CV upload and parsing
+> - **voice** Profile Screening and Job Interviews (LiveKit + OpenAI, LangGraph turn engine) with an identity photo check
+> - a proctored coding/written sandbox
+> - embedding-based match-on-publish and AI screening/shortlisting
+> - messaging, SMTP email templates, analytics (including fairness/calibration views), and automation rules with dry run
+> - a responsive layout down to laptop and scaled displays
+>
+> **Still open:**
+> - OIDC/MFA
+> - row-level security (RLS)
+> - an outbox dispatcher and workers
+> - an automation executor
+> - isolated code execution
+> - a search index
+> - CI/deployment
+> - formal accessibility, security and fairness audits
+>
+> Epic statuses are in §11. Decisions are in §16.
 
 ---
 
@@ -37,8 +57,8 @@ Phases are **implementation gates, not fixed calendar promises** — add dates a
 - [ ] Confirm privacy, data residency, retention, AI disclosure, and accessibility requirements.
 - [x] Select backend/frontend/interview/AI runtime stack; database, queue/event, search, object storage, observability, and hosting decisions remain open.
 - [ ] Define repository/module boundaries and environment strategy.
-- [ ] Create design tokens and accessible component foundations (`design.md`).
-- [ ] Define API conventions, errors, pagination, idempotency, and versioning (`architecture.md` §9).
+- [x] Create design tokens and accessible component foundations (`design.md`).
+- [ ] Define API conventions, errors, pagination, idempotency, and versioning (`architecture.md` §6).
 - [ ] Define tenant isolation and threat model; automate isolation tests.
 - [ ] Establish CI, migrations, seed data, feature flags, telemetry, and deployment skeleton.
 - [ ] Build clickable low-fidelity prototypes for onboarding, Kanban, application timeline, interview curation, and automation builder.
@@ -55,19 +75,19 @@ Phases are **implementation gates, not fixed calendar promises** — add dates a
 
 **Goal:** create the secure platform control plane.
 
-- [ ] Authentication, session management, account recovery, and MFA-ready design.
-- [ ] Tenant/unit data model and tenant-scoped authorization middleware.
-- [ ] Invitation, membership, role, and unit-scope management.
-- [ ] Organization onboarding checklist and settings.
-- [ ] Domain Pack manifest validation, activation, version pinning, and a test pack.
-- [ ] Workflow template/stage/transition data model with version publishing.
-- [ ] Workflow designer UI and candidate-facing stage mapping.
-- [ ] Audit log and configuration history.
+- [ ] Authentication, session management, account recovery, and MFA-ready design. — 🟡 Password + JWT/refresh built; recovery, MFA and OIDC pending.
+- [x] Tenant/unit data model and tenant-scoped authorization middleware.
+- [x] Invitation, membership, role, and unit-scope management.
+- [ ] Organization onboarding checklist and settings. — 🟡 Org application → superadmin verification built; onboarding checklist pending.
+- [x] Domain Pack manifest validation, activation, version pinning, and a test pack.
+- [x] Workflow template/stage/transition data model with version publishing.
+- [ ] Workflow designer UI and candidate-facing stage mapping. — 🟡 Stage mapping built; designer UI is basic.
+- [x] Audit log and configuration history.
 
 **Exit criteria**
-- [ ] Automated tests prove users cannot read/write across tenant or unit scope.
-- [ ] Administrator can publish a valid custom workflow and activate a pack.
-- [ ] Invalid transitions/configurations are rejected consistently by UI and API.
+- [x] Automated tests prove users cannot read/write across tenant or unit scope.
+- [x] Administrator can publish a valid custom workflow and activate a pack.
+- [x] Invalid transitions/configurations are rejected consistently by UI and API.
 
 ---
 
@@ -75,19 +95,19 @@ Phases are **implementation gates, not fixed calendar promises** — add dates a
 
 **Goal:** create a trusted, reusable Skill Profile.
 
-- [ ] Candidate onboarding, consent, privacy, accessibility, and notification preferences.
-- [ ] Resume upload, scanning, parsing job, review/correction UI, structured profile.
-- [ ] Credentials, skills, availability, domain selection, profile completeness.
-- [ ] Profile Interview eligibility, cooldown, attempt cap, device check, and session recovery.
-- [ ] Generic interview sequencing and pack-generated content.
-- [ ] Non-technical scenario workspace first; technical sandbox adapter behind the same contract.
-- [ ] Versioned evaluation, rubric evidence, result visibility, and human-review flagging.
-- [ ] Candidate Skill Profile dashboard and attempt history.
+- [ ] Candidate onboarding, consent, privacy, accessibility, and notification preferences. — 🟡 Consent built; notification preferences pending.
+- [x] Resume upload, scanning, parsing job, review/correction UI, structured profile.
+- [ ] Credentials, skills, availability, domain selection, profile completeness. — 🟡 Skills and domains built; credential verification pending.
+- [x] Profile Interview eligibility, cooldown, attempt cap, device check, and session recovery.
+- [x] Generic interview sequencing and pack-generated content.
+- [ ] Non-technical scenario workspace first; technical sandbox adapter behind the same contract. — 🟡 Voice interview + proctored coding/written sandbox; no code execution.
+- [ ] Versioned evaluation, rubric evidence, result visibility, and human-review flagging. — 🟡 Rubric evidence built; version stamping partial.
+- [x] Candidate Skill Profile dashboard and attempt history.
 
 **Exit criteria**
-- [ ] Candidate completes onboarding and a Profile Interview end to end.
-- [ ] Interrupted sessions recover without duplicate attempts or lost accepted responses.
-- [ ] Education Pack content changes without engine code changes.
+- [x] Candidate completes onboarding and a Profile Interview end to end.
+- [ ] Interrupted sessions recover without duplicate attempts or lost accepted responses. — 🟡 Attempts resume; live voice sessions are in-memory.
+- [x] Education Pack content changes without engine code changes.
 - [ ] Consent revocation is reflected in search and employer visibility within the defined SLA.
 
 ---
@@ -96,20 +116,20 @@ Phases are **implementation gates, not fixed calendar promises** — add dates a
 
 **Goal:** support the core ATS loop with clear candidate position.
 
-- [ ] Job creation wizard, drafts, collaborators, approvals, and publishing lifecycle.
-- [ ] Candidate job discovery/detail, saved job, application preview, and submission.
-- [ ] Application profile snapshot and duplicate/idempotent submission protection.
-- [ ] Transition command service with requirements, approvals, audit, and events.
-- [ ] Employer Kanban, list view, filters, saved views, drawer, bulk actions, keyboard move.
-- [ ] Candidate-facing application timeline and status notifications.
-- [ ] Rejection, withdrawal, job closure, retention, and disposition workflow.
-- [ ] Attention queue, stage SLA, owner assignment, tasks, and basic activity feed.
+- [ ] Job creation wizard, drafts, collaborators, approvals, and publishing lifecycle. — 🟡 Drafts, publish, close, AI JD built; collaborators/approvals pending.
+- [x] Candidate job discovery/detail, saved job, application preview, and submission.
+- [x] Application profile snapshot and duplicate/idempotent submission protection.
+- [x] Transition command service with requirements, approvals, audit, and events.
+- [x] Employer Kanban, list view, filters, saved views, drawer, bulk actions, keyboard move.
+- [x] Candidate-facing application timeline and status notifications.
+- [ ] Rejection, withdrawal, job closure, retention, and disposition workflow. — 🟡 Reject (with AI feedback email), withdraw, close built; retention pending.
+- [ ] Attention queue, stage SLA, owner assignment, tasks, and basic activity feed. — 🟡 Attention queue built; owners/tasks pending.
 
 **Exit criteria**
-- [ ] Hiring team processes a candidate from Received to Hired or Rejected.
-- [ ] Every move is authorized, validated, auditable, and reflected in both personas.
+- [x] Hiring team processes a candidate from Received to Hired or Rejected.
+- [x] Every move is authorized, validated, auditable, and reflected in both personas.
 - [ ] Board remains usable and responsive at the agreed representative data volume.
-- [ ] No internal-only status or note is exposed to candidates.
+- [x] No internal-only status or note is exposed to candidates.
 
 ---
 
@@ -117,20 +137,20 @@ Phases are **implementation gates, not fixed calendar promises** — add dates a
 
 **Goal:** deliver the employer-owned, posting-specific assessment loop.
 
-- [ ] JD/course outline ingestion and generation job status.
-- [ ] Question-pool curation, competency coverage, preview, approval, locking, and versioning.
-- [ ] Invitation, deadline, accommodations, device check, and reminders.
-- [ ] Autosaving interview experience and explicit immutable submission.
-- [ ] Technical sandbox isolation, limits, hidden tests, and result adapter.
-- [ ] Scenario assessment rubric and evidence-backed evaluation.
-- [ ] Reviewer scorecards, blind-review mode, panel summary, and disagreement handling.
+- [x] JD/course outline ingestion and generation job status.
+- [x] Question-pool curation, competency coverage, preview, approval, locking, and versioning.
+- [ ] Invitation, deadline, accommodations, device check, and reminders. — 🟡 Invitation, email, device check built; deadlines/reminders pending.
+- [x] Autosaving interview experience and explicit immutable submission.
+- [ ] Technical sandbox isolation, limits, hidden tests, and result adapter. — 🟡 Proctored sandbox UI + AI grading; isolated execution with hidden tests pending.
+- [x] Scenario assessment rubric and evidence-backed evaluation.
+- [ ] Reviewer scorecards, blind-review mode, panel summary, and disagreement handling. — 🟡 Scorecards + decision built; blind review/panel pending.
 - [ ] Organization-authorized technical reset with reason and audit.
 
 **Exit criteria**
-- [ ] All candidates on one posting receive the same locked pool/version.
+- [x] All candidates on one posting receive the same locked pool/version.
 - [ ] Technical and scenario paths return the same evaluation contract.
 - [ ] Sandbox security tests and resource controls pass.
-- [ ] AI score can never directly reject or advance a candidate without configured human action.
+- [x] AI score can never directly reject or advance a candidate without configured human action.
 
 ---
 
@@ -138,17 +158,17 @@ Phases are **implementation gates, not fixed calendar promises** — add dates a
 
 **Goal:** reduce repetitive coordination while preserving control.
 
-- [ ] Search indexing pipeline with tenant, consent, freshness, and delete handling.
-- [ ] Talent Discovery filters, explainable matches, comparison tray, and saved searches.
-- [ ] Posting-triggered proactive matching with candidate preference controls.
-- [ ] In-app/email templates, localization structure, delivery preference, deduplication, and retries.
-- [ ] Candidate/job-linked messaging and communication audit.
-- [ ] Automation schema/executor, delayed jobs, approval gates, and failure inbox.
-- [ ] Visual automation builder, recipes, dry run, impact preview, versioning, and run history.
-- [ ] Global/per-rule pause and operational dashboards.
+- [ ] Search indexing pipeline with tenant, consent, freshness, and delete handling. — 🟡 Direct DB search; no index yet.
+- [ ] Talent Discovery filters, explainable matches, comparison tray, and saved searches. — 🟡 Talent page + match scores; comparison/saved searches pending.
+- [ ] Posting-triggered proactive matching with candidate preference controls. — 🟡 Match-on-publish built; preferences pending.
+- [ ] In-app/email templates, localization structure, delivery preference, deduplication, and retries. — 🟡 In-app + SMTP email templates built; retries/preferences pending.
+- [x] Candidate/job-linked messaging and communication audit.
+- [ ] Automation schema/executor, delayed jobs, approval gates, and failure inbox. — 🟡 Schema built; executor pending.
+- [ ] Visual automation builder, recipes, dry run, impact preview, versioning, and run history. — 🟡 Builder + dry run + run history built.
+- [ ] Global/per-rule pause and operational dashboards. — 🟡 Per-rule toggle built.
 
 **Exit criteria**
-- [ ] Matching never returns a candidate outside tenant/consent constraints.
+- [x] Matching never returns a candidate outside tenant/consent constraints.
 - [ ] Automation is deterministic, idempotent, inspectable, and safely pausable.
 - [ ] Notification failure is visible and does not corrupt application state.
 - [ ] Users can understand why a match or automation action occurred.
@@ -159,8 +179,8 @@ Phases are **implementation gates, not fixed calendar promises** — add dates a
 
 **Goal:** make the system measurable, supportable, fair, and releasable.
 
-- [ ] Funnel, time-to-hire, time-in-stage, source, notification conversion, and workload metrics.
-- [ ] Fairness monitoring with minimum sample thresholds and restricted access.
+- [ ] Funnel, time-to-hire, time-in-stage, source, notification conversion, and workload metrics. — 🟡 Overview/funnel/velocity/sources built.
+- [ ] Fairness monitoring with minimum sample thresholds and restricted access. — 🟡 Fairness/calibration endpoints built; thresholds/access pending.
 - [ ] Human-vs-AI disagreement and rubric calibration workflow.
 - [ ] Data export/deletion, retention jobs, legal hold, and consent audit.
 - [ ] Performance, capacity, backup/restore, disaster recovery, and failure-mode exercises.
@@ -180,7 +200,7 @@ Phases are **implementation gates, not fixed calendar promises** — add dates a
 
 **Goal:** prove that domain intelligence is truly swappable.
 
-- [ ] Implement the Software Engineering Pack without modifying engine domain logic.
+- [x] Implement the Software Engineering Pack without modifying engine domain logic.
 - [ ] Run the same contract, interview, sandbox, matching, and analytics suites.
 - [ ] Log every required engine change as architecture debt and resolve boundary leaks.
 - [ ] Implement the Business & Marketing Pack to stress the non-technical path.
@@ -226,27 +246,29 @@ Split epics into sprint-sized stories only when the responsible team is ready to
 
 | ID | Epic | Priority | Depends on | Status | Acceptance summary |
 |---|---|---|---|---|---|
-| FND-01 | Repository, CI/CD, environments | P0 | — | 🟡 | Repeatable tested deploy and rollback |
-| SEC-01 | Authentication and sessions | P0 | FND-01 | 🟡 | Secure login/recovery; audited sessions (development-identity adapter in place; OIDC pending ADR-003) |
+| FND-01 | Repository, CI/CD, environments | P0 | — | 🟡 | Repeatable tested deploy and rollback (local Docker infra only; no CI yet) |
+| SEC-01 | Authentication and sessions | P0 | FND-01 | 🟡 | Password + JWT/refresh built; recovery, MFA, OIDC pending |
 | TEN-01 | Tenant/unit isolation | P0 | SEC-01 | 🟢 | Automated cross-tenant denial suite |
 | RBAC-01 | Roles and permissions | P0 | TEN-01 | 🟢 | API and UI enforce unit-scoped permissions |
 | PACK-01 | Domain Pack Registry | P0 | TEN-01 | 🟢 | Versioned manifest validates and activates |
 | FLOW-01 | Workflow model/designer | P0 | TEN-01 | 🟢 | Versioned stages/transitions publish safely |
-| PROF-01 | Candidate profile/resume | P0 | TEN-01, PACK-01 | 🟡 | Structured profile and consent complete; resume upload/parsing pending |
-| PINT-01 | Profile Interview | P0 | PROF-01, PACK-01 | 🟢 | Attempt lifecycle and score are complete |
+| PROF-01 | Candidate profile/resume | P0 | TEN-01, PACK-01 | 🟢 | Structured profile, consent, avatar, CV upload + parsing |
+| PINT-01 | Profile Interview | P0 | PROF-01, PACK-01 | 🟢 | Voice Profile Screening with attempt cap/cooldown and evidence-based score |
 | JOB-01 | Job authoring/publishing | P0 | FLOW-01, PACK-01 | 🟢 | Approved job pins pack/workflow versions |
 | APP-01 | Candidate application | P0 | JOB-01, PROF-01 | 🟢 | Idempotent application with profile snapshot |
 | PIPE-01 | Kanban/list pipeline | P0 | APP-01, FLOW-01 | 🟢 | Accessible validated candidate movement |
 | AINT-01 | Applied Interview curation | P0 | JOB-01, PACK-01 | 🟢 | Same immutable locked pool per posting |
-| SBOX-01 | Practical assessment runtime | P0 | AINT-01 | 🟡 | Scenario contract works; isolated technical runtime pending |
+| SBOX-01 | Practical assessment runtime | P0 | AINT-01 | 🟡 | Proctored coding/written sandbox with AI grading; isolated execution + hidden tests pending |
 | EVAL-01 | Evaluation and scorecards | P0 | PINT-01, AINT-01 | 🟢 | Versioned evidence and human decision path |
-| NOTIF-01 | In-app/email notifications | P1 | FND-01 | 🟡 | In-app outbox-backed notices work; preferences/email/retries pending |
-| SEARCH-01 | Talent Discovery | P1 | PROF-01, TEN-01 | ⬜ | Consent/tenant-safe explainable results |
-| MATCH-01 | Proactive matching | P1 | SEARCH-01, JOB-01 | ⬜ | Event-driven matching respects preferences |
-| AUTO-01 | Automation executor/builder | P1 | FLOW-01, NOTIF-01 | ⬜ | Versioned dry-run rules with audit and pause |
-| MSG-01 | Contextual messaging | P1 | APP-01, NOTIF-01 | ⬜ | Permission-safe job/candidate conversations |
-| ANLY-01 | Hiring analytics | P1 | PIPE-01, MATCH-01 | ⬜ | Traceable scoped funnel and time metrics |
-| GOV-01 | Fairness and calibration | P1 | EVAL-01, ANLY-01 | ⬜ | Restricted review workflow; no auto-reject |
+| NOTIF-01 | In-app/email notifications | P1 | FND-01 | 🟡 | In-app notices + SMTP stage emails with tenant templates; preferences/retries pending |
+| SEARCH-01 | Talent Discovery | P1 | PROF-01, TEN-01 | 🟡 | Talent page and global search on the DB; index + comparison pending |
+| MATCH-01 | Proactive matching | P1 | SEARCH-01, JOB-01 | 🟢 | Match-on-publish with embeddings + skill overlap, consent-filtered |
+| AUTO-01 | Automation executor/builder | P1 | FLOW-01, NOTIF-01 | 🟡 | Builder, toggle, dry run and run history; live executor pending |
+| MSG-01 | Contextual messaging | P1 | APP-01, NOTIF-01 | 🟢 | Application-linked conversations for both personas |
+| ANLY-01 | Hiring analytics | P1 | PIPE-01, MATCH-01 | 🟢 | Overview, funnel, velocity, sources dashboards |
+| GOV-01 | Fairness and calibration | P1 | EVAL-01, ANLY-01 | 🟡 | Fairness and calibration views; restricted workflow pending |
+| VOICE-01 | Voice interview runtime | P0 | PINT-01, AINT-01 | 🟢 | LiveKit room + STT/TTS + LangGraph turn engine + telemetry WS + synthesis |
+| UX-01 | Responsive layout and design tokens | P0 | FND-01 | 🟢 | Icon-rail sidebar 821–1366px, dvh heights, scrollable overlays, token aliases |
 | SDK-01 | Domain Pack authoring SDK | P2 | PACK-01, Phase 7 findings | ⬜ | External-quality validation and docs |
 
 ---
@@ -377,16 +399,21 @@ Add one row for every decision that affects scope, architecture, data, security,
 | 2026-07-17 | ADR-014 | Use a deterministic rubric evaluator as the default interview scorer | Evaluation must be reproducible, evidence-cited, and available without an AI provider | LangChain generation/scoring remains optional behind the same contract; humans always make decisions | Engineering | Accepted |
 | 2026-07-17 | ADR-015 | Ship the pilot with `X-Development-Identity` persona switching instead of OIDC | Authentication provider selection (ADR-003) is still open; the identity dependency is a single adapter | Production deployments refuse caller-chosen identity; OIDC must land before staging | Engineering | Accepted |
 | 2026-07-17 | ADR-016 | Password + JWT access/refresh as interim auth (Bearer); opaque refresh hashed in DB | Needed for real multi-user login before OIDC; single identity adapter still centralizes auth | OIDC (ADR-003) remains the production identity target; development header is fallback only | Engineering | Accepted |
+| 2026-10-16 | ADR-017 | PostgreSQL 17 + pgvector is the default local database (host port 5433); SQLite remains for tests | Closer to production; avoids clashing with a locally installed Postgres | Supersedes ADR-013 for local dev; RLS (ADR-005) still pending; embeddings stored as JSON for now | Engineering | Accepted |
+| 2026-10-16 | ADR-018 | OpenAI is the sole AI provider; every LLM feature has a deterministic fallback or a clear 503 | Fast delivery with one provider while keeping the app demoable offline | Provider lock-in risk; service adapters keep the seam for adding providers | Engineering | Accepted |
+| 2026-10-16 | ADR-019 | Interviews are real-time voice sessions driven by a LangGraph turn engine | Natural conversation with controllable follow-up/advance/wrap-up logic | Replaces text-only sessions; ADR-014 deterministic scorer kept as fallback | Product / Engineering | Accepted |
+| 2026-10-16 | ADR-020 | The voice agent runs in-process in the backend and joins the LiveKit room | Simplest deployable for the pilot | Sessions do not survive API restarts; move to a dedicated agent worker before scale | Engineering | Accepted |
+| 2026-10-16 | ADR-021 | Sidebar collapses to a 72px icon rail between 821–1366px; heights use dvh | Laptops and scaled displays (e.g. 1600×900 at 125% = 1280px CSS) had clipped and overlapping UI | Layouts must be checked at 1280×620; see `design.md` §6 | Design / Engineering | Accepted |
 
 ---
 
 ## 17. Immediate Next Actions
 
-1. [ ] Review and edit the assumptions in §12.1 with product, engineering, design, security/privacy, and an Education-domain representative.
-2. [ ] Assign an owner and target milestone to every P0 epic in §11.
-3. [x] Record the selected FastAPI, Next.js, LiveKit, and LangChain choices in §16; complete the remaining infrastructure decisions.
-4. [ ] Prototype and user-test the five highest-risk interactions: resume extraction review, candidate application timeline, Pipeline Kanban movement, interview pool curation, and automation dry run.
-5. [ ] Define tenant isolation, audit, consent, and human-decision policies before creating production data models.
-6. [ ] Turn Phase 0 and Phase 1 checklist items into estimated delivery stories.
-7. [ ] Agree measurable release gates in §14; do not leave quality targets as implicit expectations.
-8. [ ] Establish a weekly plan review: update status, dependencies, decisions, and risks in this document.
+1. [ ] Build the **automation executor** (consume `outbox_events`; consequential actions create human tasks).
+2. [ ] Replace AI-only sandbox grading with an **isolated execution runtime** and hidden tests (SBOX-01).
+3. [ ] Land **OIDC + MFA** and **PostgreSQL RLS** before any staging deployment.
+4. [ ] Add CI (pytest, ruff, vitest, typecheck, lint, build) and a container/deploy skeleton (FND-01).
+5. [ ] Move the LiveKit voice agent to a dedicated worker and persist session state.
+6. [ ] Run a formal WCAG 2.2 AA audit on onboarding, interview, application and pipeline paths.
+7. [ ] Clear the debt listed in `architecture.md` §13 (declare `langgraph`, dedupe compose files, untrack local DB/recordings).
+8. [ ] Keep a weekly plan review: update status, dependencies, decisions and risks in this document.

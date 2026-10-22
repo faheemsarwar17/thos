@@ -232,7 +232,7 @@ export default function DeviceCheck({ onNext }: { onNext: () => void }) {
 		<div style={{ flex: 1, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "32px 16px" }}>
 			<div style={{ width: "100%", maxWidth: "960px" }}>
 				<div className="card animate-fade-up" style={{ padding: "24px", boxShadow: "var(--shadow-card)" }}>
-					<div style={{ display: "grid", gridTemplateColumns: "1.9fr 1fr", gap: "24px" }}>
+					<div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))", gap: "24px" }}>
 						{/* Video (2/3) */}
 						<div>
 							<div

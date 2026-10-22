@@ -50,7 +50,7 @@ All paths are relative to the repo root `C:\Users\It Zone\Desktop\Github\thos`.
 | `.scratch/ui-revamp/map.md` | Index of every decision |
 | `design.md`, `Frontend/README.md`, `README.md` | Current docs. Rewritten in Task 19 |
 
-**Approved visual reference:** a working prototype on the local git branch `prototype/ui-revamp` (commit `44bdb14`). **Do not merge that branch.** Read its files with `git show`, for example:
+**Approved visual reference:** a working prototype on the git branch `prototype/ui-revamp` (commit `44bdb14`, also pushed to `origin`). **Do not merge that branch.** On a fresh clone or another machine, run `git fetch origin prototype/ui-revamp:prototype/ui-revamp` first. Read its files with `git show`, for example:
 
 ```bash
 git show prototype/ui-revamp:Frontend/app/prototype/ui-revamp/proto.css

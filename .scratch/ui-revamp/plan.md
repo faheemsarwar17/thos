@@ -2989,6 +2989,8 @@ test("job detail controls", async ({ page }, testInfo) => {
 
 ## Task 10: Talent and Messages (both personas)
 
+> Note: Both Messages pages now render one shared components/messages/messages-inbox.tsx (same endpoints, filters, auto-select, empty states; persona-specific copy). data-view flips to thread only on an explicit pick or ?c=. The desktop parity test skips when no conversations exist (the seed has none; I seeded one through the API in my scratch DB).
+
 **Files:**
 - Modify: `Frontend/components/talent/talent-discovery-page.tsx`
 - Modify: `Frontend/app/messages/page.tsx`
@@ -3086,11 +3088,11 @@ for (const [persona, path] of [["employer", "/messages"], ["candidate", "/candid
 }
 ```
 
-- [ ] Step 1: parity spec (red)
-- [ ] Step 2: Talent restyle (no hard-coded colours)
-- [ ] Step 3: Messages, both pages + thread view
-- [ ] Step 4: green on parity + layout (`talent`, `messages`, `cand-messages`)
-- [ ] Step 5: commit `feat(ui): talent filter bar, responsive messages list→thread`
+- [x] Step 1: parity spec (red)
+- [x] Step 2: Talent restyle (no hard-coded colours)
+- [x] Step 3: Messages, both pages + thread view
+- [x] Step 4: green on parity + layout (`talent`, `messages`, `cand-messages`)
+- [x] Step 5: commit `feat(ui): talent filter bar, responsive messages list→thread`
 
 ---
 

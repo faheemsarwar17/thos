@@ -20,6 +20,8 @@
 @import "../styles/screens/home.css";
 @import "../styles/screens/pipeline.css";
 @import "../styles/screens/jobs.css";
+@import "../styles/screens/talent.css";
+@import "../styles/screens/messages.css";
 
 /* Base Reset */
 /* margin/padding reset on every element is kept from v2: existing screens rely on it (lists, headings, forms). */

@@ -1,0 +1,20 @@
+/* Talent (PRD §6.1) — tokens only, so dark mode follows the theme (§8.2). */
+.filter-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 18px; padding: 10px; border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); }
+.filter-bar__field { flex: 0 1 220px; min-width: 0; }
+.filter-bar__field--grow { flex: 1 1 260px; }
+.filter-bar__field--sm { flex: 0 1 120px; }
+.filter-bar__field .input-icon { display: block; }
+.results-count { margin-bottom: 10px; font-size: 12.5px; color: var(--ink-3); }
+.talent-grid { list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 12px; }
+.talent-card { display: grid; align-content: start; gap: 10px; min-width: 0; padding: 14px 16px; border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); }
+.talent-card__head { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.talent-card__head .avatar { width: 32px; height: 32px; background: var(--brand-soft); color: var(--brand); }
+.talent-card__who { flex: 1; min-width: 0; display: grid; }
+.talent-card__who strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.talent-card__who small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--ink-3); }
+.talent-card__email { overflow-wrap: anywhere; font-size: 12px; color: var(--ink-3); }
+.talent-card__email svg { vertical-align: -2px; }
+.talent-card__skills, .talent-card__foot { display: flex; flex-wrap: wrap; gap: 6px; }
+.talent-card__why { padding: 8px 12px; border-radius: var(--r-md); background: var(--surface-2); }
+.talent-card__why p { font-size: 11.5px; font-weight: 600; color: var(--ink-2); }
+.talent-card__why ul { margin-top: 4px; padding-left: 16px; font-size: 12px; color: var(--ink-2); }

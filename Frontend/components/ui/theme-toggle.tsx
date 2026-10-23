@@ -23,18 +23,26 @@ export function ThemeToggle({ className }: { className?: string }) {
     }
   }, []);
 
+  // Stay in sync when another control (e.g. the command palette) flips the theme.
+  useEffect(() => {
+    const sync = () => setTheme(document.documentElement.dataset.theme === "dark" ? "dark" : "light");
+    window.addEventListener("thos-theme-change", sync);
+    return () => window.removeEventListener("thos-theme-change", sync);
+  }, []);
+
   const toggleTheme = () => {
     const nextTheme = theme === "light" ? "dark" : "light";
     setTheme(nextTheme);
     localStorage.setItem("thos-theme", nextTheme);
     document.documentElement.setAttribute("data-theme", nextTheme);
+    window.dispatchEvent(new Event("thos-theme-change"));
   };
 
   if (!mounted) {
     return (
       <div
         className={cn("icon-button", className)}
-        style={{ opacity: 0 }}
+        data-placeholder
         aria-hidden="true"
       />
     );

@@ -1771,6 +1771,8 @@ git commit -m "feat(charts): add funnel, stage-mix, trend and score charts with 
 
 ## Task 5: CommandPalette and NotificationsPanel
 
+> Note: Test mocks moved into vi.hoisted (the plan's top-level consts are hoisted past). isMac is read in an effect to avoid a hydration mismatch. ThemeToggle placeholder uses a data attribute instead of an inline style.
+
 **Files:**
 - Create: `Frontend/components/layout/command-palette.tsx`
 - Create: `Frontend/components/layout/notifications-panel.tsx`
@@ -1799,7 +1801,7 @@ NotificationsPanel({ persona: "employer" | "candidate" })
 
 **Toggle theme action:** reuse the logic in `components/ui/theme-toggle.tsx`. Flip `document.documentElement.dataset.theme`, store it in `localStorage["thos-theme"]`, and dispatch `window.dispatchEvent(new Event("thos-theme-change"))`. Also make `ThemeToggle` listen for that event, so its icon stays in sync.
 
-- [ ] **Step 1: Write the failing tests** `Frontend/tests/shell-widgets.test.tsx`
+- [x] **Step 1: Write the failing tests** `Frontend/tests/shell-widgets.test.tsx`
 
 ```tsx
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -1851,9 +1853,9 @@ describe("NotificationsPanel", () => {
 });
 ```
 
-- [ ] **Step 2: Run.** `npx vitest run tests/shell-widgets.test.tsx`. Expected: FAIL.
+- [x] **Step 2: Run.** `npx vitest run tests/shell-widgets.test.tsx`. Expected: FAIL.
 
-- [ ] **Step 3: Implement `components/layout/command-palette.tsx`**
+- [x] **Step 3: Implement `components/layout/command-palette.tsx`**
 
 ```tsx
 "use client";
@@ -1970,7 +1972,7 @@ export function CommandPalette({ persona, destinations }: { persona: "employer" 
 }
 ```
 
-- [ ] **Step 4: Implement `components/layout/notifications-panel.tsx`**
+- [x] **Step 4: Implement `components/layout/notifications-panel.tsx`**
 
 ```tsx
 "use client";
@@ -2039,7 +2041,7 @@ export function NotificationsPanel({ persona }: { persona: "employer" | "candida
 
 > If `api.post` requires a body argument in `lib/api.ts`, call `api.post("/api/v1/notifications/mark-read", {})`, and update the test expectation to match. `post` with no body sends `{}` today.
 
-- [ ] **Step 5: Append the styles** to `styles/layout.css`
+- [x] **Step 5: Append the styles** to `styles/layout.css`
 
 ```css
 /* Command palette */
@@ -2079,11 +2081,11 @@ export function NotificationsPanel({ persona }: { persona: "employer" | "candida
 .notes__text small, .notes__time { color: var(--ink-3); font-size: 12px; }
 ```
 
-- [ ] **Step 6: Sync ThemeToggle.** In `components/ui/theme-toggle.tsx`, add an effect that listens for `thos-theme-change` and re-reads `document.documentElement.dataset.theme` into state. Remove the listener on unmount.
+- [x] **Step 6: Sync ThemeToggle.** In `components/ui/theme-toggle.tsx`, add an effect that listens for `thos-theme-change` and re-reads `document.documentElement.dataset.theme` into state. Remove the listener on unmount.
 
-- [ ] **Step 7: Run.** `npx vitest run tests/shell-widgets.test.tsx`, then `npm test` and `npm run typecheck`. Expected: PASS.
+- [x] **Step 7: Run.** `npx vitest run tests/shell-widgets.test.tsx`, then `npm test` and `npm run typecheck`. Expected: PASS.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add Frontend/components/layout/command-palette.tsx Frontend/components/layout/notifications-panel.tsx Frontend/components/ui/theme-toggle.tsx Frontend/styles/layout.css Frontend/tests/shell-widgets.test.tsx

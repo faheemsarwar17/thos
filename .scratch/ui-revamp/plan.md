@@ -2096,6 +2096,8 @@ git commit -m "feat(shell): add command palette (search + jump) and notification
 
 ## Task 6: Shells (rail, topbar, bottom tabs, requisitions panel, focus layout)
 
+> Note: RequisitionsPanel wrapped in Suspense (useSearchParams). devIndicators set to false: bottom-left covered the rail footer and mobile tabs. Shell spec uses exact name matching ('Home' also matches the 'THOS home' mark). Legacy .form-grid in layout.css still overrides padding until screens migrate.
+
 **Files:**
 - Rewrite: `Frontend/components/layout/app-shell.tsx`
 - Create: `Frontend/components/layout/requisitions-panel.tsx`
@@ -2132,7 +2134,7 @@ FocusLayout({ title: ReactNode; steps?: ReactNode; right?: ReactNode; exitHref?:
 - **Kept:** the skip link `Skip to main content` → `#main-content`; `<main id="main-content" tabIndex={-1}>`; the mount APIs (org name, active pack for employers, catalog pack for candidates) and their fallbacks.
 - **Not kept:** the unread count is no longer fetched by the shell. `NotificationsPanel` owns it.
 
-- [ ] **Step 1: Write the failing unit test** `Frontend/tests/app-shell.test.tsx`
+- [x] **Step 1: Write the failing unit test** `Frontend/tests/app-shell.test.tsx`
 
 ```tsx
 import { render, screen, within } from "@testing-library/react";
@@ -2175,9 +2177,9 @@ describe("employer shell", () => {
 
 > `DashboardShell` wraps `RequireAuth`, which redirects when there is no token. In the test, set `window.localStorage.setItem("thos.access_token","t")` and `thos.session` to `{"has_employer_membership":true,"user":{"display_name":"Ayesha Khan"},"memberships":[{"role":"administrator"}]}` in a `beforeEach`.
 
-- [ ] **Step 2: Run.** `npx vitest run tests/app-shell.test.tsx`. Expected: FAIL.
+- [x] **Step 2: Run.** `npx vitest run tests/app-shell.test.tsx`. Expected: FAIL.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `components/layout/app-shell.tsx`, a full replacement. Keep the `export type NavItem` name.
 
@@ -2413,7 +2415,7 @@ const nav: NavItem[] = [
 
 > With 5 `mobile` candidate items plus More, the candidate bar has 6 slots. That is acceptable. If labels collide at 390px, set `mobile: false` on Profile; it stays reachable through More.
 
-- [ ] **Step 4: Replace the shell CSS in `styles/layout.css`.** Delete the old shell rules (listed under **Files**) and add:
+- [x] **Step 4: Replace the shell CSS in `styles/layout.css`.** Delete the old shell rules (listed under **Files**) and add:
 
 ```css
 /* ===== Shell (PRD §5) ===== */
@@ -2488,13 +2490,13 @@ const nav: NavItem[] = [
 
 Also delete the temporary `.sidebar` colour rule added in Task 2, Step 7.
 
-- [ ] **Step 5: Dev indicator.** In `next.config.ts`, set `const nextConfig: NextConfig = { reactStrictMode: true, devIndicators: { position: "bottom-left" } };`. If the installed Next version rejects `position`, use `devIndicators: { buildActivityPosition: "bottom-left" }`, or `false`.
+- [x] **Step 5: Dev indicator.** In `next.config.ts`, set `const nextConfig: NextConfig = { reactStrictMode: true, devIndicators: { position: "bottom-left" } };`. If the installed Next version rejects `position`, use `devIndicators: { buildActivityPosition: "bottom-left" }`, or `false`.
 
-- [ ] **Step 6: Delete GlobalSearch usage.** `AppShell` no longer imports `components/dashboard/global-search.tsx`. Leave the file in place; Task 17 deletes it.
+- [x] **Step 6: Delete GlobalSearch usage.** `AppShell` no longer imports `components/dashboard/global-search.tsx`. Leave the file in place; Task 17 deletes it.
 
-- [ ] **Step 7: Run.** `npx vitest run tests/app-shell.test.tsx`, then `npm test`, `npm run typecheck` and `npm run build`. Expected: PASS. Fix any page that imported `AppShell` props by the old names (`primaryNav` / `secondaryNav`). Only the two shells should use them.
+- [x] **Step 7: Run.** `npx vitest run tests/app-shell.test.tsx`, then `npm test`, `npm run typecheck` and `npm run build`. Expected: PASS. Fix any page that imported `AppShell` props by the old names (`primaryNav` / `secondaryNav`). Only the two shells should use them.
 
-- [ ] **Step 8: E2E shell parity.** Create `Frontend/e2e/parity/shell.spec.ts`:
+- [x] **Step 8: E2E shell parity.** Create `Frontend/e2e/parity/shell.spec.ts`:
 
 ```ts
 import { expect, onlyProject, readOnly, signIn, test } from "../fixtures";
@@ -2542,7 +2544,7 @@ test("candidate shell", async ({ page }, testInfo) => {
 
 Run: `cd Frontend && npx playwright test e2e/parity/shell.spec.ts`. Expected: PASS.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add Frontend/components/layout Frontend/components/dashboard/dashboard-shell.tsx Frontend/components/candidate/candidate-shell.tsx Frontend/styles/layout.css Frontend/next.config.ts Frontend/tests/app-shell.test.tsx Frontend/e2e/parity/shell.spec.ts

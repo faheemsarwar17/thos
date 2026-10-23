@@ -3427,6 +3427,8 @@ test("candidate jobs", async ({ page }, testInfo) => {
 
 ## Task 14: Candidate Applications (journey) and Profile (settings)
 
+> Note: The AI roadmap now sits inside the Details expansion with the lazy timeline (PRD §6.2). The withdraw request body is unchanged (fixed reason string, no reason field). Profile sections are synced to #profile/#photo/#resume/#privacy. Resume parse button renamed 'Parse & update profile' (same enable rule and endpoints).
+
 **Files:**
 - Modify: `Frontend/components/candidate/candidate-applications-page.tsx`
 - Modify: `Frontend/components/candidate/candidate-profile-page.tsx`
@@ -3514,11 +3516,11 @@ test("profile settings sections", async ({ page }, testInfo) => {
 });
 ```
 
-- [ ] Step 1: parity spec (red)
-- [ ] Step 2: Applications journey + Withdraw `Modal`
-- [ ] Step 3: Profile settings + avatar + resume + switches
-- [ ] Step 4: green (parity, layout `cand-applications`, `cand-profile`)
-- [ ] Step 5: commit `feat(ui): candidate journey cards and settings-style profile`
+- [x] Step 1: parity spec (red)
+- [x] Step 2: Applications journey + Withdraw `Modal`
+- [x] Step 3: Profile settings + avatar + resume + switches
+- [x] Step 4: green (parity, layout `cand-applications`, `cand-profile`)
+- [x] Step 5: commit `feat(ui): candidate journey cards and settings-style profile`
 
 ---
 

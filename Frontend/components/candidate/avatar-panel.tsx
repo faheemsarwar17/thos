@@ -105,55 +105,38 @@ export function AvatarPanel() {
   return (
     <section className="panel" aria-labelledby="avatar-heading">
       <div className="panel__header">
-        <div>
-          <p className="eyebrow">Identity</p>
-          <h2 id="avatar-heading">Profile photo</h2>
-        </div>
+        <h2 id="avatar-heading">Profile photo</h2>
       </div>
-      <div className="panel-body form-grid">
-        <p className="panel-note form-grid__full">
+      <div className="panel-body stack-md">
+        <p className="panel-note">
           This photo is matched against a live webcam frame during interviews to verify
           your identity. Use a clear, recent photo of your face (JPEG, PNG, or WebP, max 5 MB).
         </p>
-        <div className="form-grid__full" style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
-          {imageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={imageUrl}
-              alt="Your profile photo"
-              width={96}
-              height={96}
-              style={{ borderRadius: "50%", objectFit: "cover", width: 96, height: 96 }}
-            />
-          ) : (
-            <div
-              aria-hidden
-              style={{
-                width: 96,
-                height: 96,
-                borderRadius: "50%",
-                display: "grid",
-                placeItems: "center",
-                background: "var(--surface-muted, #eee)",
-                color: "var(--text-muted, #666)",
-                fontSize: "0.8rem",
-              }}
-            >
-              No photo
-            </div>
-          )}
-          <div style={{ display: "grid", gap: "0.5rem" }}>
-            <input
-              ref={inputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              aria-label="Choose profile photo"
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                if (file) void upload(file);
-              }}
-              disabled={busy}
-            />
+        <div className="photo">
+          <span className="photo__frame">
+            {imageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={imageUrl} alt="Your profile photo" width={72} height={72} />
+            ) : (
+              <span aria-hidden="true">No photo</span>
+            )}
+          </span>
+          <div className="form-actions">
+            <label className={`button button--primary file-button${busy ? " is-disabled" : ""}`}>
+              Upload photo
+              <input
+                ref={inputRef}
+                type="file"
+                className="file-input-hidden"
+                accept="image/jpeg,image/png,image/webp"
+                aria-label="Choose profile photo"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) void upload(file);
+                }}
+                disabled={busy}
+              />
+            </label>
             {state?.has_avatar && (
               <Button type="button" variant="ghost" onClick={() => void remove()} disabled={busy}>
                 Remove photo
@@ -162,12 +145,12 @@ export function AvatarPanel() {
           </div>
         </div>
         {error && (
-          <p className="form-error form-grid__full" role="alert">
+          <p className="form-error" role="alert">
             {error}
           </p>
         )}
         {message && (
-          <p className="form-success form-grid__full" role="status">
+          <p className="form-success" role="status">
             {message}
           </p>
         )}

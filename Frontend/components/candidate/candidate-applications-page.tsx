@@ -11,15 +11,17 @@ import {
   LuCode,
   LuChevronDown,
   LuChevronUp,
-  LuTriangleAlert,
   LuCircleX,
 } from "react-icons/lu";
-import { Badge } from "@/components/ui/badge";
-import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { Button } from "@/components/ui/button";
+import { Modal } from "@/components/ui/modal";
+import { PageHeader } from "@/components/ui/page-header";
 import { Pill } from "@/components/ui/pill";
+import { ScoreBadge } from "@/components/ui/score-badge";
+import { Stepper } from "@/components/ui/stepper";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/state";
 import { api } from "@/lib/api";
+import { isTerminal as isTerminalApp, nextStep, sandboxState } from "@/lib/candidate-next-step";
 import { useApi } from "@/lib/use-api";
 import type { CandidateApplication, Timeline } from "@/lib/types";
 
@@ -69,11 +71,9 @@ function ApplicationTimeline({ applicationId }: { applicationId: string }) {
         ))}
       </ol>
       {timeline.next_action && (
-        <div style={{ marginTop: "14px", padding: "10px 14px", background: "var(--surface-sunken)", borderRadius: "8px" }}>
-          <p className="panel-note" style={{ color: "var(--ink-800)", fontWeight: 500 }}>
-            <strong>Expected Next Step:</strong> {timeline.next_action}
-          </p>
-        </div>
+        <p className="note-box timeline__next">
+          <strong>Expected Next Step:</strong> {timeline.next_action}
+        </p>
       )}
     </div>
   );
@@ -83,11 +83,7 @@ function renderInlineMarkdown(text: string) {
   const parts = text.split(/(\*\*.*?\*\*)/g);
   return parts.map((part, i) => {
     if (part.startsWith("**") && part.endsWith("**")) {
-      return (
-        <strong key={i} style={{ color: "var(--ink-900, #0f172a)", fontWeight: 600 }}>
-          {part.slice(2, -2)}
-        </strong>
-      );
+      return <strong key={i}>{part.slice(2, -2)}</strong>;
     }
     return part;
   });
@@ -96,7 +92,7 @@ function renderInlineMarkdown(text: string) {
 function FeedbackViewer({ content }: { content: string }) {
   const paragraphs = content.split(/\n\s*\n/);
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+    <div className="md">
       {paragraphs.map((p, pIdx) => {
         const lines = p
           .split("\n")
@@ -107,50 +103,13 @@ function FeedbackViewer({ content }: { content: string }) {
         const first = lines[0];
         if (first.startsWith("### ")) {
           return (
-            <div key={pIdx} style={{ marginTop: pIdx > 0 ? "6px" : "0" }}>
-              <h4
-                style={{
-                  fontSize: "14px",
-                  fontWeight: 700,
-                  color: "var(--brand-900, #0f172a)",
-                  margin: "0 0 6px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                }}
-              >
-                {first.replace(/^###\s+/, "")}
-              </h4>
+            <div key={pIdx}>
+              <h4>{first.replace(/^###\s+/, "")}</h4>
               {lines.slice(1).map((line, lIdx) => {
                 if (line.startsWith("- ") || line.startsWith("* ")) {
-                  return (
-                    <li
-                      key={lIdx}
-                      style={{
-                        marginLeft: "18px",
-                        marginBottom: "4px",
-                        fontSize: "13.5px",
-                        lineHeight: 1.6,
-                        color: "var(--ink-800)",
-                      }}
-                    >
-                      {renderInlineMarkdown(line.replace(/^[-*]\s+/, ""))}
-                    </li>
-                  );
+                  return <li key={lIdx}>{renderInlineMarkdown(line.replace(/^[-*]\s+/, ""))}</li>;
                 }
-                return (
-                  <p
-                    key={lIdx}
-                    style={{
-                      margin: "0 0 6px",
-                      fontSize: "13.5px",
-                      lineHeight: 1.6,
-                      color: "var(--ink-800)",
-                    }}
-                  >
-                    {renderInlineMarkdown(line)}
-                  </p>
-                );
+                return <p key={lIdx}>{renderInlineMarkdown(line)}</p>;
               })}
             </div>
           );
@@ -158,19 +117,9 @@ function FeedbackViewer({ content }: { content: string }) {
 
         if (lines.every((l) => l.startsWith("- ") || l.startsWith("* "))) {
           return (
-            <ul key={pIdx} style={{ margin: "0 0 4px 18px", padding: 0 }}>
+            <ul key={pIdx}>
               {lines.map((l, lIdx) => (
-                <li
-                  key={lIdx}
-                  style={{
-                    marginBottom: "6px",
-                    fontSize: "13.5px",
-                    lineHeight: 1.6,
-                    color: "var(--ink-800)",
-                  }}
-                >
-                  {renderInlineMarkdown(l.replace(/^[-*]\s+/, ""))}
-                </li>
+                <li key={lIdx}>{renderInlineMarkdown(l.replace(/^[-*]\s+/, ""))}</li>
               ))}
             </ul>
           );
@@ -180,34 +129,9 @@ function FeedbackViewer({ content }: { content: string }) {
           <div key={pIdx}>
             {lines.map((line, lIdx) => {
               if (line.startsWith("- ") || line.startsWith("* ")) {
-                return (
-                  <li
-                    key={lIdx}
-                    style={{
-                      marginLeft: "18px",
-                      marginBottom: "4px",
-                      fontSize: "13.5px",
-                      lineHeight: 1.6,
-                      color: "var(--ink-800)",
-                    }}
-                  >
-                    {renderInlineMarkdown(line.replace(/^[-*]\s+/, ""))}
-                  </li>
-                );
+                return <li key={lIdx}>{renderInlineMarkdown(line.replace(/^[-*]\s+/, ""))}</li>;
               }
-              return (
-                <p
-                  key={lIdx}
-                  style={{
-                    margin: "0 0 6px",
-                    fontSize: "13.5px",
-                    lineHeight: 1.6,
-                    color: "var(--ink-800)",
-                  }}
-                >
-                  {renderInlineMarkdown(line)}
-                </p>
-              );
+              return <p key={lIdx}>{renderInlineMarkdown(line)}</p>;
             })}
           </div>
         );
@@ -245,17 +169,7 @@ export function CandidateApplicationsPage() {
 
   return (
     <div className="dashboard">
-      <div style={{ marginBottom: "16px" }}>
-        <Breadcrumbs items={[{ label: "Candidate Portal", href: "/candidate" }, { label: "My Applications" }]} />
-      </div>
-
-      <div className="page-heading">
-        <div>
-          <p className="eyebrow">Status tracking</p>
-          <h1>My Applications</h1>
-          <p>Transparent progress tracking. Every application shows exactly where you stand and what happens next.</p>
-        </div>
-      </div>
+      <PageHeader title="My applications" meta="Every step, and what happens next" />
 
       {loading ? (
         <LoadingState label="Loading your active applications…" />
@@ -273,78 +187,66 @@ export function CandidateApplicationsPage() {
           }
         />
       ) : (
-        <ul className="application-cards" style={{ listStyle: "none", padding: 0 }}>
+        <ul className="journey-list">
           {data?.applications.map((application) => {
             const isOpen = openId === application.id;
             const matchScore = (application as unknown as { job_match_score?: number }).job_match_score;
-            const isTerminal = ["Withdrawn", "Hired", "Rejected"].includes(application.status);
+            const isTerminal = isTerminalApp(application);
+            const step = nextStep(application);
+            const sandbox = sandboxState(application);
+            const current = application.status_order.indexOf(application.status);
+
+            const currentAction = step ? (
+              <Link className="button button--primary button--sm" href={step.href}>
+                {step.tone === "violet" ? <LuCode size={13} aria-hidden="true" /> : <LuSparkles size={13} aria-hidden="true" />}
+                <span>{step.tone === "violet" ? "Take sandbox" : "Complete interview"}</span>
+              </Link>
+            ) : sandbox === "complete" ? (
+              <Pill tone="success">Sandbox complete</Pill>
+            ) : sandbox === "pending" ? (
+              <Pill tone="attention">Sandbox pending</Pill>
+            ) : isTerminal ? null : (
+              <span className="journey__waiting">Waiting on the employer</span>
+            );
 
             return (
-              <li key={application.id} className="panel" style={{ marginBottom: "16px" }}>
-                <div className="panel__header">
-                  <div>
-                    <p className="eyebrow">{application.organization_name}</p>
-                    <h2>{application.job_title}</h2>
-                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "6px", marginBottom: "6px" }}>
-                      {matchScore !== undefined && matchScore !== null && (
-                        <Badge variant="brand">
-                          Overall Match: {Math.round(matchScore)}/100
-                        </Badge>
-                      )}
-                      {application.applied_interview?.interview_score !== undefined &&
-                        application.applied_interview?.interview_score !== null && (
-                          <Badge variant="default">
-                            Voice Interview: {Math.round(application.applied_interview.interview_score)}/100
-                          </Badge>
-                        )}
-                      {application.applied_interview?.sandbox?.score !== undefined &&
-                        application.applied_interview?.sandbox?.score !== null && (
-                          <Badge variant="default">
-                            Technical Sandbox: {Math.round(application.applied_interview.sandbox.score)}/100
-                          </Badge>
-                        )}
+              <li key={application.id}>
+                <article className="panel journey" aria-label={`${application.job_title} at ${application.organization_name}`}>
+                  <header className="journey__head">
+                    <div className="journey__title">
+                      <h2>{application.job_title}</h2>
+                      <small>
+                        {application.organization_name} · applied {new Date(application.applied_at).toLocaleDateString()} · updated{" "}
+                        {new Date(application.updated_at).toLocaleDateString()}
+                      </small>
                     </div>
-                    <p className="panel-note" style={{ fontSize: "12px", color: "var(--ink-400)" }}>
-                      Applied {new Date(application.applied_at).toLocaleDateString()} · Updated{" "}
-                      {new Date(application.updated_at).toLocaleDateString()}
-                    </p>
-                  </div>
-
-                  <div className="panel__actions" style={{ flexWrap: "wrap", gap: "8px" }}>
                     <Pill tone={application.status === "Withdrawn" ? "neutral" : application.status === "Decision" ? "approval" : "brand"}>
                       {application.status}
                     </Pill>
+                  </header>
 
-                    {!isTerminal && application.applied_interview?.sandbox?.required &&
-                      (["submitted", "expired"].includes(
-                        application.applied_interview.sandbox.status ?? ""
-                      ) ? (
-                        <Pill tone="success">Sandbox complete</Pill>
-                      ) : ["submitted", "evaluated"].includes(
-                          application.applied_interview.status
-                        ) ? (
-                        <Link
-                          className="button button--primary button--sm"
-                          href={`/candidate/sandbox/${application.applied_interview.attempt_id}`}
-                        >
-                          <LuCode size={13} aria-hidden="true" />
-                          <span>Take sandbox</span>
-                        </Link>
-                      ) : (
-                        <Pill tone="attention">Sandbox pending</Pill>
-                      ))}
-
-                    {!isTerminal && application.applied_interview &&
-                      ["invited", "in_progress"].includes(application.applied_interview.status) && (
-                        <Link
-                          className="button button--primary button--sm"
-                          href={`/candidate/applied/${application.applied_interview.attempt_id}`}
-                        >
-                          <LuSparkles size={13} aria-hidden="true" />
-                          <span>Complete interview</span>
-                        </Link>
+                  {application.status_order.length > 0 && (
+                    <Stepper
+                      orientation="vertical"
+                      steps={application.status_order}
+                      current={current}
+                      renderStep={(label, _i, state) => (
+                        <span className="journey__step">
+                          <span className="stepper__label">{label}</span>
+                          {state === "current" && currentAction && <span className="journey__action">{currentAction}</span>}
+                        </span>
                       )}
+                    />
+                  )}
+                  {current < 0 && currentAction && <div className="journey__action">{currentAction}</div>}
 
+                  <div className="journey__scores">
+                    <ScoreBadge score={matchScore ?? null} label="Overall match" />
+                    <ScoreBadge score={application.applied_interview?.interview_score ?? null} label="Voice interview" />
+                    <ScoreBadge score={application.applied_interview?.sandbox?.score ?? null} label="Technical sandbox" />
+                  </div>
+
+                  <footer className="journey__foot">
                     <Button
                       variant="secondary"
                       size="sm"
@@ -352,14 +254,13 @@ export function CandidateApplicationsPage() {
                       onClick={() => setOpenId(isOpen ? null : application.id)}
                       iconRight={isOpen ? <LuChevronUp size={13} /> : <LuChevronDown size={13} />}
                     >
-                      {isOpen ? "Hide timeline" : "View timeline"}
+                      Details
                     </Button>
-
                     {!isTerminal && (
                       <Button
                         variant="ghost"
                         size="sm"
-                        style={{ color: "var(--danger-700)" }}
+                        className="button--danger-text"
                         onClick={() => {
                           setWithdrawError(null);
                           setWithdrawingApp(application);
@@ -369,147 +270,55 @@ export function CandidateApplicationsPage() {
                         <span>Withdraw</span>
                       </Button>
                     )}
-                  </div>
-                </div>
+                  </footer>
 
-                {application.ai_improvement_feedback && (
-                  <div
-                    style={{
-                      margin: "0 20px 16px",
-                      padding: "18px 20px",
-                      background: "var(--brand-50, #f0fdfa)",
-                      border: "1px solid var(--brand-200, #99f6e4)",
-                      borderRadius: "10px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        marginBottom: "12px",
-                        color: "var(--brand-800, #0f766e)",
-                        fontWeight: 700,
-                        fontSize: "14.5px",
-                      }}
-                    >
-                      <LuSparkles size={17} />
-                      <span>AI Career Advisor: Growth &amp; Improvement Roadmap</span>
+                  {isOpen && (
+                    <div className="journey__details">
+                      <ApplicationTimeline applicationId={application.id} />
+                      {application.ai_improvement_feedback && (
+                        <div className="note-box note-box--brand roadmap">
+                          <p className="roadmap__title">
+                            <LuSparkles size={16} aria-hidden="true" />
+                            <span>AI Career Advisor: Growth &amp; Improvement Roadmap</span>
+                          </p>
+                          <FeedbackViewer content={application.ai_improvement_feedback} />
+                        </div>
+                      )}
                     </div>
-                    <FeedbackViewer content={application.ai_improvement_feedback} />
-                  </div>
-                )}
-
-                {isOpen && (
-                  <div className="panel-body" style={{ borderTop: "1px solid var(--border)" }}>
-                    <ApplicationTimeline applicationId={application.id} />
-                  </div>
-                )}
+                  )}
+                </article>
               </li>
             );
           })}
         </ul>
       )}
 
-      {/* Confirmation Modal for Self-Withdrawal */}
-      {withdrawingApp && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="withdraw-dialog-title"
-          style={{
-            position: "fixed",
-            inset: 0,
-            backgroundColor: "rgba(0, 0, 0, 0.55)",
-            backdropFilter: "blur(4px)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1000,
-            padding: "20px",
-          }}
-        >
-          <div
-            className="panel"
-            style={{
-              maxWidth: "480px",
-              width: "100%",
-              background: "var(--surface)",
-              boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.3)",
-              borderRadius: "12px",
-              border: "1px solid var(--border)",
-              overflow: "hidden",
-            }}
-          >
-            <div className="panel__header" style={{ borderBottom: "1px solid var(--border)", padding: "16px 20px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <span
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    width: "36px",
-                    height: "36px",
-                    borderRadius: "50%",
-                    background: "var(--danger-100, #fee2e2)",
-                    color: "var(--danger-700, #b91c1c)",
-                  }}
-                >
-                  <LuTriangleAlert size={18} />
-                </span>
-                <h2 id="withdraw-dialog-title" style={{ margin: 0, fontSize: "17px" }}>
-                  Withdraw Application
-                </h2>
-              </div>
-            </div>
-
-            <div className="panel-body" style={{ padding: "20px" }}>
-              <p style={{ color: "var(--ink-700)", marginBottom: "12px", fontSize: "14px", lineHeight: 1.5 }}>
-                Are you sure you want to withdraw your application for <strong>{withdrawingApp.job_title}</strong> at{" "}
-                <strong>{withdrawingApp.organization_name}</strong>?
-              </p>
-              <p style={{ color: "var(--ink-500)", fontSize: "13px", lineHeight: 1.4, margin: 0 }}>
-                This will immediately cancel any pending interview sessions and notify the hiring team. This action cannot be undone.
-              </p>
-
-              {withdrawError && (
-                <div style={{ marginTop: "14px", padding: "10px 14px", borderRadius: "8px", background: "#fef2f2", color: "#991b1b", fontSize: "13px" }}>
-                  {withdrawError}
-                </div>
-              )}
-            </div>
-
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "flex-end",
-                gap: "10px",
-                padding: "14px 20px",
-                background: "var(--surface-sunken)",
-                borderTop: "1px solid var(--border)",
-              }}
-            >
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={isWithdrawing}
-                onClick={() => setWithdrawingApp(null)}
-              >
-                Keep Application
+      <Modal
+        open={!!withdrawingApp}
+        onClose={() => {
+          if (!isWithdrawing) setWithdrawingApp(null);
+        }}
+        title="Withdraw application?"
+        description="This immediately cancels any pending interview sessions and notifies the hiring team. This action cannot be undone."
+      >
+        {withdrawingApp && (
+          <div className="modal-stack">
+            <p>
+              Withdraw your application for <strong>{withdrawingApp.job_title}</strong> at{" "}
+              <strong>{withdrawingApp.organization_name}</strong>?
+            </p>
+            {withdrawError && <p className="thread__error" role="alert">{withdrawError}</p>}
+            <div className="modal-actions">
+              <Button variant="secondary" size="sm" disabled={isWithdrawing} onClick={() => setWithdrawingApp(null)}>
+                Keep application
               </Button>
-              <Button
-                variant="danger"
-                size="sm"
-                disabled={isWithdrawing}
-                onClick={handleConfirmWithdraw}
-              >
-                {isWithdrawing ? "Withdrawing…" : "Confirm Withdrawal"}
+              <Button variant="danger-filled" size="sm" disabled={isWithdrawing} onClick={handleConfirmWithdraw}>
+                {isWithdrawing ? "Withdrawing…" : "Confirm withdrawal"}
               </Button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   );
 }
-

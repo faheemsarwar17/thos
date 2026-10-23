@@ -16,6 +16,7 @@ interface LiveKitRoomWrapperProps {
   onSetupStageChange?: (stage: string) => void;
   onSetupStatusChange?: (status: string) => void;
   onSetupFailed?: (detail: { error: string; sessionId?: string }) => void;
+  title?: string;
 }
 
 export default function LiveKitRoomWrapper({
@@ -27,6 +28,7 @@ export default function LiveKitRoomWrapper({
   onSetupStageChange,
   onSetupStatusChange,
   onSetupFailed,
+  title,
 }: LiveKitRoomWrapperProps) {
   const [liveKitToken, setLiveKitToken] = useState<string | null>(null);
   const [wsUrl, setWsUrl] = useState<string | null>(null);
@@ -54,18 +56,18 @@ export default function LiveKitRoomWrapper({
 
   if (error) {
     return (
-      <div className="panel" style={{ margin: "2rem auto", maxWidth: 720, padding: "2rem", textAlign: "center" }}>
+      <div className="fx-card" role="alert">
         <h1>Connection issue</h1>
-        <p>{error}</p>
+        <p className="fx-card__text">{error}</p>
       </div>
     );
   }
 
   if (!liveKitToken || !wsUrl) {
     return (
-      <div className="panel" style={{ margin: "2rem auto", maxWidth: 720, padding: "2rem", textAlign: "center" }}>
+      <div className="fx-card">
         <h1>Preparing interview</h1>
-        <p>Connecting you to the interview room…</p>
+        <p className="fx-card__text">Connecting you to the interview room…</p>
       </div>
     );
   }
@@ -78,14 +80,7 @@ export default function LiveKitRoomWrapper({
       audio={false}
       video={false}
       data-lk-theme="default"
-      style={{
-        height: "100%",
-        minHeight: 0,
-        display: "flex",
-        flexDirection: "column",
-        flex: 1,
-        backgroundColor: "transparent",
-      }}
+      className="fx-lk"
     >
       <RoomAudioRenderer />
       <InterviewInterface
@@ -97,6 +92,7 @@ export default function LiveKitRoomWrapper({
         onSetupStageChange={onSetupStageChange}
         onSetupStatusChange={onSetupStatusChange}
         onSetupFailed={onSetupFailed}
+        title={title}
       />
     </LiveKitRoom>
   );

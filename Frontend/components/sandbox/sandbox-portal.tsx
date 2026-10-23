@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { LuCircleCheck, LuCode, LuMonitor, LuTriangleAlert, LuVideo } from "react-icons/lu";
+import { FocusLayout } from "@/components/layout/focus-layout";
 import { api, ApiError } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 import type { SandboxSessionState, SandboxState } from "@/lib/types";
@@ -22,62 +24,23 @@ function CenterCard({
   title,
   message,
   tone = "neutral",
+  wide,
   children,
 }: {
   title: string;
   message?: string | null;
   tone?: "neutral" | "success" | "danger";
+  wide?: boolean;
   children?: React.ReactNode;
 }) {
   return (
-    <div
-      style={{
-        flex: 1,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "32px 20px",
-        minHeight: "calc(100dvh - var(--topbar-height))",
-        backgroundColor: "var(--surface-app)",
-      }}
-    >
-      <div style={{ width: "100%", maxWidth: "680px" }}>
-        <div
-          className="panel"
-          style={{
-            padding: "48px 40px",
-            textAlign: "center",
-            boxShadow: "var(--shadow-overlay)",
-            border: "1px solid var(--border)",
-            borderRadius: "var(--radius-xl)",
-          }}
-        >
-          <p
-            className="eyebrow"
-            style={{
-              color:
-                tone === "success"
-                  ? "var(--green-700)"
-                  : tone === "danger"
-                  ? "var(--red-600)"
-                  : "var(--brand-600)",
-            }}
-          >
-            {tone === "success"
-              ? "Assessment Complete"
-              : tone === "danger"
-              ? "Attention Required"
-              : "Proctored Sandbox"}
-          </p>
-          <h1 style={{ fontSize: "22px", marginBottom: "10px" }}>{title}</h1>
-          {message ? (
-            <p style={{ margin: "0 auto", maxWidth: "480px", color: "var(--ink-600)", fontSize: "14px" }}>
-              {message}
-            </p>
-          ) : null}
-          {children ? <div style={{ marginTop: "24px" }}>{children}</div> : null}
-        </div>
-      </div>
+    <div className={wide ? "fx-card fx-card--wide" : "fx-card"} role={tone === "danger" ? "alert" : undefined}>
+      <span className={tone === "success" ? "fx-icon fx-icon--ok" : tone === "danger" ? "fx-icon fx-icon--warn" : "fx-icon"} aria-hidden="true">
+        {tone === "success" ? <LuCircleCheck size={24} /> : tone === "danger" ? <LuTriangleAlert size={24} /> : <LuCode size={24} />}
+      </span>
+      <h1>{title}</h1>
+      {message ? <p className="fx-card__text">{message}</p> : null}
+      {children}
     </div>
   );
 }
@@ -297,21 +260,52 @@ export function SandboxPortal({ attemptId }: { attemptId: string }) {
     }
   };
 
+  const difficulty = state?.session?.difficulty ?? state?.config?.difficulty ?? "";
+  const shell = (children: React.ReactNode, active = false) => (
+    <FocusLayout
+      title={`Proctored sandbox${difficulty ? ` · ${difficulty}` : ""}`}
+      exitHref={active ? undefined : "/candidate/applications"}
+      full={active}
+      right={
+        active ? (
+          <span className="fx-headright">
+            <RecordingIndicator active={recorder.recording} />
+            {state?.session?.deadline ? (
+              <SandboxTimer deadline={state.session.deadline} onExpire={() => void doSubmit(true)} />
+            ) : null}
+            <button
+              type="button"
+              className="button button--primary button--sm"
+              onClick={() => void doSubmit(false)}
+              disabled={submitting}
+            >
+              {submitting ? "Submitting…" : "Submit"}
+            </button>
+          </span>
+        ) : undefined
+      }
+    >
+      {children}
+    </FocusLayout>
+  );
+
   if (phase === "loading") {
-    return <CenterCard title="Preparing the sandbox" message="Loading your assessment…" />;
+    return shell(<CenterCard title="Preparing the sandbox" message="Loading your assessment…" />);
   }
   if (error && phase !== "done") {
-    return <CenterCard title="Sandbox unavailable" message={error} tone="danger" />;
+    return shell(<CenterCard title="Sandbox unavailable" message={error} tone="danger" />);
   }
   if (!state?.required) {
-    return (
+    return shell(
       <CenterCard
         title="No sandbox required"
         message="This role does not include a sandbox assessment."
       >
-        <a className="button button--primary" href="/candidate">
-          Back to candidate home
-        </a>
+        <div className="fx-card__actions">
+          <a className="button button--primary" href="/candidate">
+            Back to candidate home
+          </a>
+        </div>
       </CenterCard>
     );
   }
@@ -323,7 +317,7 @@ export function SandboxPortal({ attemptId }: { attemptId: string }) {
     const score = result?.score != null ? Math.round(result.score) : null;
     const isZero = score === 0;
 
-    return (
+    return shell(
       <CenterCard
         title={
           result?.status === "expired"
@@ -333,43 +327,23 @@ export function SandboxPortal({ attemptId }: { attemptId: string }) {
         message="Your submission, proctoring log, and recording have been evaluated by AI and shared with the hiring team."
         tone="success"
       >
-        <div
-          style={{
-            margin: "0 auto 20px",
-            padding: "20px 24px",
-            background: isZero ? "var(--surface-sunken, #f8fafc)" : "var(--brand-50, #f0fdfa)",
-            border: `1px solid ${isZero ? "var(--border, #e2e8f0)" : "var(--brand-200, #99f6e4)"}`,
-            borderRadius: "10px",
-            maxWidth: "480px",
-          }}
-        >
-          <div style={{ fontSize: "13px", color: "var(--ink-600)", marginBottom: "4px", fontWeight: 500 }}>
-            Technical Assessment Score
-          </div>
-          <div
-            style={{
-              fontSize: "32px",
-              fontWeight: 800,
-              color: isZero ? "var(--ink-700)" : "var(--brand-800)",
-              letterSpacing: "-0.02em",
-            }}
-          >
-            {score !== null ? `${score}/100` : "Evaluated"}
-          </div>
+        <div className={isZero ? "fx-result" : "fx-result fx-result--brand"}>
+          <span className="fx-result__label">Technical Assessment Score</span>
+          <span className="fx-score tabular-nums">{score !== null ? `${score}/100` : "Evaluated"}</span>
           {isZero ? (
-            <p style={{ margin: "8px 0 0", fontSize: "13px", color: "var(--ink-500)", lineHeight: 1.5 }}>
+            <p>
               The starter template was submitted without substantive implementation. A comprehensive evaluation and growth roadmap have been generated for you.
             </p>
           ) : (
-            <p style={{ margin: "8px 0 0", fontSize: "13px", color: "var(--ink-600)", lineHeight: 1.5 }}>
+            <p>
               Your technical approach, code quality, and problem-solving were evaluated against the rubric.
             </p>
           )}
         </div>
 
-        {error ? <p style={{ marginBottom: "16px", color: "var(--red-600)" }}>{error}</p> : null}
+        {error ? <p className="form-error" role="alert">{error}</p> : null}
 
-        <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap", marginTop: "16px" }}>
+        <div className="fx-card__actions">
           <a className="button button--primary" href="/candidate/applications">
             View Assessment Feedback &amp; Roadmap
           </a>
@@ -383,8 +357,9 @@ export function SandboxPortal({ attemptId }: { attemptId: string }) {
 
   if (phase === "lobby") {
     const resuming = session?.status === "in_progress";
-    return (
+    return shell(
       <CenterCard
+        wide
         title={resuming ? "Resume your sandbox" : "Before you begin"}
         message={
           config
@@ -394,57 +369,42 @@ export function SandboxPortal({ attemptId }: { attemptId: string }) {
             : null
         }
       >
-        <ul
-          style={{
-            textAlign: "left",
-            maxWidth: "520px",
-            margin: "0 auto 20px",
-            paddingLeft: "18px",
-            lineHeight: 1.7,
-          }}
-        >
+        <ul className="fx-rules">
           <li>The sandbox runs in fullscreen. Leaving fullscreen submits your work immediately.</li>
           <li>Copy, paste, and browser shortcuts are disabled during the assessment.</li>
           <li>Switching tabs or windows is logged; repeated switches auto-submit your work.</li>
           <li>Your screen, camera, and microphone are recorded for the hiring team to review.</li>
           <li>The timer is enforced by the server — when it ends, your work is submitted as-is.</li>
         </ul>
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "10px",
-            alignItems: "center",
-          }}
-        >
-          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", justifyContent: "center" }}>
-            <button
-              type="button"
-              className="button button--secondary"
-              onClick={() => void requestScreen()}
-              disabled={Boolean(screen)}
-            >
-              {screen ? "✓ Screen shared" : "Share your screen"}
-            </button>
-            <button
-              type="button"
-              className="button button--secondary"
-              onClick={() => void requestCamera()}
-              disabled={Boolean(camera)}
-            >
-              {camera ? "✓ Camera & mic on" : "Enable camera & microphone"}
-            </button>
-          </div>
-          {permError ? <p style={{ color: "var(--red-700)", margin: 0 }}>{permError}</p> : null}
+        <div className="fx-checks">
           <button
             type="button"
-            className="button button--primary"
-            onClick={() => void handleStart()}
-            disabled={!screen || !camera || starting}
+            className={screen ? "fx-check is-done" : "fx-check"}
+            onClick={() => void requestScreen()}
+            disabled={Boolean(screen)}
           >
-            {starting ? "Starting…" : resuming ? "Resume in fullscreen" : "Start the sandbox"}
+            {screen ? <LuCircleCheck size={16} aria-hidden="true" /> : <LuMonitor size={16} aria-hidden="true" />}
+            {screen ? "Screen shared" : "Share your screen"}
+          </button>
+          <button
+            type="button"
+            className={camera ? "fx-check is-done" : "fx-check"}
+            onClick={() => void requestCamera()}
+            disabled={Boolean(camera)}
+          >
+            {camera ? <LuCircleCheck size={16} aria-hidden="true" /> : <LuVideo size={16} aria-hidden="true" />}
+            {camera ? "Camera & mic on" : "Enable camera & microphone"}
           </button>
         </div>
+        {permError ? <p className="fx-alert" role="alert"><LuTriangleAlert size={16} aria-hidden="true" /><span>{permError}</span></p> : null}
+        <button
+          type="button"
+          className="button button--primary button--lg"
+          onClick={() => void handleStart()}
+          disabled={!screen || !camera || starting}
+        >
+          {starting ? "Starting…" : resuming ? "Resume in fullscreen" : "Start the sandbox"}
+        </button>
       </CenterCard>
     );
   }
@@ -453,93 +413,39 @@ export function SandboxPortal({ attemptId }: { attemptId: string }) {
   const exercise = session?.exercise;
   const isWritten = session?.type === "written";
 
-  return (
-    <div className="sandbox-active">
+  return shell(
+    <>
       {submitting && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            backgroundColor: "rgba(15, 23, 42, 0.85)",
-            backdropFilter: "blur(8px)",
-            zIndex: 99999,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexDirection: "column",
-            color: "#ffffff",
-            padding: "24px",
-            textAlign: "center",
-          }}
-        >
-          <div
-            style={{
-              width: "52px",
-              height: "52px",
-              border: "4px solid rgba(255, 255, 255, 0.2)",
-              borderTopColor: "var(--brand-400, #38bdf8)",
-              borderRadius: "50%",
-              animation: "spin 1s linear infinite",
-              marginBottom: "20px",
-            }}
-          />
-          <h2 style={{ fontSize: "22px", fontWeight: 700, marginBottom: "8px", color: "#ffffff" }}>
-            AI is Analyzing Your Assessment…
-          </h2>
-          <p
-            style={{
-              maxWidth: "500px",
-              color: "rgba(255, 255, 255, 0.85)",
-              fontSize: "14px",
-              lineHeight: 1.6,
-              margin: 0,
-            }}
-          >
+        <div className="fx-overlay" role="status">
+          <span className="fx-overlay__spinner" aria-hidden="true" />
+          <h2>AI is Analyzing Your Assessment…</h2>
+          <p>
             Evaluating code quality, edge-case handling, and rubric alignment while synthesizing a comprehensive performance report and career roadmap for your application.
           </p>
         </div>
       )}
-      <header className="sandbox-active__header">
-        <div>
-          <p className="eyebrow" style={{ margin: 0 }}>
-            Proctored sandbox · {session?.difficulty ?? ""}
-          </p>
-          <h1>{isWritten ? "Written exercise" : problem?.title || "Coding problem"}</h1>
-        </div>
-        <div className="sandbox-active__meta">
-          <RecordingIndicator active={recorder.recording} />
-          {session?.deadline ? (
-            <SandboxTimer deadline={session.deadline} onExpire={() => void doSubmit(true)} />
-          ) : null}
-          <button
-            type="button"
-            className="button button--primary button--small"
-            onClick={() => void doSubmit(false)}
-            disabled={submitting}
-          >
-            {submitting ? "Submitting…" : "Submit"}
-          </button>
-        </div>
-      </header>
       {isWritten && exercise ? (
-        <WrittenExercise
-          exercise={exercise}
-          answers={answers}
-          onChange={(promptId, value) =>
-            setAnswers((prev) => ({ ...prev, [promptId]: value }))
-          }
-          disabled={submitting}
-        />
+        <div className="fx-written">
+          <h1 className="sr-only">Written exercise</h1>
+          <WrittenExercise
+            exercise={exercise}
+            answers={answers}
+            onChange={(promptId, value) =>
+              setAnswers((prev) => ({ ...prev, [promptId]: value }))
+            }
+            disabled={submitting}
+          />
+        </div>
       ) : (
-        <div className="sandbox-coding">
-          <aside className="sandbox-problem">
-            <h2 style={{ marginTop: 0 }}>{problem?.title}</h2>
-            <p style={{ whiteSpace: "pre-wrap" }}>{problem?.statement}</p>
+        <div className="fx-ide">
+          <aside className="fx-problem">
+            <h1>{problem?.title || "Coding problem"}</h1>
+            <p className="fx-problem__statement">{problem?.statement}</p>
             {problem?.examples?.length ? (
               <>
                 <h3>Examples</h3>
                 {problem.examples.map((example, index) => (
-                  <div key={index} className="sandbox-problem__example">
+                  <div key={index} className="fx-example">
                     <p>
                       <strong>Input:</strong> {example.input}
                     </p>
@@ -575,6 +481,7 @@ export function SandboxPortal({ attemptId }: { attemptId: string }) {
           />
         </div>
       )}
-    </div>
+    </>,
+    true,
   );
 }

@@ -3526,6 +3526,8 @@ test("profile settings sections", async ({ page }, testInfo) => {
 
 ## Task 15: Focus layout for the voice interview, sandbox and interview room
 
+> Note: Diff gate clean: use-proctoring.ts and sandbox-recorder.tsx untouched; InterviewInterface hunks are props + render only. There is no on-screen violation notice in the current code (violations are only POSTed), so .fx-violation was not wired. The launcher shows the explainer inside its starting/error cards (no extra click, logic unchanged). Manual check: permissions -> device check verified with Chromium fake devices; the live stage could not be exercised because this environment has no LiveKit/OpenAI keys.
+
 **Visual only.** Do not change WebSocket messages, LiveKit options, mic gating, timers, identity check, recording, proctoring, autosave or any API call. Run the diff check in Step 6.
 
 **Files:**
@@ -3604,15 +3606,15 @@ test("applied interview page renders inside focus layout", async ({ page }, test
 
 > For deeper sandbox coverage, add a spec that stubs `navigator.mediaDevices.getDisplayMedia` and `Element.prototype.requestFullscreen` with `page.addInitScript`, and mocks `GET {base}` with `page.route` to return an active session, as described in `assets/research-playwright.md` §Sandbox. Assert that the problem pane, the editor and the Submit button are visible at w1366 and w390. This is recommended, not blocking.
 
-- [ ] Step 1: parity spec (red: the rail is present today)
-- [ ] Step 2: pages → `RequireAuth` + `FocusLayout`; `StepIndicator` in header
-- [ ] Step 3: voice components restyle; title prop fix
-- [ ] Step 4: sandbox restyle
-- [ ] Step 5: interview room lobby
-- [ ] Step 6: **diff check.** For each of `InterviewInterface.tsx`, `voice-portal.tsx`, `sandbox-portal.tsx`, `use-proctoring.ts` and `sandbox-recorder.tsx`, run `git diff -U0 <file> | grep -E "^[-+]" | grep -vE "className|style=|^[-+]\s*<|^[-+]\s*\)|^[-+]\s*\}|title"` and confirm nothing behavioural changed. `use-proctoring.ts` and `sandbox-recorder.tsx` should have **no** diff at all.
-- [ ] Step 7: green on parity + layout (`cand-screening`, `cand-applied`, `cand-sandbox`, `interview-room`)
-- [ ] Step 8: **manual check** (tell the user if you cannot do it). With the backend AI keys configured, start a profile screening at `/candidate/interview` and confirm permissions → device check → setup → live (transcript updates, mic opens on your turn, End works). Without keys, record that in the sign-off file.
-- [ ] Step 9: commit `feat(ui): focus layout for voice interview, sandbox and interview room`
+- [x] Step 1: parity spec (red: the rail is present today)
+- [x] Step 2: pages → `RequireAuth` + `FocusLayout`; `StepIndicator` in header
+- [x] Step 3: voice components restyle; title prop fix
+- [x] Step 4: sandbox restyle
+- [x] Step 5: interview room lobby
+- [x] Step 6: **diff check.** For each of `InterviewInterface.tsx`, `voice-portal.tsx`, `sandbox-portal.tsx`, `use-proctoring.ts` and `sandbox-recorder.tsx`, run `git diff -U0 <file> | grep -E "^[-+]" | grep -vE "className|style=|^[-+]\s*<|^[-+]\s*\)|^[-+]\s*\}|title"` and confirm nothing behavioural changed. `use-proctoring.ts` and `sandbox-recorder.tsx` should have **no** diff at all.
+- [x] Step 7: green on parity + layout (`cand-screening`, `cand-applied`, `cand-sandbox`, `interview-room`)
+- [x] Step 8: **manual check** (tell the user if you cannot do it). With the backend AI keys configured, start a profile screening at `/candidate/interview` and confirm permissions → device check → setup → live (transcript updates, mic opens on your turn, End works). Without keys, record that in the sign-off file.
+- [x] Step 9: commit `feat(ui): focus layout for voice interview, sandbox and interview room`
 
 ---
 

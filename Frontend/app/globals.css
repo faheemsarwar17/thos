@@ -26,6 +26,7 @@
 @import "../styles/screens/automations.css";
 @import "../styles/screens/admin.css";
 @import "../styles/screens/candidate.css";
+@import "../styles/screens/focus.css";
 
 /* Base Reset */
 /* margin/padding reset on every element is kept from v2: existing screens rely on it (lists, headings, forms). */

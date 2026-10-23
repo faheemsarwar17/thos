@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { LuMicOff, LuTriangleAlert } from "react-icons/lu";
 
 export default function PermissionCheck({
   onComplete,
@@ -41,126 +42,49 @@ export default function PermissionCheck({
 
   if (!denied) {
     return (
-      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "32px" }}>
-        <div
-          className="animate-fade-up"
-          style={{
-            width: "100%",
-            maxWidth: "380px",
-            backgroundColor: "var(--color-surface)",
-            border: "1px solid var(--color-border)",
-            borderRadius: "16px",
-            padding: "40px",
-            textAlign: "center",
-            boxShadow: "var(--shadow-card)",
-            marginTop: "-96px",
-          }}
-        >
-          <div
-            style={{
-              width: "56px",
-              height: "56px",
-              borderRadius: "999px",
-              backgroundColor: "var(--color-accent-light)",
-              border: "1px solid var(--color-border)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 18px",
-            }}
-          >
-            <span className="spinner spinner-accent" style={{ width: "22px", height: "22px" }} />
-          </div>
-          <p style={{ fontSize: "1rem", fontWeight: 600, color: "var(--color-text)", marginBottom: "6px" }}>
-            Checking permissions
-          </p>
-          <p style={{ fontSize: "0.875rem", color: "var(--color-text-secondary)" }}>
-            Making sure your browser has the access needed to start the interview.
-          </p>
-        </div>
+      <div className="fx-card" role="status">
+        <span className="fx-icon" aria-hidden="true">
+          <span className="state-block__spinner" />
+        </span>
+        <h1>Checking permissions</h1>
+        <p className="fx-card__text">Making sure your browser has the access needed to start the interview.</p>
       </div>
     );
   }
 
   return (
-    <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "24px", marginTop: "-48px" }}>
-      <div
-        className="card animate-fade-up"
-        style={{ width: "100%", maxWidth: "520px", padding: "32px", boxShadow: "var(--shadow-card)" }}
-      >
-        <div
-          style={{
-            width: "56px",
-            height: "56px",
-            borderRadius: "12px",
-            backgroundColor: "var(--color-error-light)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            margin: "0 auto 18px",
-            border: "1px solid rgba(220,38,38,0.18)",
-          }}
-        >
-          <div style={{ width: "10px", height: "10px", borderRadius: "999px", backgroundColor: "var(--color-error)" }} />
-        </div>
-
-        <h2 style={{ textAlign: "center", fontSize: "1.25rem", fontWeight: 700, color: "var(--color-text)" }}>
-          {cameraBusy ? "Camera Is In Use" : "Permissions Required"}
-        </h2>
-        <p style={{ marginTop: "8px", textAlign: "center", fontSize: "0.875rem", color: "var(--color-error)" }}>
+    <div className="fx-card">
+      <span className="fx-icon fx-icon--warn" aria-hidden="true">
+        <LuMicOff size={24} />
+      </span>
+      <h1>{cameraBusy ? "Camera Is In Use" : "Permissions Required"}</h1>
+      <p className="fx-alert" role="alert">
+        <LuTriangleAlert size={16} aria-hidden="true" />
+        <span>
           {cameraBusy
             ? "Your camera is currently being used by another app or browser tab. Close anything using the camera and try again."
             : "This interview requires microphone and camera access. Please allow access and try again."}
-        </p>
+        </span>
+      </p>
 
-        <div style={{ marginTop: "24px", display: "grid", gap: "12px" }}>
-          {[
-            { title: "Microphone", desc: "To capture your spoken answers", required: true },
-            { title: "Camera", desc: "To record your video responses", required: true },
-          ].map((item) => (
-            <div
-              key={item.title}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "12px",
-                border: "1px solid var(--color-border)",
-                borderRadius: "12px",
-                padding: "14px 16px",
-                backgroundColor: "var(--color-surface)",
-              }}
-            >
-              <div
-                style={{
-                  width: "36px",
-                  height: "36px",
-                  borderRadius: "10px",
-                  backgroundColor: "var(--color-bg)",
-                  border: "1px solid var(--color-border)",
-                }}
-              />
-              <div style={{ flex: 1 }}>
-                <p style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--color-text)", margin: 0 }}>
-                  {item.title}
-                </p>
-                <p style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)", margin: 0 }}>{item.desc}</p>
-              </div>
-              <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--color-error)" }}>
-                {item.required ? "Required" : "Optional"}
-              </span>
-            </div>
-          ))}
-        </div>
+      <ul className="fx-reqs">
+        {[
+          { title: "Microphone", desc: "To capture your spoken answers", required: true },
+          { title: "Camera", desc: "To record your video responses", required: true },
+        ].map((item) => (
+          <li key={item.title}>
+            <span>
+              <strong>{item.title}</strong>
+              <small>{item.desc}</small>
+            </span>
+            <span className="pill pill--danger">{item.required ? "Required" : "Optional"}</span>
+          </li>
+        ))}
+      </ul>
 
-        <button
-          className="btn btn-primary"
-          style={{ width: "100%", height: "42px", marginTop: "18px" }}
-          onClick={() => window.location.reload()}
-        >
-          Retry
-        </button>
-      </div>
+      <button type="button" className="button button--primary fx-card__wide" onClick={() => window.location.reload()}>
+        Retry
+      </button>
     </div>
   );
 }
-

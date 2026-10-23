@@ -1,12 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { FormEvent, useState } from "react";
 import {
   LiveKitRoom,
   RoomAudioRenderer,
   VideoConference,
 } from "@livekit/components-react";
+import { FocusLayout } from "@/components/layout/focus-layout";
 import { Button } from "@/components/ui/button";
 import { PackChip } from "@/components/ui/pack-chip";
 
@@ -71,29 +71,37 @@ export function LiveKitInterviewRoom({ roomName }: { roomName: string }) {
   }
 
   return (
-    <main id="main-content" className="interview-lobby">
-      <a className="skip-link" href="#join-form">Skip to interview setup</a>
-      <header className="interview-header"><Link href="/" className="interview-wordmark"><span>T</span> THOS</Link><PackChip name="Domain Pack interview" /></header>
-      <div className="interview-lobby__layout">
-        <section className="interview-intro" aria-labelledby="interview-title">
-          <p className="eyebrow">Secure interview room</p>
-          <h1 id="interview-title">Ready to join?</h1>
-          <p>Check your details before entering. Your browser will ask for camera and microphone access after you join.</p>
-          <dl><div><dt>Room</dt><dd>{roomName}</dd></div><div><dt>Connection</dt><dd><span className="status-dot" aria-hidden="true" /> Encrypted LiveKit session</dd></div></dl>
-        </section>
-        <section className="interview-setup" aria-labelledby="setup-title">
-          <p className="eyebrow">Before you enter</p><h2 id="setup-title">Interview setup</h2>
-          <form id="join-form" onSubmit={joinInterview} noValidate>
-            <label htmlFor="participant-name">Your name</label>
-            <input id="participant-name" name="participantName" value={participantName} onChange={(event) => setParticipantName(event.target.value)} autoComplete="name" aria-describedby={error ? "join-error" : "name-help"} aria-invalid={Boolean(error)} placeholder="Enter your full name" />
-            <p id="name-help" className="field-help">This is how you will appear to other participants.</p>
-            {error && <div id="join-error" className="form-error" role="alert"><strong>Unable to join</strong><span>{error}</span></div>}
-            <div className="setup-checks"><p><span aria-hidden="true">✓</span> Use a stable internet connection</p><p><span aria-hidden="true">✓</span> Find a quiet, well-lit space</p><p><span aria-hidden="true">✓</span> Close apps using your camera</p></div>
-            <Button type="submit" disabled={status === "loading"} className="join-button">{status === "loading" ? "Preparing secure room…" : "Join interview room"}</Button>
-            <p className="privacy-note">By joining, you acknowledge the organization’s interview and recording policy.</p>
-          </form>
-        </section>
+    <FocusLayout title="Interview room" right={<PackChip name="Domain Pack interview" />} exitHref="/">
+      <div className="fx-card fx-card--wide fx-card--left">
+        <div className="fx-lobby">
+          <section className="fx-lobby__intro" aria-labelledby="interview-title">
+            <h1 id="interview-title">Ready to join?</h1>
+            <p className="fx-card__text">Check your details before entering. Your browser will ask for camera and microphone access after you join.</p>
+            <dl className="meta-list">
+              <div><dt>Room</dt><dd className="mono">{roomName}</dd></div>
+              <div><dt>Connection</dt><dd><span className="status-dot" aria-hidden="true" /> Encrypted LiveKit session</dd></div>
+            </dl>
+          </section>
+          <section aria-labelledby="setup-title">
+            <h2 id="setup-title">Interview setup</h2>
+            <form id="join-form" className="stack-md" onSubmit={joinInterview} noValidate>
+              <div className="form-field">
+                <label className="form-field__label" htmlFor="participant-name">Your name</label>
+                <input id="participant-name" className="input" name="participantName" value={participantName} onChange={(event) => setParticipantName(event.target.value)} autoComplete="name" aria-describedby={error ? "join-error" : "name-help"} aria-invalid={Boolean(error)} placeholder="Enter your full name" />
+                <p id="name-help" className="form-field__hint">This is how you will appear to other participants.</p>
+              </div>
+              {error && <p id="join-error" className="fx-alert" role="alert"><strong>Unable to join</strong> <span>{error}</span></p>}
+              <ul className="fx-bullets">
+                <li className="fx-bullet"><span aria-hidden="true">✓</span> Use a stable internet connection</li>
+                <li className="fx-bullet"><span aria-hidden="true">✓</span> Find a quiet, well-lit space</li>
+                <li className="fx-bullet"><span aria-hidden="true">✓</span> Close apps using your camera</li>
+              </ul>
+              <Button type="submit" disabled={status === "loading"} className="fx-card__wide">{status === "loading" ? "Preparing secure room…" : "Join interview room"}</Button>
+              <p className="fx-card__fine">By joining, you acknowledge the organization’s interview and recording policy.</p>
+            </form>
+          </section>
+        </div>
       </div>
-    </main>
+    </FocusLayout>
   );
 }

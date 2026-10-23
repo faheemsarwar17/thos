@@ -7,13 +7,7 @@ import { LuBell } from "react-icons/lu";
 import { api } from "@/lib/api";
 import type { Notification } from "@/lib/types";
 import { Popover } from "@/components/ui/popover";
-
-function relTime(iso: string) {
-  const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
-  if (mins < 60) return `${Math.max(mins, 1)}m`;
-  const h = Math.round(mins / 60);
-  return h < 24 ? `${h}h` : `${Math.round(h / 24)}d`;
-}
+import { relTime } from "@/lib/rel-time";
 
 export function NotificationsPanel({ persona }: { persona: "employer" | "candidate" }) {
   const router = useRouter();

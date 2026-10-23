@@ -33,13 +33,12 @@ vi.mock("@/lib/api", async (importOriginal) => {
 });
 
 describe("employer dashboard", () => {
-  it("surfaces priority work, requisitions, and next actions", async () => {
+  it("shows Today KPIs, charts and the agenda", async () => {
     render(<EmployerDashboard />);
-    expect(screen.getByRole("heading", { name: "Attention queue" })).toBeInTheDocument();
-    expect(
-      await screen.findByRole("table", { name: /active job requisitions/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Today" })).toBeInTheDocument();
+    expect(await screen.findByRole("region", { name: "Requisitions by stage" })).toBeInTheDocument();
     expect(screen.getByText("Grade 6 Science Teacher")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Next actions" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Now" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "New requisition" })).toHaveAttribute("href", "/jobs?create=1");
   });
 });

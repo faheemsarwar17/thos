@@ -2578,6 +2578,8 @@ Create `Frontend/styles/screens/` and add each file to `globals.css` after `char
 
 ## Task 7: Employer Home ("Today")
 
+> Note: Recent feed uses a shared lib/rel-time.ts (also used by NotificationsPanel). Parity spec scopes KPI labels to .stat-grid ('Hired' is also a funnel row).
+
 **Files:**
 - Rewrite the JSX of `Frontend/components/dashboard/employer-dashboard.tsx`. Keep its data fetching: the four `useApi`/`api.get` calls for `/api/v1/analytics/pipeline`, `/api/v1/postings`, `/api/v1/pipeline` and `/api/v1/notifications`.
 - Create: `Frontend/styles/screens/home.css`
@@ -2661,11 +2663,11 @@ test("home: KPIs, charts, agenda and links", async ({ page }, testInfo) => {
 
 > Make each task button a `Link` styled as a button, so the hrefs are assertable.
 
-- [ ] Step 1: write the parity spec and run it (red)
-- [ ] Step 2: restyle per the layout above
-- [ ] Step 3: update `tests/dashboard.test.tsx`; `npm test` green
-- [ ] Step 4: parity spec green; `npx playwright test e2e/layout.spec.ts --grep "home"` green on all projects
-- [ ] Step 5: commit `feat(ui): employer Today dashboard with charts and agenda`
+- [x] Step 1: write the parity spec and run it (red)
+- [x] Step 2: restyle per the layout above
+- [x] Step 3: update `tests/dashboard.test.tsx`; `npm test` green
+- [x] Step 4: parity spec green; `npx playwright test e2e/layout.spec.ts --grep "home"` green on all projects
+- [x] Step 5: commit `feat(ui): employer Today dashboard with charts and agenda`
 
 ---
 

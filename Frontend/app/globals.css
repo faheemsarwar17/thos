@@ -17,6 +17,7 @@
 @import "../styles/components.css";
 @import "../styles/charts.css";
 @import "../styles/layout.css";
+@import "../styles/screens/home.css";
 
 /* Base Reset */
 /* margin/padding reset on every element is kept from v2: existing screens rely on it (lists, headings, forms). */

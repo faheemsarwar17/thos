@@ -978,3 +978,7 @@ kbd {
   .topbar__actions .button span + span { display: none; }
   .page-heading { flex-direction: column; align-items: flex-start; gap: 12px; }
 }
+
+/* TEMP (Task 2): keep the legacy sidebar legible on the new light palette until Task 6 replaces the shell. */
+.sidebar, .sidebar a, .sidebar strong, .sidebar small { color: var(--ink-2); }
+.sidebar a.is-active { color: var(--brand); }

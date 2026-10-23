@@ -3,62 +3,39 @@
  * Conforms to: ui-ux-pro-max, vercel-labs/web-interface-guidelines (tabular-nums, text-wrap: balance)
  */
 
-@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
 
 body {
-  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--ink-900);
-  background-color: var(--surface-app);
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Headings with Poppins and text-wrap: balance */
+/* Headings: Inter only (D system) */
 h1, h2, h3, h4, h5, h6 {
-  font-family: "Poppins", "Inter", sans-serif;
+  font-family: var(--font-sans);
   font-weight: 600;
-  color: var(--ink-900);
+  color: var(--ink);
   line-height: 1.25;
   text-wrap: balance;
   margin: 0;
 }
 
-h1 {
-  font-size: clamp(20px, 2.2vw, 26px);
-  letter-spacing: -0.025em;
-  font-weight: 700;
-}
-
-h2 {
-  font-size: clamp(16px, 1.6vw, 19px);
-  letter-spacing: -0.02em;
-  font-weight: 600;
-}
-
-h3 {
-  font-size: 15px;
-  letter-spacing: -0.015em;
-  font-weight: 600;
-}
-
-h4 {
-  font-size: 13px;
-  letter-spacing: -0.01em;
-  font-weight: 600;
-}
+h1 { font-size: 20px; font-weight: 650; letter-spacing: -0.015em; line-height: 1.25; }
+h2 { font-size: 15px; font-weight: 600; }
+h3 { font-size: 13.5px; font-weight: 600; }
+h4 { font-size: 12.5px; font-weight: 600; }
 
 p {
   margin: 0;
   line-height: 1.55;
-  color: var(--ink-700);
+  color: var(--ink-2);
   text-wrap: pretty;
 }
 
 /* Monospace & Code */
 code, pre, kbd, samp, .font-mono {
-  font-family: "JetBrains Mono", "SFMono-Regular", Consolas, Menlo, monospace;
+  font-family: var(--font-mono);
   font-size: 12.5px;
   font-variant-ligatures: none;
 }

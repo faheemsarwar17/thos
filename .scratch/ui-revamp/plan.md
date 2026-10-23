@@ -557,6 +557,8 @@ git commit -m "test(e2e): add Playwright harness and layout rules from the UI au
 
 ## Task 2: Design tokens, typography and base
 
+> Note: Kept the v2 `* { margin:0; padding:0 }` reset (existing lists/forms rely on it). Added a pre-paint theme init script in app/layout.tsx so shell-less pages honour thos-theme. next.config distDir is overridable via NEXT_DIST_DIR so builds don't clobber the dev server.
+
 The new semantic token layer, and the legacy names re-pointed to it so existing screens adopt the new palette immediately.
 
 **Files:**
@@ -572,7 +574,7 @@ The new semantic token layer, and the legacy names re-pointed to it so existing 
 - `--viz-1..4 --viz-mag --viz-grid --viz-axis`
 - `--shadow-1 --shadow-pop --r-sm --r-md --r-lg --r-xl --focus-ring --rail-w --panel-w --topbar-h --tabbar-h`
 
-- [ ] **Step 1: Write the failing test** `Frontend/tests/theme-tokens.test.ts`
+- [x] **Step 1: Write the failing test** `Frontend/tests/theme-tokens.test.ts`
 
 ```ts
 import { readFileSync } from "node:fs";
@@ -607,9 +609,9 @@ describe("theme tokens", () => {
 });
 ```
 
-- [ ] **Step 2: Run it.** `cd Frontend && npx vitest run tests/theme-tokens.test.ts`. Expected: FAIL (`theme.css` not found).
+- [x] **Step 2: Run it.** `cd Frontend && npx vitest run tests/theme-tokens.test.ts`. Expected: FAIL (`theme.css` not found).
 
-- [ ] **Step 3: Create `Frontend/styles/theme.css`**
+- [x] **Step 3: Create `Frontend/styles/theme.css`**
 
 ```css
 /**
@@ -798,7 +800,7 @@ describe("theme tokens", () => {
 }
 ```
 
-- [ ] **Step 4: Wire it into `app/globals.css`**
+- [x] **Step 4: Wire it into `app/globals.css`**
   - Add `@import "../styles/theme.css";` on the line **directly after** `@import "../styles/tokens.css";`.
   - Replace the "Base Reset" block (the rules between `/* Base Reset */` and the first `Specialized Screen` comment) with:
 
@@ -830,7 +832,7 @@ a { color: inherit; text-decoration: none; }
 
   > Keep any existing rule in the old reset that sets something specific (for example `.sr-only`) if no other file defines it. Check with `grep -n "sr-only" styles/*.css`.
 
-- [ ] **Step 5: Typography.** In `styles/typography.css`:
+- [x] **Step 5: Typography.** In `styles/typography.css`:
   1. Replace the `@import url(...)` line with:
      ```css
      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
@@ -839,16 +841,16 @@ a { color: inherit; text-decoration: none; }
   3. Set the heading scale: `h1 { font-size: 20px; font-weight: 650; letter-spacing: -0.015em; line-height: 1.25; text-wrap: balance; }`, `h2 { font-size: 15px; font-weight: 600; }`, `h3 { font-size: 13.5px; font-weight: 600; }`, `h4 { font-size: 12.5px; font-weight: 600; }`, all with `margin: 0`.
   4. Keep `.tabular-nums`, `.truncate`, `.line-clamp-*` and `.sr-only` if they live here.
 
-- [ ] **Step 6: Run the tests and checks.** `npx vitest run tests/theme-tokens.test.ts`, then `npm test`, then `npm run typecheck`, then `npm run build`. Expected: all PASS.
+- [x] **Step 6: Run the tests and checks.** `npx vitest run tests/theme-tokens.test.ts`, then `npm test`, then `npm run typecheck`, then `npm run build`. Expected: all PASS.
 
-- [ ] **Step 7: Look at it.** Open `http://localhost:3000/` and `http://localhost:3000/candidate`. Existing screens should now show the cooler greys, the new blue and a light sidebar background. They will still look rough; later tasks fix that. Make sure nothing became invisible: no white-on-white text in the old navy sidebar. The old sidebar used inverse ink on `--surface-sidebar`. Until Task 6 replaces it, add this temporary rule to `styles/layout.css`:
+- [x] **Step 7: Look at it.** Open `http://localhost:3000/` and `http://localhost:3000/candidate`. Existing screens should now show the cooler greys, the new blue and a light sidebar background. They will still look rough; later tasks fix that. Make sure nothing became invisible: no white-on-white text in the old navy sidebar. The old sidebar used inverse ink on `--surface-sidebar`. Until Task 6 replaces it, add this temporary rule to `styles/layout.css`:
 
 ```css
 .sidebar, .sidebar a, .sidebar strong, .sidebar small { color: var(--ink-2); }
 .sidebar a.is-active { color: var(--brand); }
 ```
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add Frontend/styles/theme.css Frontend/app/globals.css Frontend/styles/typography.css Frontend/styles/layout.css Frontend/tests/theme-tokens.test.ts

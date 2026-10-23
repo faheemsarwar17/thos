@@ -27,6 +27,7 @@
 @import "../styles/screens/admin.css";
 @import "../styles/screens/candidate.css";
 @import "../styles/screens/focus.css";
+@import "../styles/screens/auth.css";
 
 /* Base Reset */
 /* margin/padding reset on every element is kept from v2: existing screens rely on it (lists, headings, forms). */
@@ -51,34 +52,6 @@ a { color: inherit; text-decoration: none; }
 ::selection { background: var(--brand-soft); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
-}
-
-/* -------------------------------------------------------------------------- */
-/* Specialized Screen: Auth Pages                                             */
-/* -------------------------------------------------------------------------- */
-.auth-page {
-  min-height: 100dvh;
-  display: grid;
-  place-items: center;
-  padding: 32px 16px;
-  background:
-    radial-gradient(circle at 15% 15%, rgba(37, 99, 235, 0.08), transparent 45%),
-    radial-gradient(circle at 85% 85%, rgba(12, 133, 119, 0.06), transparent 45%),
-    linear-gradient(180deg, var(--surface-subtle), var(--surface-app));
-}
-
-.auth-card {
-  width: min(460px, 100%);
-  display: grid;
-  gap: 18px;
-  padding: 36px 32px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  background: var(--surface-card);
-  box-shadow: var(--shadow-overlay);
-}
-.auth-card--wide {
-  width: min(760px, 100%);
 }
 
 /* -------------------------------------------------------------------------- */

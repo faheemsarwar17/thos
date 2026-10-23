@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
-import { LuUserPlus, LuShieldCheck } from "react-icons/lu";
+import { LuUserPlus } from "react-icons/lu";
+import { AuthLayout } from "@/components/auth/auth-layout";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { ApiError, register } from "@/lib/api";
@@ -31,23 +32,14 @@ export function RegisterForm() {
   }
 
   return (
-    <main id="main-content" className="auth-page">
-      <form className="auth-card" onSubmit={onSubmit} aria-label="Create candidate account">
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
-          <div className="wordmark__symbol">T</div>
-          <span style={{ font: "600 18px Poppins, sans-serif", letterSpacing: "0.04em" }}>THOS</span>
-        </div>
-
-        <div>
-          <p className="eyebrow" style={{ color: "var(--brand-600)" }}>Candidate Portal</p>
-          <h1 style={{ fontSize: "22px", marginTop: "2px" }}>Create Candidate Account</h1>
-          <p className="panel-note" style={{ marginTop: "4px" }}>
-            Personal accounts allow you to build a verified talent profile, apply to curated roles, and participate in interview assessments.
-          </p>
-        </div>
-
-        <FormField label="Full Legal Name" required>
+    <AuthLayout
+      title="Create candidate account"
+      subtitle="Build a verified talent profile, apply to curated roles, and take interview assessments."
+    >
+      <form className="auth__form" onSubmit={onSubmit} aria-label="Create candidate account">
+        <FormField id="register-name" label="Full Legal Name" required>
           <input
+            id="register-name"
             className="input"
             required
             autoComplete="name"
@@ -57,8 +49,9 @@ export function RegisterForm() {
           />
         </FormField>
 
-        <FormField label="Email Address" required>
+        <FormField id="register-email" label="Email Address" required>
           <input
+            id="register-email"
             className="input"
             type="email"
             required
@@ -69,8 +62,9 @@ export function RegisterForm() {
           />
         </FormField>
 
-        <FormField label="Password" hint="At least 8 characters with letters and numbers" required>
+        <FormField id="register-password" label="Password" hint="At least 8 characters with letters and numbers" required>
           <input
+            id="register-password"
             className="input"
             type="password"
             required
@@ -84,28 +78,16 @@ export function RegisterForm() {
 
         {error && <p className="form-error" role="alert">{error}</p>}
 
-        <Button type="submit" loading={busy} iconLeft={<LuUserPlus size={15} />}>
+        <Button type="submit" size="lg" loading={busy} iconLeft={<LuUserPlus size={15} />}>
           Create Account &amp; Enter Portal
         </Button>
 
-        <div style={{ textAlign: "center", paddingTop: "8px", borderTop: "1px solid var(--border-subtle)" }}>
-          <p className="panel-note" style={{ fontSize: "12px" }}>
-            Already have an account?{" "}
-            <Link href="/login" style={{ color: "var(--brand-600)", fontWeight: 600 }}>
-              Sign In
-            </Link>
-            {" · "}
-            <Link href="/register/organization" style={{ color: "var(--brand-600)", fontWeight: 600 }}>
-              Register Organization
-            </Link>
-          </p>
-        </div>
-
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", color: "var(--ink-400)", fontSize: "11px" }}>
-          <LuShieldCheck size={14} style={{ color: "var(--teal-600)" }} />
-          <span>Tenant-isolated &amp; Privacy-first candidate profile</span>
-        </div>
+        <p className="auth__links">
+          Already have an account? <Link href="/login" className="link">Sign In</Link>
+          {" · "}
+          <Link href="/register/organization" className="link">Register Organization</Link>
+        </p>
       </form>
-    </main>
+    </AuthLayout>
   );
 }

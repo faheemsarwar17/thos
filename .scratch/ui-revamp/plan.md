@@ -3620,6 +3620,8 @@ test("applied interview page renders inside focus layout", async ({ page }, test
 
 ## Task 16: Public auth pages
 
+> Note: Form fields got ids so labels associate. The per-form trust footers merged into the brand panel's trust line (visible ≥1024px). Legacy .auth-page/.auth-card block removed from globals.css.
+
 **Files:**
 - Modify: `Frontend/components/auth/login-form.tsx`, `register-form.tsx`, `organization-apply-form.tsx`
 - Create: `Frontend/components/auth/auth-layout.tsx`
@@ -3670,10 +3672,10 @@ test("org registration fields fit on mobile", async ({ page }, testInfo) => {
 });
 ```
 
-- [ ] Step 1: parity spec
-- [ ] Step 2: `AuthLayout` + three forms restyled
-- [ ] Step 3: green (parity, layout `login`, `register`, `register-org`)
-- [ ] Step 4: commit `feat(ui): auth layout for login, register and organization onboarding`
+- [x] Step 1: parity spec
+- [x] Step 2: `AuthLayout` + three forms restyled
+- [x] Step 3: green (parity, layout `login`, `register`, `register-org`)
+- [x] Step 4: commit `feat(ui): auth layout for login, register and organization onboarding`
 
 ---
 

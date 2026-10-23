@@ -3681,9 +3681,11 @@ test("org registration fields fit on mobile", async ({ page }, testInfo) => {
 
 ## Task 17: Cleanup (orphans, GlobalSearch, dead CSS, colour gate)
 
+> Note: Dead CSS pruned with a PostCSS pass: a selector is removed only when it names a class no .ts/.tsx uses, counting dynamic families like button--${...} and is-${...} as used (772 lines). Text utilities (truncate, line-clamp-*, font-mono) are safelisted. Legacy rules for still-used primitives (e.g. .button, .panel) were left; the D section overrides them. Colour gate allow-lists sandbox-recorder.tsx (canvas compositing; that file must stay untouched). Lint: 0 errors, 10 warnings (39 at baseline).
+
 **Files:** deletions and CSS pruning across `Frontend/`, plus `Frontend/scripts/check-colors.mjs` (new) and a `package.json` script.
 
-- [ ] **Step 1: Delete the orphans** (PRD §9). First confirm each one has no importers: `grep -rn "<name>" Frontend/app Frontend/components Frontend/lib Frontend/tests`. Then:
+- [x] **Step 1: Delete the orphans** (PRD §9). First confirm each one has no importers: `grep -rn "<name>" Frontend/app Frontend/components Frontend/lib Frontend/tests`. Then:
 
 ```bash
 git rm Frontend/components/candidate/interview-session.tsx \
@@ -3696,14 +3698,14 @@ git rm Frontend/components/candidate/interview-session.tsx \
 
   `TranscriptOverlay.tsx` is used only for its exported type. Move that type into `InterviewInterface.tsx` (or a `voice/types.ts`), update the import, and delete the file.
 
-- [ ] **Step 2: Remove dead CSS.**
+- [x] **Step 2: Remove dead CSS.**
   - For every class selector in `styles/components.css`, `styles/layout.css`, `styles/utilities.css` and `app/globals.css`, check usage: `grep -rn "<class-without-dot>" Frontend/components Frontend/app --include=*.tsx`.
   - Delete rules whose class is never used.
   - Remove the now-shadowed legacy duplicates of the primitives restyled in Task 3. The `D primitives` section is the single definition; keep only one rule per selector.
   - In `styles/tokens.css`, delete the compatibility aliases (`--color-*`, `--danger-*`, `--surface-raised`, `--surface-muted`, `--text-muted`, `--teal-200`, `--red-200`) that `grep -rn "var(--<name>)" Frontend --include=*.css --include=*.tsx` shows unused.
   - Delete the sidebar tokens (`--surface-sidebar*`, `--sidebar-width`, `--sidebar-collapsed-width`) if nothing references them.
 
-- [ ] **Step 3: Colour gate.** Create `Frontend/scripts/check-colors.mjs`:
+- [x] **Step 3: Colour gate.** Create `Frontend/scripts/check-colors.mjs`:
 
 ```js
 // Fails if any component/app TSX hard-codes a colour (PRD §12 dark-mode drift guard).
@@ -3726,9 +3728,9 @@ console.log("colour gate: ok");
 
   Add the script `"check:colors": "node scripts/check-colors.mjs"`, then run it. Fix every hit by moving the colour into CSS with tokens. The media video tiles may keep a `/* color-gate-ignore */` comment on the line if a dark media surface truly needs it.
 
-- [ ] **Step 4: Run everything.** `npm run typecheck && npm run lint && npm test && npm run build && npm run check:colors`. Expected: all green.
+- [x] **Step 4: Run everything.** `npm run typecheck && npm run lint && npm test && npm run build && npm run check:colors`. Expected: all green.
 
-- [ ] **Step 5: Commit** `chore(ui): remove orphaned components, dead CSS and legacy tokens; add colour gate`
+- [x] **Step 5: Commit** `chore(ui): remove orphaned components, dead CSS and legacy tokens; add colour gate`
 
 ---
 

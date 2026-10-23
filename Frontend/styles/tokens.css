@@ -16,10 +16,6 @@
   --surface-warm: #fbfbfa;
   
   /* Sidebar Tokens (Signature Executive Navy) */
-  --surface-sidebar: #0c1527;
-  --surface-sidebar-hover: rgba(255, 255, 255, 0.07);
-  --surface-sidebar-active: #18345e;
-  --surface-sidebar-border: rgba(255, 255, 255, 0.08);
 
   /* Border Tokens - Light (Taste-skill 1px precision) */
   --border: #e2e6ed;
@@ -103,8 +99,6 @@
   --shadow-drawer: -12px 0 40px rgba(15, 23, 42, 0.18);
 
   /* Geometry & Layout */
-  --sidebar-width: 256px;
-  --sidebar-collapsed-width: 72px;
   --topbar-height: 64px;
   --radius-xs: 4px;
   --radius-sm: 6px;
@@ -138,10 +132,6 @@
   --surface-warm: #0f1626;
 
   /* Sidebar Tokens - Dark */
-  --surface-sidebar: #060a14;
-  --surface-sidebar-hover: rgba(255, 255, 255, 0.08);
-  --surface-sidebar-active: #132442;
-  --surface-sidebar-border: rgba(255, 255, 255, 0.07);
 
   /* Border Tokens - Dark */
   --border: #1e293b;
@@ -230,10 +220,6 @@
     --surface-subtle: #0a1120;
     --surface-warm: #0f1626;
 
-    --surface-sidebar: #060a14;
-    --surface-sidebar-hover: rgba(255, 255, 255, 0.08);
-    --surface-sidebar-active: #132442;
-    --surface-sidebar-border: rgba(255, 255, 255, 0.07);
 
     --border: #1e293b;
     --border-subtle: #141e30;
@@ -314,36 +300,7 @@
 :root,
 [data-theme] {
   --surface: var(--surface-card);
-  --surface-raised: var(--surface-card);
-  --surface-muted: var(--surface-subtle);
-  --text-muted: var(--ink-500);
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
-  --teal-200: color-mix(in srgb, var(--teal-500) 35%, var(--surface-card));
-  --red-200: color-mix(in srgb, var(--red-500) 35%, var(--surface-card));
-  --danger-100: var(--red-100);
-  --danger-600: var(--red-600);
-  --danger-700: var(--red-700);
 
-  --color-bg: var(--surface-app);
-  --color-bg-subtle: var(--surface-subtle);
-  --color-surface: var(--surface-card);
-  --color-surface-hover: var(--surface-card-hover);
-  --color-border: var(--border);
-  --color-text: var(--ink-900);
-  --color-text-heading: var(--ink-900);
-  --color-text-body: var(--ink-700);
-  --color-text-secondary: var(--ink-600);
-  --color-text-muted: var(--ink-500);
-  --color-accent: var(--brand-500);
-  --color-accent-light: var(--brand-100);
-  --color-accent-border: var(--brand-200);
-  --color-blue: var(--brand-500);
-  --color-error: var(--red-600);
-  --color-error-light: var(--red-50);
-  --color-error-border: var(--red-100);
-  --color-success: var(--green-600);
-  --color-success-light: var(--green-50);
-  --color-success-border: var(--green-100);
-  --color-warning: var(--amber-600);
 }

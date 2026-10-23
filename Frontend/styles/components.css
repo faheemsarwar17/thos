@@ -369,64 +369,9 @@
   color: var(--ink-700);
 }
 
-.meta-code-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  border: 0;
-  background: transparent;
-  color: var(--ink-500);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  padding: 0;
-  transition: color var(--duration-fast) ease, background var(--duration-fast) ease;
-}
-.meta-code-btn:hover {
-  background: var(--surface-card);
-  color: var(--brand-600);
-}
-
 /* Rich Description / Markdown Viewer */
-.prose-desc {
-  font-size: 13.5px;
-  line-height: 1.65;
-  color: var(--ink-700);
-}
 
-.prose-desc h2,
-.prose-desc h3 {
-  font-size: 13.5px;
-  font-weight: 700;
-  color: var(--ink-900);
-  margin: 14px 0 6px;
-}
-
-.prose-desc h2:first-child,
-.prose-desc h3:first-child {
-  margin-top: 0;
-}
-
-.prose-desc ul,
-.prose-desc ol {
-  margin: 6px 0 12px 18px;
-  padding: 0;
-}
-
-.prose-desc li {
-  margin-bottom: 3px;
-}
-
-.prose-desc p {
-  margin: 0 0 10px;
-}
-.prose-desc p:last-child {
-  margin-bottom: 0;
-}
-
-.job-list,
-.application-cards {
+.job-list {
   display: grid;
   gap: 16px;
   list-style: none;
@@ -435,12 +380,6 @@
 }
 
 /* Attention Cards */
-.attention-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  margin-bottom: 28px;
-}
 
 .attention-queue-card {
   display: flex;
@@ -847,225 +786,8 @@ textarea[aria-invalid="true"]:focus {
 /* -------------------------------------------------------------------------- */
 /* Kanban Board & Candidate Cards                                             */
 /* -------------------------------------------------------------------------- */
-.kanban {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(280px, 1fr);
-  gap: 16px;
-  align-items: start;
-  overflow-x: auto;
-  padding-bottom: 20px;
-}
 
 /* Optimized Single-Page Kanban (4 Macro Columns fit on 1 page) */
-.kanban--fit {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
-  align-items: start;
-  width: 100%;
-  overflow-x: visible;
-  padding-bottom: 24px;
-}
-
-@media (max-width: 1024px) {
-  .kanban--fit {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 640px) {
-  .kanban--fit {
-    grid-template-columns: 1fr;
-  }
-}
-
-.kanban__column {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--surface-sunken);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  box-shadow: var(--shadow-xs);
-  transition: border-color var(--duration-fast) ease, box-shadow var(--duration-fast) ease;
-}
-
-.kanban__column:hover {
-  border-color: var(--border-strong);
-}
-
-.kanban__column--dragover {
-  border-color: var(--brand-500);
-  background: rgba(37, 99, 235, 0.04);
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
-}
-
-.kanban__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 14px;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface-card);
-  gap: 8px;
-}
-
-.kanban__header-title {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.kanban__header-title h2 {
-  font-size: 14.5px;
-  font-weight: 700;
-  color: var(--ink-900);
-  margin: 0;
-  line-height: 1.2;
-}
-
-.kanban__header-subtitle {
-  font-size: 11px;
-  color: var(--ink-500);
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.kanban__subfilter {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 10px;
-  background: var(--surface-card);
-  border-bottom: 1px solid var(--border);
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-.kanban__subfilter::-webkit-scrollbar {
-  display: none;
-}
-
-.kanban__subfilter-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 8px;
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--ink-600);
-  font-size: 11px;
-  font-weight: 600;
-  white-space: nowrap;
-  cursor: pointer;
-  line-height: 1.3;
-  transition: all var(--duration-fast) ease;
-}
-
-.kanban__subfilter-btn:hover {
-  color: var(--ink-900);
-  background: var(--surface-sunken);
-}
-
-.kanban__subfilter-btn.is-active {
-  background: var(--surface-sunken);
-  color: var(--brand-600);
-  border-color: var(--border-strong);
-}
-
-.kanban__count {
-  display: grid;
-  min-width: 22px;
-  height: 22px;
-  padding: 0 6px;
-  place-items: center;
-  border-radius: var(--radius-full);
-  background: var(--surface-sunken);
-  border: 1px solid var(--border-strong);
-  color: var(--ink-700);
-  font-size: 11px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  flex-shrink: 0;
-}
-
-.kanban__cards {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 12px;
-  flex: 1;
-  min-height: 140px;
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.kanban__empty {
-  display: grid;
-  place-items: center;
-  text-align: center;
-  padding: 32px 14px;
-  color: var(--ink-400);
-  font-size: 12px;
-  border: 1px dashed var(--border);
-  border-radius: var(--radius-md);
-  margin: 4px 0;
-}
-
-.kanban-card {
-  display: grid;
-  gap: 8px;
-  padding: 14px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface-card);
-  box-shadow: var(--shadow-card);
-  transition: transform var(--duration-fast) var(--ease-spring),
-              box-shadow var(--duration-fast) ease,
-              border-color var(--duration-fast) ease;
-}
-.kanban-card:hover {
-  transform: translateY(-2px);
-  border-color: var(--border-strong);
-  box-shadow: var(--shadow-hover);
-}
-.kanban-card.is-dragging {
-  opacity: 0.5;
-}
-.kanban-card[draggable="true"] {
-  cursor: grab;
-}
-
-.kanban-card__name {
-  margin: 0;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--ink-900);
-  font-size: 14px;
-  font-weight: 600;
-  text-align: left;
-  cursor: pointer;
-}
-.kanban-card__name:hover {
-  color: var(--brand-500);
-  text-decoration: underline;
-}
-
-.kanban-card__job {
-  margin: 0;
-  color: var(--ink-600);
-  font-size: 12px;
-}
-.kanban-card__meta {
-  margin: 0;
-  color: var(--ink-400);
-  font-size: 11px;
-}
 
 /* -------------------------------------------------------------------------- */
 /* Toast Notification System (New)                                            */
@@ -1152,12 +874,6 @@ textarea[aria-invalid="true"]:focus {
 /* -------------------------------------------------------------------------- */
 /* Administration & Governance Components                                     */
 /* -------------------------------------------------------------------------- */
-.admin-tabs-nav {
-  background: var(--surface-card);
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  border: 1px solid var(--border);
-  border-bottom: 0;
-}
 
 .inline-form {
   display: flex;
@@ -1598,27 +1314,6 @@ textarea[aria-invalid="true"]:focus {
 }
 .btn:hover:not(:disabled) { background: var(--surface-card-hover); color: var(--ink-900); }
 .btn:disabled { cursor: not-allowed; opacity: 0.55; }
-.btn-primary { border-color: transparent; background: var(--brand-600); color: #ffffff; }
-.btn-primary:hover:not(:disabled) { background: var(--brand-700); color: #ffffff; }
-.btn-secondary { border-color: var(--border-strong); background: var(--surface-card); color: var(--ink-700); }
-.btn-ghost { border-color: transparent; background: transparent; color: var(--ink-700); }
-.btn-ghost:hover:not(:disabled) { background: var(--surface-sunken); }
-.btn-danger { border-color: transparent; background: var(--red-600); color: #ffffff; }
-.btn-danger:hover:not(:disabled) { background: var(--red-700); color: #ffffff; }
-
-.spinner {
-  display: inline-block;
-  width: 16px;
-  height: 16px;
-  border: 2px solid currentColor;
-  border-right-color: transparent;
-  border-radius: 50%;
-  animation: spin 0.75s linear infinite;
-}
-
-.animate-fade-up {
-  animation: slideUp var(--duration-normal) var(--ease-spring) both;
-}
 
 /* Short viewports (laptops at 125-150% scaling): reclaim vertical space. */
 @media (max-height: 760px) {
@@ -1639,8 +1334,8 @@ textarea[aria-invalid="true"]:focus {
   transition: background-color 120ms, border-color 120ms, color 120ms;
 }
 .button:hover:not(:disabled), .btn:hover:not(:disabled) { background: var(--surface-2); }
-.button--primary, .btn-primary { background: var(--brand); border-color: var(--brand); color: var(--brand-ink); }
-.button--primary:hover:not(:disabled), .btn-primary:hover:not(:disabled) { background: var(--brand-hover); border-color: var(--brand-hover); }
+.button--primary { background: var(--brand); border-color: var(--brand); color: var(--brand-ink); }
+.button--primary:hover:not(:disabled) { background: var(--brand-hover); border-color: var(--brand-hover); }
 .button--secondary, .button--outline { background: var(--surface); }
 .button--ghost { background: transparent; border-color: transparent; color: var(--ink-2); }
 .button--ghost:hover:not(:disabled) { background: var(--surface-3); color: var(--ink); }
@@ -1687,7 +1382,7 @@ input[type="file"].file-input-hidden { position: absolute; width: 1px; height: 1
 .panel-body { padding: 16px; }
 .panel-note { font-size: 12.5px; color: var(--ink-3); }
 /* Eyebrows are retired from page headers (PageHeader replaces them, PRD §6); the class survives only as a quiet micro label. */
-.eyebrow, .micro-label { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); }
+.eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); }
 
 /* Page header */
 .page-header { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 16px; margin-bottom: 18px; }

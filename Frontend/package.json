@@ -11,7 +11,8 @@
     "test": "vitest run",
     "e2e": "playwright test --grep-invert @capture",
     "e2e:layout": "playwright test e2e/layout.spec.ts",
-    "e2e:capture": "playwright test --grep @capture --workers=1"
+    "e2e:capture": "playwright test --grep @capture --workers=1",
+    "check:colors": "node scripts/check-colors.mjs"
   },
   "dependencies": {
     "@livekit/components-react": "^2.9.14",

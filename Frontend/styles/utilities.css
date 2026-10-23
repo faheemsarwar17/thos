@@ -16,10 +16,6 @@
 }
 
 /* Group focus within */
-.focus-within-ring:focus-within {
-  border-color: var(--border-focus);
-  box-shadow: 0 0 0 1px var(--border-focus);
-}
 
 /* Selection Highlight */
 ::selection {
@@ -102,14 +98,3 @@ select:disabled {
 }
 
 /* Layout micro-helpers */
-.flex-center {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.flex-between {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}

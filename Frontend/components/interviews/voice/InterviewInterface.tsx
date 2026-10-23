@@ -5,7 +5,7 @@ import { useRoomContext, useLocalParticipant } from "@livekit/components-react";
 import { ConnectionState, RoomEvent, LocalVideoTrack, createLocalVideoTrack, ParticipantEvent } from "livekit-client";
 import { RiBrainLine, RiCameraLine, RiMessage3Line, RiMicLine } from "react-icons/ri";
 import { Interview } from "@/types/tracking";
-import { TranscriptEntry } from "./TranscriptOverlay";
+import type { TranscriptEntry } from "./types";
 import { publicApi } from "@/utils/api";
 import EndInterviewModal from "./EndInterviewModal";
 import MicLevelIndicator from "./MicLevelIndicator";

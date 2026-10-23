@@ -43,17 +43,13 @@ code, pre, kbd, samp, .font-mono {
 /* Tabular Numerals (Vercel guideline: prevent layout jitter on score comparisons & timers) */
 .tabular-nums,
 .score-badge,
-.stat-value,
-.table td.is-number,
-.timer-display,
-.count-badge {
+.table td.is-number {
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
 }
 
 /* Eyebrow / Micro label */
-.eyebrow,
-.micro-label {
+.eyebrow {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;

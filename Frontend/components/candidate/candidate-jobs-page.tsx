@@ -9,8 +9,8 @@ import {
   LuSend,
   LuSparkles,
 } from "react-icons/lu";
-import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 import { Pill } from "@/components/ui/pill";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/state";
 import { api, ApiError, idempotencyKey } from "@/lib/api";
@@ -39,68 +39,50 @@ function JobCard({ job, onApplied }: { job: Job; onApplied: () => void }) {
   }
 
   return (
-    <article className="panel job-card" style={{ marginBottom: "16px" }}>
-      <div className="panel__header">
-        <div>
-          <p className="eyebrow" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <LuBuilding2 size={12} />
-            <span>{job.organization_name}</span>
-          </p>
+    <article className="panel job-card">
+      <div className="job-card__head">
+        <div className="job-card__title">
+          <span className="job-card__org">
+            <LuBuilding2 size={12} aria-hidden="true" /> {job.organization_name}
+          </span>
           <h2>{job.title}</h2>
-          <p className="panel-note" style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "4px" }}>
-            <LuMapPin size={13} style={{ color: "var(--ink-400)" }} />
-            <span>{job.location || "Location flexible"} · {job.employment_type.replace(/_/g, " ")}</span>
-          </p>
+          <span className="job-card__meta">
+            <LuMapPin size={13} aria-hidden="true" /> {job.location || "Location flexible"} · {job.employment_type.replace(/_/g, " ")}
+          </span>
         </div>
-        <div className="panel__actions">
+        <div className="job-card__actions">
           {job.requires_applied_interview && (
             <Pill tone="brand">
-              <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
-                <LuSparkles size={11} /> Screening Required
-              </span>
+              <LuSparkles size={11} aria-hidden="true" /> Screening Required
             </Pill>
           )}
           {job.already_applied ? (
             <Pill tone="verified">
-              <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
-                <LuCircleCheck size={12} /> Applied
-              </span>
+              <LuCircleCheck size={12} aria-hidden="true" /> Applied
             </Pill>
           ) : (
-            <Button
-              size="sm"
-              onClick={apply}
-              loading={busy}
-              iconLeft={<LuSend size={13} />}
-            >
+            <Button size="sm" onClick={apply} loading={busy} iconLeft={<LuSend size={13} />}>
               Apply Now
             </Button>
           )}
         </div>
       </div>
-      <div className="panel-body">
-        <p style={{ color: "var(--ink-800)", fontSize: "13px" }}>
+      <div className="job-card__body">
+        <p>
           {expanded
             ? job.description
             : `${job.description.slice(0, 240)}${job.description.length > 240 ? "…" : ""}`}
         </p>
         {job.description.length > 240 && (
-          <button
-            type="button"
-            className="table-action"
-            style={{ border: 0, background: "none", cursor: "pointer", padding: 0, marginTop: "6px" }}
-            onClick={() => setExpanded((value) => !value)}
-          >
+          <button type="button" className="link job-card__more" onClick={() => setExpanded((value) => !value)}>
             {expanded ? "Show less" : "Read full description →"}
           </button>
         )}
 
-        <div style={{ marginTop: "14px", padding: "10px 14px", background: "var(--surface-sunken)", borderRadius: "8px" }}>
-          <p className="panel-note" style={{ fontSize: "12px" }}>
-            <strong>Process:</strong> {job.candidate_process.join(" → ")}. Applying automatically attaches
-            your verified Profile Screening score with {job.organization_name}.
-          </p>
-        </div>
+        <p className="job-card__process">
+          <strong>Process:</strong> {job.candidate_process.join(" → ")}. Applying automatically attaches
+          your verified Profile Screening score with {job.organization_name}.
+        </p>
         {error && <p className="form-error" role="alert">{error}</p>}
       </div>
     </article>
@@ -112,17 +94,7 @@ export function CandidateJobsPage() {
 
   return (
     <div className="dashboard">
-      <div style={{ marginBottom: "16px" }}>
-        <Breadcrumbs items={[{ label: "Candidate Portal", href: "/candidate" }, { label: "Find Jobs" }]} />
-      </div>
-
-      <div className="page-heading">
-        <div>
-          <p className="eyebrow">Career opportunities</p>
-          <h1>Explore Job Opportunities</h1>
-          <p>Verified requisitions across verified organizations on THOS. 1-click apply with your verified Skill Profile.</p>
-        </div>
-      </div>
+      <PageHeader title="Find jobs" meta={data ? `${data.jobs.length} open role${data.jobs.length === 1 ? "" : "s"}` : undefined} />
 
       {loading ? (
         <LoadingState label="Loading available job requisitions…" />

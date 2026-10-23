@@ -3288,6 +3288,8 @@ test("admin sections + hash navigation", async ({ page }, testInfo) => {
 
 ## Task 13: Candidate Home and Jobs
 
+> Note: lib/candidate-next-step.ts also exports sandboxState() and isTerminal(), copied from the applications page's sandbox CTA rules (complete = submitted|expired), so Home and Applications agree. Home does not fetch /jobs today, so 'Open jobs' shows '—' with a Browse link (no new request).
+
 **Files:**
 - Modify: `Frontend/components/candidate/candidate-overview.tsx`
 - Modify: `Frontend/components/candidate/candidate-jobs-page.tsx`
@@ -3308,7 +3310,7 @@ export function nextStep(app: CandidateApplication): NextStep;
 
 > Before writing `nextStep`, copy the exact sandbox CTA conditions from `candidate-applications-page.tsx` (the "Take sandbox" / "Sandbox complete" / "Sandbox pending" logic), so Home and Applications agree with today's behaviour. Then make both screens use this helper.
 
-- [ ] **Step 1: Failing test** `tests/candidate-next-step.test.ts`
+- [x] **Step 1: Failing test** `tests/candidate-next-step.test.ts`
 
 ```ts
 import { nextStep } from "@/lib/candidate-next-step";
@@ -3326,9 +3328,9 @@ it("nothing when sandbox done", () => {
 });
 ```
 
-- [ ] **Step 2: Implement `nextStep`.** Run the test until it is green.
+- [x] **Step 2: Implement `nextStep`.** Run the test until it is green.
 
-- [ ] **Step 3: Home layout** (PRD §6.2; prototype `cand_A_overview_*`, source `OverviewA` in `git show prototype/ui-revamp:Frontend/app/prototype/ui-revamp-candidate/variants.tsx`). Keep all four existing fetches and per-section loading/error states.
+- [x] **Step 3: Home layout** (PRD §6.2; prototype `cand_A_overview_*`, source `OverviewA` in `git show prototype/ui-revamp:Frontend/app/prototype/ui-revamp-candidate/variants.tsx`). Keep all four existing fetches and per-section loading/error states.
 
 ```tsx
 <PageHeader title={`Welcome back${first ? `, ${first}` : ""}`} meta="Here's where your applications stand" />
@@ -3358,7 +3360,7 @@ it("nothing when sandbox done", () => {
   - `openJobsCount`: if the Home page does not fetch `/api/v1/jobs` today, **do not add a request**. Show the tile as "Browse" with value "—".
   - The "Open jobs" value is optional; never fabricate it.
 
-- [ ] **Step 4: Jobs page.**
+- [x] **Step 4: Jobs page.**
   - `PageHeader title="Find jobs" meta={`${jobs.length} open roles`}`.
   - Each job is an `<article className="panel job-card">` with a header (`flex-wrap: wrap`) containing:
     - org eyebrow and title (`flex: 1 1 260px; min-width: 0`)
@@ -3368,7 +3370,7 @@ it("nothing when sandbox done", () => {
   - Body: description (240-char truncation, "Read full description / Show less") and the process steps line.
   - This fixes G8.
 
-- [ ] **Step 5: CSS (`candidate.css`)**
+- [x] **Step 5: CSS (`candidate.css`)**
 
 ```css
 .hero { display: grid; gap: 6px; padding: 20px 22px; margin-bottom: 16px; border: 1px solid var(--border); border-left: 4px solid var(--border-strong); border-radius: var(--r-lg); background: var(--surface); color: inherit; }
@@ -3394,7 +3396,7 @@ it("nothing when sandbox done", () => {
 .job-card__process { padding: 10px 12px; border-radius: var(--r-md); background: var(--surface-2); font-size: 12.5px; color: var(--ink-2); }
 ```
 
-- [ ] **Step 6: E2E `e2e/parity/candidate-home-jobs.spec.ts`**
+- [x] **Step 6: E2E `e2e/parity/candidate-home-jobs.spec.ts`**
 
 ```ts
 import { expect, onlyProject, readOnly, signIn, test } from "../fixtures";
@@ -3419,7 +3421,7 @@ test("candidate jobs", async ({ page }, testInfo) => {
 });
 ```
 
-- [ ] **Step 7:** green on unit, parity and layout (`cand-home`, `cand-jobs`). Commit `feat(ui): candidate home next-step hero and job cards`.
+- [x] **Step 7:** green on unit, parity and layout (`cand-home`, `cand-jobs`). Commit `feat(ui): candidate home next-step hero and job cards`.
 
 ---
 

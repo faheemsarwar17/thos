@@ -2673,6 +2673,8 @@ test("home: KPIs, charts, agenda and links", async ({ page }, testInfo) => {
 
 ## Task 8: Pipeline and ApplicationDrawer
 
+> Note: Decide… menu lives beside Save scorecard inside ScorecardForm (it shares that form's busy/error state), not in a drawer footer; there is no Move select in the drawer. Received lane keeps both Screen all and Shortlist actions (wrapping). D input rule now sets background-color so the select chevron survives. Mobile bulk bar spans the width.
+
 **Files:**
 - Modify: `Frontend/components/pipeline/pipeline-page.tsx` (JSX and classes; add the Funnel view; toolbar; `?applicationId`; error toasts)
 - Modify: `Frontend/components/pipeline/application-drawer.tsx` (JSX and classes only)
@@ -2884,13 +2886,13 @@ test("pipeline: views, blind review, actions menu, bulk bar, deep link", async (
 
 > Give each board lane `<section aria-label={label}>` so `getByRole("region")` finds it. Adjust selectors if the drawer's accessible name differs, but keep the assertions' intent.
 
-- [ ] Step 1: parity spec + unit test; run (red)
-- [ ] Step 2: view state, toolbar, Actions menu, Funnel view, `CandidateCard`, lanes, bulk bar, CSS
-- [ ] Step 3: `?applicationId` open/close; error toasts
-- [ ] Step 4: ApplicationDrawer restyle
-- [ ] Step 5: diff check: run `git diff -U0 Frontend/components/pipeline/pipeline-page.tsx | grep -E "^[-+].*(api\.|useState|useEffect|fetch|idempotency)"` and confirm only the planned additions appear
-- [ ] Step 6: `npm test`, typecheck, parity spec, and the layout spec for `pipeline` and `pipeline-drawer` all green
-- [ ] Step 7: commit `feat(ui): pipeline funnel view, compact toolbar, deep-linked drawer`
+- [x] Step 1: parity spec + unit test; run (red)
+- [x] Step 2: view state, toolbar, Actions menu, Funnel view, `CandidateCard`, lanes, bulk bar, CSS
+- [x] Step 3: `?applicationId` open/close; error toasts
+- [x] Step 4: ApplicationDrawer restyle
+- [x] Step 5: diff check: run `git diff -U0 Frontend/components/pipeline/pipeline-page.tsx | grep -E "^[-+].*(api\.|useState|useEffect|fetch|idempotency)"` and confirm only the planned additions appear
+- [x] Step 6: `npm test`, typecheck, parity spec, and the layout spec for `pipeline` and `pipeline-drawer` all green
+- [x] Step 7: commit `feat(ui): pipeline funnel view, compact toolbar, deep-linked drawer`
 
 ---
 

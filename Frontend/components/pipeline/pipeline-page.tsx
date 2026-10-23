@@ -1,14 +1,8 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import {
-  LuLayoutGrid,
-  LuColumns3,
-  LuList,
-  LuFilter,
-  LuEye,
-  LuEyeOff,
   LuHistory,
   LuX,
   LuDownload,
@@ -18,14 +12,19 @@ import {
   LuSend,
 } from "react-icons/lu";
 import { ApplicationDrawer } from "@/components/pipeline/application-drawer";
-import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
+import { PageHeader } from "@/components/ui/page-header";
+import { Popover } from "@/components/ui/popover";
+import { SegmentedControl } from "@/components/ui/segmented-control";
+import { Switch } from "@/components/ui/switch";
+import { useToast } from "@/components/ui/toast-provider";
 import { Pill, type PillTone } from "@/components/ui/pill";
 import { ScoreBadge } from "@/components/ui/score-badge";
 import { Table, TableContainer, TableEmpty } from "@/components/ui/table";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/state";
 import { api, ApiError, idempotencyKey } from "@/lib/api";
+import { cn } from "@/lib/cn";
 import { useApi } from "@/lib/use-api";
 import type { PipelineCard, PipelineColumn, Posting } from "@/lib/types";
 
@@ -80,7 +79,7 @@ function TransitionDialog({
       title={`Move ${target.card.candidate_name}`}
       description={`Destination stage: ${target.destination.label}. This action is recorded in the immutable audit log.`}
     >
-      <div style={{ display: "grid", gap: "14px", marginTop: "8px" }}>
+      <div className="modal-stack">
         <label className="form-field">
           <span className="form-field__label">
             Reason Code {target.destination.requires_reason ? "(required)" : "(optional)"}
@@ -111,7 +110,7 @@ function TransitionDialog({
           </p>
         )}
 
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "12px" }}>
+        <div className="modal-actions">
           <Button variant="secondary" onClick={onCancel} disabled={busy}>
             Cancel
           </Button>
@@ -133,14 +132,13 @@ function MoveMenu({
   busy?: boolean;
 }) {
   if (card.valid_destinations.length === 0) {
-    return <span style={{ color: "var(--ink-400)", fontSize: "11px" }}>Final Stage</span>;
+    return <span className="cand-card__status">Final stage</span>;
   }
   return (
-    <label className="move-menu" style={{ display: "inline-flex", width: "100%" }}>
+    <label className="move-menu">
       <span className="sr-only">Move {card.candidate_name} to stage</span>
       <select
-        className="select"
-        style={{ height: "32px", fontSize: "11px", padding: "4px 28px 4px 10px" }}
+        className="select select--sm"
         value=""
         onChange={(event) => {
           if (event.target.value) onMove(card, event.target.value);
@@ -165,8 +163,14 @@ export function PipelinePage() {
     : "/api/v1/pipeline";
   const { data, error, loading, reload } = useApi<{ columns: PipelineColumn[] }>(pipelinePath);
   const postings = useApi<{ postings: Posting[] }>("/api/v1/postings");
+  const toast = useToast();
+  const router = useRouter();
+  const pathname = usePathname();
+  const deepLinkApplication = searchParams.get("applicationId");
 
-  const [view, setView] = useState<"board" | "expanded" | "list">("board");
+  const [view, setView] = useState<"funnel" | "board" | "list">("funnel");
+  const [expandStages, setExpandStages] = useState(false);
+  const [funnelStage, setFunnelStage] = useState<string | null>(null);
   const [subFilters, setSubFilters] = useState<Record<string, string>>({
     received: "all",
     interview: "all",
@@ -179,6 +183,20 @@ export function PipelinePage() {
   const [openApplication, setOpenApplication] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState("");
   const [dragging, setDragging] = useState<PipelineCard | null>(null);
+
+  // ?applicationId= deep link (Messages, Analytics, command palette) opens the drawer; closing drops the param.
+  useEffect(() => {
+    if (deepLinkApplication) setOpenApplication(deepLinkApplication);
+  }, [deepLinkApplication]);
+  const closeApplication = useCallback(() => {
+    setOpenApplication(null);
+    if (searchParams.get("applicationId")) {
+      const next = new URLSearchParams(searchParams.toString());
+      next.delete("applicationId");
+      const qs = next.toString();
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    }
+  }, [router, pathname, searchParams]);
 
   // Bulk selection state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -225,6 +243,7 @@ export function PipelinePage() {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to undo transition.";
       setAnnouncement(msg);
+      toast.error(msg);
     }
   }
 
@@ -329,7 +348,9 @@ export function PipelinePage() {
       setBulkTargetStage("");
       await reload();
     } catch (err: unknown) {
-      setAnnouncement(err instanceof Error ? err.message : "Bulk move failed.");
+      const msg = err instanceof Error ? err.message : "Bulk move failed.";
+      setAnnouncement(msg);
+      toast.error(msg);
     } finally {
       setBulkBusy(false);
     }
@@ -352,7 +373,9 @@ export function PipelinePage() {
       setBulkRejectNote("");
       await reload();
     } catch (err: unknown) {
-      setAnnouncement(err instanceof Error ? err.message : "Bulk rejection failed.");
+      const msg = err instanceof Error ? err.message : "Bulk rejection failed.";
+      setAnnouncement(msg);
+      toast.error(msg);
     } finally {
       setBulkBusy(false);
     }
@@ -437,7 +460,9 @@ export function PipelinePage() {
       }
       await reload();
     } catch (err: unknown) {
-      setAnnouncement(err instanceof Error ? err.message : "Screening failed.");
+      const msg = err instanceof Error ? err.message : "Screening failed.";
+      setAnnouncement(msg);
+      toast.error(msg);
     } finally {
       setScreeningBusy(false);
     }
@@ -477,7 +502,9 @@ export function PipelinePage() {
       });
       await reload();
     } catch (err: unknown) {
-      setAnnouncement(err instanceof Error ? err.message : "Shortlisting failed.");
+      const msg = err instanceof Error ? err.message : "Shortlisting failed.";
+      setAnnouncement(msg);
+      toast.error(msg);
     } finally {
       setShortlistBusy(false);
     }
@@ -517,7 +544,9 @@ export function PipelinePage() {
       });
       await reload();
     } catch (err: unknown) {
-      setAnnouncement(err instanceof Error ? err.message : "Interview invitation failed.");
+      const msg = err instanceof Error ? err.message : "Interview invitation failed.";
+      setAnnouncement(msg);
+      toast.error(msg);
     } finally {
       setInviteBusy(false);
     }
@@ -644,118 +673,56 @@ export function PipelinePage() {
 
   function renderCard(card: PipelineCard) {
     const displayName = blindMode ? `Candidate #${card.id.slice(-4)}` : card.candidate_name;
-    const avatarText = blindMode ? "#" : card.candidate_name.slice(0, 2).toUpperCase();
+    const avatarText = card.candidate_name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
     const isSelected = selectedIds.has(card.id);
 
     return (
       <article
         key={card.id}
-        className={`kanban-card${dragging?.id === card.id ? " is-dragging" : ""}${isSelected ? " is-selected" : ""}`}
-        style={isSelected ? { outline: "2px solid var(--brand-500)", background: "var(--surface-raised)" } : undefined}
+        className={cn("cand-card", dragging?.id === card.id && "is-dragging", isSelected && "is-selected")}
         draggable={card.valid_destinations.length > 0}
         onDragStart={() => setDragging(card)}
         onDragEnd={() => setDragging(null)}
         aria-label={`${displayName}, ${card.stage_label}`}
       >
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "8px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
-            <input
-              type="checkbox"
-              checked={isSelected}
-              onChange={(e) => {
-                e.stopPropagation();
-                toggleSelectCard(card.id);
-              }}
-              aria-label={`Select ${displayName}`}
-              style={{ accentColor: "var(--brand-600)", width: "15px", height: "15px", cursor: "pointer", flexShrink: 0 }}
-            />
-            <button
-              type="button"
-              className="kanban-card__name"
-              style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-              onClick={() => setOpenApplication(card.id)}
-            >
+        <div className="cand-card__head">
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={(e) => {
+              e.stopPropagation();
+              toggleSelectCard(card.id);
+            }}
+            aria-label={`Select ${displayName}`}
+          />
+          {!blindMode && <span className="avatar" aria-hidden="true">{avatarText}</span>}
+          <span className="cand-card__who">
+            <button type="button" className="cand-card__name" onClick={() => setOpenApplication(card.id)}>
               {displayName}
             </button>
-          </div>
-          <div
-            style={{
-              width: "24px",
-              height: "24px",
-              borderRadius: "50%",
-              background: blindMode ? "var(--surface-sunken)" : "var(--brand-100)",
-              color: blindMode ? "var(--ink-600)" : "var(--brand-700)",
-              display: "grid",
-              placeItems: "center",
-              fontSize: "10px",
-              fontWeight: 700,
-              flexShrink: 0,
-            }}
-            aria-hidden="true"
-          >
-            {avatarText}
-          </div>
+            <span className="cand-card__job">{card.job_title}</span>
+          </span>
+          <Pill tone={getStagePillTone(card.stage_id, card.stage_category)}>{card.stage_label}</Pill>
         </div>
 
-        <p className="kanban-card__job">{card.job_title}</p>
+        <p className="cand-card__reason" title={card.job_match_reasons ?? undefined}>
+          {card.job_match_reasons || "Not screened yet — run screening to get an AI match explanation."}
+        </p>
 
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "6px", flexWrap: "wrap" }}>
-          <Pill tone={getStagePillTone(card.stage_id, card.stage_category)}>
-            {card.stage_label}
-          </Pill>
-          <div style={{ display: "flex", alignItems: "center", gap: "4px", flexWrap: "wrap" }}>
-            {card.job_match_score != null ? (
-              <ScoreBadge score={card.job_match_score} label="AI Score" />
-            ) : card.profile_interview_score != null ? (
-              <ScoreBadge score={card.profile_interview_score} label="Interview" />
-            ) : (
-              <ScoreBadge score={null} />
-            )}
-            {card.job_match_score != null && card.profile_interview_score != null && (
-              <ScoreBadge score={card.profile_interview_score} label="Voice" />
-            )}
-          </div>
+        <div className="cand-card__foot">
+          <ScoreBadge score={card.job_match_score ?? null} label="Match" />
+          <ScoreBadge score={card.profile_interview_score} label="Screen" />
         </div>
-
-        {card.job_match_reasons && (
-          <p
-            style={{
-              fontSize: "11px",
-              color: "var(--ink-500)",
-              margin: "3px 0 1px",
-              display: "-webkit-box",
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: "vertical",
-              overflow: "hidden",
-              lineHeight: 1.3,
-            }}
-            title={card.job_match_reasons}
-          >
-            {card.job_match_reasons}
-          </p>
-        )}
 
         {(card.applied_interview_status || card.sandbox_status) && (
-          <div className="kanban-card__badges" style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "2px" }}>
+          <div className="cand-card__foot">
             {card.applied_interview_status && (
-              <Pill
-                tone={
-                  card.applied_interview_status === "evaluated"
-                    ? "verified"
-                    : "attention"
-                }
-              >
+              <Pill tone={card.applied_interview_status === "evaluated" ? "verified" : "attention"}>
                 Interview {card.applied_interview_status.replace(/_/g, " ")}
               </Pill>
             )}
             {card.sandbox_status && (
-              <Pill
-                tone={
-                  ["submitted", "expired"].includes(card.sandbox_status)
-                    ? "verified"
-                    : "attention"
-                }
-              >
+              <Pill tone={["submitted", "expired"].includes(card.sandbox_status) ? "verified" : "attention"}>
                 Sandbox {card.sandbox_status.replace(/_/g, " ")}
                 {card.sandbox_score != null ? ` · ${card.sandbox_score}` : ""}
               </Pill>
@@ -763,56 +730,61 @@ export function PipelinePage() {
           </div>
         )}
 
-        <div style={{ marginTop: "4px", paddingTop: "8px", borderTop: "1px solid var(--border-subtle)" }}>
+        <div className="cand-card__move">
           <MoveMenu card={card} onMove={startMove} />
         </div>
       </article>
     );
   }
 
+  /** Primary automation for a workflow stage, shown beside the funnel strip and in lane headers. */
+  function stageAction(stageId: string) {
+    if (stageId === "received") {
+      return (
+        <Button size="sm" variant="secondary" onClick={() => handleScreenReceived()} loading={screeningBusy} disabled={receivedCards.length === 0}
+          iconLeft={<LuSparkles size={13} />} title="Screen all received applications with AI">
+          Screen all ({receivedCards.length})
+        </Button>
+      );
+    }
+    if (stageId === "screened") {
+      return (
+        <Button size="sm" variant="secondary" onClick={() => openShortlistModal(false)} disabled={screenedCards.length === 0}
+          iconLeft={<LuUserCheck size={13} />} title="Auto-shortlist top candidates based on AI screening score">
+          Shortlist ({screenedCards.length})…
+        </Button>
+      );
+    }
+    if (stageId === "shortlisted") {
+      return (
+        <Button size="sm" variant="secondary" onClick={() => openInviteModal(false)} disabled={shortlistedCards.length === 0}
+          iconLeft={<LuSend size={13} />} title="Auto-invite top candidates to interview">
+          Invite ({shortlistedCards.length})…
+        </Button>
+      );
+    }
+    return null;
+  }
+
+  const currentPosting = postings.data?.postings.find((p) => p.id === postingFilter);
+  const activeStage = funnelStage ?? columns[0]?.stage_id ?? null;
+  const stageCards = columns.find((c) => c.stage_id === activeStage)?.cards ?? [];
+
   return (
     <div className="dashboard dashboard--wide">
-      <div style={{ marginBottom: "16px" }}>
-        <Breadcrumbs items={[{ label: "Employer Workspace", href: "/" }, { label: "Hiring Pipeline" }]} />
-      </div>
-
       <div aria-live="polite" className="sr-only">
         {announcement}
       </div>
 
-      <div className="page-heading">
-        <div>
-          <p className="eyebrow">Hiring operations</p>
-          <h1>Hiring Pipeline</h1>
-          <p>4-phase optimized workflow view. Every move is strictly validated, audited, and synchronized with candidate timelines.</p>
-        </div>
-
-        <div className="page-heading__meta pipeline-controls" style={{ flexWrap: "wrap", justifyContent: "flex-end" }}>
-          {/* Main Top Header Action: Screen All Received */}
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => handleScreenReceived()}
-            disabled={receivedCards.length === 0}
-            loading={screeningBusy}
-            style={{ height: "36px", fontWeight: 600 }}
-            title={
-              receivedCards.length > 0
-                ? "Screen all received applications across the active pipeline"
-                : "No pending received applications"
-            }
-          >
-            <LuSparkles size={14} style={{ marginRight: "6px" }} aria-hidden="true" />
-            <span>Screen All Received ({receivedCards.length})</span>
-          </Button>
-
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <LuFilter size={15} style={{ color: "var(--ink-400)" }} aria-hidden="true" />
+      <PageHeader
+        title="Pipeline"
+        meta={`${allCards.length} candidate${allCards.length === 1 ? "" : "s"} · ${currentPosting?.title ?? "All requisitions"}`}
+        actions={
+          <>
             <label className="move-menu">
               <span className="sr-only">Filter by job requisition</span>
               <select
                 className="select"
-                style={{ height: "36px", padding: "6px 32px 6px 12px", minWidth: "180px" }}
                 value={postingFilter ?? ""}
                 onChange={(event) => {
                   const value = event.target.value;
@@ -827,173 +799,72 @@ export function PipelinePage() {
                 ))}
               </select>
             </label>
-          </div>
-
-          {/* Blind Review Mode Toggle */}
-          <Button
-            variant={blindMode ? "primary" : "secondary"}
-            size="sm"
-            onClick={() => setBlindMode(!blindMode)}
-            title="Mask candidate names & avatars to eliminate unconscious bias"
-            style={{ height: "36px" }}
-          >
-            {blindMode ? (
-              <LuEyeOff size={14} style={{ marginRight: "6px" }} aria-hidden="true" />
-            ) : (
-              <LuEye size={14} style={{ marginRight: "6px" }} aria-hidden="true" />
-            )}
-            <span>{blindMode ? "Blind Review: ON" : "Blind Review: OFF"}</span>
-          </Button>
-
-          {/* Accessible View Toggle: 4-Phase Fit vs All Stages vs Table List */}
-          <div className="view-toggle" role="group" aria-label="Pipeline view mode">
-            <button
-              type="button"
-              className={view === "board" ? "is-active" : undefined}
-              aria-pressed={view === "board"}
-              onClick={() => setView("board")}
-              title="Single-page fit (4 macro phases)"
+            <SegmentedControl
+              label="View"
+              value={view}
+              onChange={setView}
+              options={[
+                { value: "funnel", label: "Funnel" },
+                { value: "board", label: "Board" },
+                { value: "list", label: "Table" },
+              ]}
+            />
+            {view === "board" && <Switch label="Expand stages" checked={expandStages} onChange={setExpandStages} />}
+            <Switch label="Blind review" checked={blindMode} onChange={setBlindMode} />
+            <Popover
+              label="Pipeline actions"
+              className="menu"
+              trigger={({ open, toggle, ref }) => (
+                <button ref={ref} type="button" className="button button--primary button--sm" aria-expanded={open} onClick={toggle}>
+                  <LuSparkles size={14} aria-hidden="true" />
+                  Actions
+                </button>
+              )}
             >
-              <LuLayoutGrid size={13} style={{ marginRight: "4px" }} aria-hidden="true" />
-              Focus Board (Fit)
-            </button>
-            <button
-              type="button"
-              className={view === "expanded" ? "is-active" : undefined}
-              aria-pressed={view === "expanded"}
-              onClick={() => setView("expanded")}
-              title="Expanded 7-column board"
-            >
-              <LuColumns3 size={13} style={{ marginRight: "4px" }} aria-hidden="true" />
-              All Stages
-            </button>
-            <button
-              type="button"
-              className={view === "list" ? "is-active" : undefined}
-              aria-pressed={view === "list"}
-              onClick={() => setView("list")}
-              title="Compact tabular list"
-            >
-              <LuList size={13} style={{ marginRight: "4px" }} aria-hidden="true" />
-              Table
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Smart Pipeline Automations Quick Bar */}
-      <div
-        className="pipeline-automation-bar"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          gap: "12px",
-          padding: "12px 16px",
-          marginBottom: "16px",
-          background: "var(--surface)",
-          border: "1px solid var(--border)",
-          borderRadius: "8px",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-          <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--ink-500)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-            Pipeline Actions:
-          </span>
-
-          {/* 1. Screening */}
-          {selectedReceived.length > 0 ? (
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => handleScreenReceived(selectedReceived)}
-              loading={screeningBusy}
-              title="Screen selected received applications and compute match scores"
-            >
-              <LuSparkles size={13} style={{ marginRight: "4px" }} />
-              Screen Selected ({selectedReceived.length})
-            </Button>
-          ) : (
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => handleScreenReceived()}
-              loading={screeningBusy}
-              disabled={receivedCards.length === 0}
-              title={
-                receivedCards.length > 0
-                  ? "Screen all received applications and compute match scores"
-                  : "No pending received candidates"
-              }
-            >
-              <LuSparkles size={13} style={{ marginRight: "4px" }} />
-              Screen All Received ({receivedCards.length})
-            </Button>
-          )}
-
-          {/* 2. Shortlisting */}
-          {selectedScreened.length > 0 ? (
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => openShortlistModal(true)}
-              title="Shortlist selected screened candidates"
-            >
-              <LuUserCheck size={13} style={{ marginRight: "4px" }} />
-              Shortlist Selected ({selectedScreened.length})...
-            </Button>
-          ) : (
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => openShortlistModal(false)}
-              disabled={screenedCards.length === 0}
-              title={
-                screenedCards.length > 0
-                  ? "Auto-shortlist top N candidates ranked by match score"
-                  : "No screened candidates to shortlist"
-              }
-            >
-              <LuUserCheck size={13} style={{ marginRight: "4px" }} />
-              Auto-Shortlist Top N ({screenedCards.length} screened)...
-            </Button>
-          )}
-
-          {/* 3. Interview Invitations */}
-          {selectedShortlisted.length > 0 ? (
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => openInviteModal(true)}
-              title="Invite selected shortlisted candidates to AI Applied Interview"
-            >
-              <LuSend size={13} style={{ marginRight: "4px" }} />
-              Invite Selected ({selectedShortlisted.length})...
-            </Button>
-          ) : (
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => openInviteModal(false)}
-              disabled={shortlistedCards.length === 0}
-              title={
-                shortlistedCards.length > 0
-                  ? "Auto-invite top N shortlisted candidates to interview"
-                  : "No shortlisted candidates to invite"
-              }
-            >
-              <LuSend size={13} style={{ marginRight: "4px" }} />
-              Auto-Invite Top N ({shortlistedCards.length} shortlisted)...
-            </Button>
-          )}
-        </div>
-
-        <div style={{ fontSize: "12px", color: "var(--ink-500)", display: "flex", alignItems: "center", gap: "6px" }}>
-          <LuSparkles size={13} style={{ color: "var(--brand-600)" }} />
-          <span>AI analyzes loopholes &amp; provides candidate improvement roadmaps on rejections</span>
-        </div>
-      </div>
+              {(close) => (
+                <>
+                  <button
+                    type="button"
+                    className="menu__item"
+                    disabled={selectedReceived.length === 0 && receivedCards.length === 0}
+                    onClick={() => {
+                      close();
+                      void handleScreenReceived(selectedReceived.length > 0 ? selectedReceived : undefined);
+                    }}
+                  >
+                    {selectedReceived.length > 0 ? `Screen selected (${selectedReceived.length})` : `Screen all received (${receivedCards.length})`}
+                    <small>Compute AI match scores and explanations</small>
+                  </button>
+                  <button
+                    type="button"
+                    className="menu__item"
+                    disabled={selectedScreened.length === 0 && screenedCards.length === 0}
+                    onClick={() => {
+                      close();
+                      openShortlistModal(selectedScreened.length > 0);
+                    }}
+                  >
+                    {selectedScreened.length > 0 ? `Shortlist selected (${selectedScreened.length})…` : `Auto-shortlist top N (${screenedCards.length} screened)…`}
+                    <small>Rank by match score; optionally reject the rest with AI feedback</small>
+                  </button>
+                  <button
+                    type="button"
+                    className="menu__item"
+                    disabled={selectedShortlisted.length === 0 && shortlistedCards.length === 0}
+                    onClick={() => {
+                      close();
+                      openInviteModal(selectedShortlisted.length > 0);
+                    }}
+                  >
+                    {selectedShortlisted.length > 0 ? `Invite selected (${selectedShortlisted.length}) to interview…` : `Invite top N to interview (${shortlistedCards.length} shortlisted)…`}
+                    <small>Send AI job interview invitations</small>
+                  </button>
+                </>
+              )}
+            </Popover>
+          </>
+        }
+      />
 
       {loading ? (
         <LoadingState label="Loading candidate pipeline…" />
@@ -1004,9 +875,27 @@ export function PipelinePage() {
           title="No pipeline stages configured"
           description="Publish a workflow in Administration and assign it to an active job to view candidate movement here."
         />
-      ) : view === "board" ? (
-        /* Optimized Single-Page Kanban (4 Macro Columns fit on 1 page) */
-        <div className="kanban--fit" role="list" aria-label="Hiring pipeline macro phases">
+      ) : view === "funnel" ? (
+        <>
+          <div className="stage-bar">
+            <div className="stage-strip" role="group" aria-label="Stages">
+              {columns.map((c) => (
+                <button key={c.stage_id} type="button" aria-pressed={activeStage === c.stage_id} onClick={() => setFunnelStage(c.stage_id)}>
+                  <b className="tabular-nums">{c.cards.length}</b>
+                  <small>{c.label}</small>
+                </button>
+              ))}
+            </div>
+            {activeStage && stageAction(activeStage)}
+          </div>
+          {stageCards.length === 0 ? (
+            <p className="lane__empty">No candidates in this stage</p>
+          ) : (
+            <div className="cand-grid">{stageCards.map((card) => renderCard(card))}</div>
+          )}
+        </>
+      ) : view === "board" && !expandStages ? (
+        <div className="board">
           {macroGroups.map((group) => {
             const currentSub = subFilters[group.id] || "all";
             const visibleCards =
@@ -1020,10 +909,7 @@ export function PipelinePage() {
             return (
               <section
                 key={group.id}
-                className={`kanban__column${
-                  dragOverColumn === group.id ? " kanban__column--dragover" : ""
-                }`}
-                role="listitem"
+                className={cn("lane", dragOverColumn === group.id && "is-drop-target")}
                 aria-label={`${group.label}, ${visibleCards.length} candidates`}
                 onDragOver={(event) => {
                   if (isDragTarget) {
@@ -1052,84 +938,22 @@ export function PipelinePage() {
                   setDragging(null);
                 }}
               >
-                <header className="kanban__header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                  <div className="kanban__header-title">
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      <h2>{group.label}</h2>
-                      <span className="kanban__count tabular-nums">
-                        {visibleCards.length}
-                      </span>
-                    </div>
-                    <span className="kanban__header-subtitle">{group.subtitle}</span>
+                <header className="lane__head">
+                  <h2>{group.label}</h2>
+                  <span className="lane__count tabular-nums">{visibleCards.length}</span>
+                  <div className="lane__action">
+                    {group.id === "received" && stageAction("received")}
+                    {group.id === "received" && screenedCards.length > 0 && stageAction("screened")}
+                    {group.id === "shortlisted" && stageAction("shortlisted")}
                   </div>
-
-                  {group.id === "received" && (
-                    <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => handleScreenReceived()}
-                        loading={screeningBusy}
-                        disabled={receivedCards.length === 0}
-                        style={{ height: "26px", fontSize: "11px", padding: "0 8px", fontWeight: 600 }}
-                        title={
-                          receivedCards.length > 0
-                            ? "Screen all received applications with AI"
-                            : "No pending received applications"
-                        }
-                      >
-                        <LuSparkles size={11} style={{ marginRight: "3px" }} />
-                        Screen All ({receivedCards.length})
-                      </Button>
-                      {screenedCards.length > 0 && (
-                        <Button
-                          size="sm"
-                          variant="primary"
-                          onClick={() => openShortlistModal(false)}
-                          style={{ height: "26px", fontSize: "11px", padding: "0 8px", fontWeight: 600 }}
-                          title="Auto-shortlist top candidates based on AI screening score"
-                        >
-                          <LuUserCheck size={11} style={{ marginRight: "3px" }} />
-                          Shortlist ({screenedCards.length})
-                        </Button>
-                      )}
-                    </div>
-                  )}
-
-                  {group.id === "shortlisted" && (
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => openInviteModal(false)}
-                      disabled={shortlistedCards.length === 0}
-                      style={{ height: "26px", fontSize: "11px", padding: "0 8px", fontWeight: 600 }}
-                      title={
-                        shortlistedCards.length > 0
-                          ? "Auto-invite top candidates to interview"
-                          : "No shortlisted candidates to invite"
-                      }
-                    >
-                      <LuSend size={11} style={{ marginRight: "3px" }} />
-                      Invite ({shortlistedCards.length})
-                    </Button>
-                  )}
                 </header>
 
-                {/* Sub-filter tab pill row for macro columns with multiple stages */}
                 {group.subStages.length > 1 && (
-                  <div
-                    className="kanban__subfilter"
-                    role="tablist"
-                    aria-label={`Filter ${group.label} sub-stages`}
-                  >
+                  <div className="lane__chips" role="group" aria-label={`Filter ${group.label} sub-stages`}>
                     <button
                       type="button"
-                      className={`kanban__subfilter-btn${
-                        currentSub === "all" ? " is-active" : ""
-                      }`}
-                      onClick={() =>
-                        setSubFilters((prev) => ({ ...prev, [group.id]: "all" }))
-                      }
+                      aria-pressed={currentSub === "all"}
+                      onClick={() => setSubFilters((prev) => ({ ...prev, [group.id]: "all" }))}
                     >
                       All ({group.cards.length})
                     </button>
@@ -1137,12 +961,8 @@ export function PipelinePage() {
                       <button
                         key={sub.id}
                         type="button"
-                        className={`kanban__subfilter-btn${
-                          currentSub === sub.id ? " is-active" : ""
-                        }`}
-                        onClick={() =>
-                          setSubFilters((prev) => ({ ...prev, [group.id]: sub.id }))
-                        }
+                        aria-pressed={currentSub === sub.id}
+                        onClick={() => setSubFilters((prev) => ({ ...prev, [group.id]: sub.id }))}
                       >
                         {sub.label} ({sub.count})
                       </button>
@@ -1150,30 +970,23 @@ export function PipelinePage() {
                   </div>
                 )}
 
-                <div className="kanban__cards">
-                  {visibleCards.length === 0 ? (
-                    <div className="kanban__empty">
-                      <span>
-                        No candidates{" "}
-                        {currentSub !== "all" ? "in this stage" : "in this phase"}
-                      </span>
-                    </div>
-                  ) : (
-                    visibleCards.map((card) => renderCard(card))
-                  )}
-                </div>
+                {visibleCards.length === 0 ? (
+                  <p className="lane__empty">
+                    No candidates {currentSub !== "all" ? "in this stage" : "in this phase"}
+                  </p>
+                ) : (
+                  visibleCards.map((card) => renderCard(card))
+                )}
               </section>
             );
           })}
         </div>
-      ) : view === "expanded" ? (
-        /* Traditional Horizontal Scrolling All Stages */
-        <div className="kanban" role="list" aria-label="All pipeline stages">
+      ) : view === "board" ? (
+        <div className="board board--expanded" style={{ "--lanes": columns.length } as CSSProperties}>
           {columns.map((column) => (
             <section
               key={column.stage_id}
-              className="kanban__column"
-              role="listitem"
+              className={cn("lane", dragOverColumn === column.stage_id && "is-drop-target")}
               aria-label={`${column.label}, ${column.cards.length} candidates`}
               onDragOver={(event) => {
                 if (dragging?.valid_destinations.some((d) => d.id === column.stage_id)) {
@@ -1186,74 +999,20 @@ export function PipelinePage() {
                 setDragging(null);
               }}
             >
-              <header className="kanban__header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div className="kanban__header-title">
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <h2>{column.label}</h2>
-                    <span className="kanban__count tabular-nums">{column.cards.length}</span>
-                  </div>
-                </div>
-
-                {column.stage_id === "received" && (
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => handleScreenReceived()}
-                    loading={screeningBusy}
-                    disabled={column.cards.length === 0}
-                    style={{ height: "26px", fontSize: "11px", padding: "0 8px", fontWeight: 600 }}
-                    title={
-                      column.cards.length > 0
-                        ? "Screen all received applications"
-                        : "No pending received applications"
-                    }
-                  >
-                    <LuSparkles size={11} style={{ marginRight: "3px" }} />
-                    Screen All ({column.cards.length})
-                  </Button>
-                )}
-
-                {column.stage_id === "screened" && (
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => openShortlistModal(false)}
-                    disabled={column.cards.length === 0}
-                    style={{ height: "26px", fontSize: "11px", padding: "0 8px", fontWeight: 600 }}
-                    title="Shortlist screened candidates"
-                  >
-                    <LuUserCheck size={11} style={{ marginRight: "3px" }} />
-                    Shortlist
-                  </Button>
-                )}
-
-                {column.stage_id === "shortlisted" && (
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => openInviteModal(false)}
-                    disabled={column.cards.length === 0}
-                    style={{ height: "26px", fontSize: "11px", padding: "0 8px", fontWeight: 600 }}
-                    title="Auto-invite candidates to interview"
-                  >
-                    <LuSend size={11} style={{ marginRight: "3px" }} />
-                    Invite
-                  </Button>
-                )}
+              <header className="lane__head">
+                <h2>{column.label}</h2>
+                <span className="lane__count tabular-nums">{column.cards.length}</span>
+                <div className="lane__action">{stageAction(column.stage_id)}</div>
               </header>
-
-              <div className="kanban__cards">
-                {column.cards.length === 0 ? (
-                  <div className="kanban__empty">No candidates in this stage</div>
-                ) : (
-                  column.cards.map((card) => renderCard(card))
-                )}
-              </div>
+              {column.cards.length === 0 ? (
+                <p className="lane__empty">No candidates in this stage</p>
+              ) : (
+                column.cards.map((card) => renderCard(card))
+              )}
             </section>
           ))}
         </div>
       ) : (
-        /* Accessible Table View */
         <section className="panel" aria-label="Pipeline table list view">
           <TableContainer>
             <Table>
@@ -1262,19 +1021,18 @@ export function PipelinePage() {
               </caption>
               <thead>
                 <tr>
-                  <th scope="col" style={{ width: "36px" }}>
+                  <th scope="col" className="table__check">
                     <input
                       type="checkbox"
                       checked={allCards.length > 0 && allCards.every((c) => selectedIds.has(c.id))}
                       onChange={() => toggleSelectAll(allCards)}
                       aria-label="Select all candidates"
-                      style={{ accentColor: "var(--brand-600)", width: "15px", height: "15px", cursor: "pointer" }}
                     />
                   </th>
                   <th scope="col">Candidate</th>
                   <th scope="col">Requisition</th>
                   <th scope="col">
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <span className="table__head-action">
                       <span>Stage</span>
                       {receivedCards.length > 0 && (
                         <Button
@@ -1282,18 +1040,17 @@ export function PipelinePage() {
                           variant="ghost"
                           onClick={() => handleScreenReceived()}
                           loading={screeningBusy}
-                          style={{ height: "22px", fontSize: "10px", padding: "0 6px" }}
                           title="Screen all received candidates"
+                          iconLeft={<LuSparkles size={12} />}
                         >
-                          <LuSparkles size={10} style={{ marginRight: "2px" }} />
                           Screen ({receivedCards.length})
                         </Button>
                       )}
-                    </div>
+                    </span>
                   </th>
-                  <th scope="col">AI / Skill Score</th>
+                  <th scope="col">Match / Screen</th>
                   <th scope="col">Job Interview</th>
-                  <th scope="col" style={{ width: "160px" }}>Move Stage</th>
+                  <th scope="col">Move Stage</th>
                 </tr>
               </thead>
               <tbody>
@@ -1305,23 +1062,17 @@ export function PipelinePage() {
                   const isSelected = selectedIds.has(card.id);
 
                   return (
-                    <tr key={card.id} style={isSelected ? { background: "var(--surface-raised)" } : undefined}>
+                    <tr key={card.id} className={isSelected ? "is-selected" : undefined}>
                       <td>
                         <input
                           type="checkbox"
                           checked={isSelected}
                           onChange={() => toggleSelectCard(card.id)}
                           aria-label={`Select ${displayName}`}
-                          style={{ accentColor: "var(--brand-600)", width: "15px", height: "15px", cursor: "pointer" }}
                         />
                       </td>
                       <th scope="row">
-                        <button
-                          type="button"
-                          className="table-action"
-                          style={{ border: 0, background: "none", cursor: "pointer", textAlign: "left" }}
-                          onClick={() => setOpenApplication(card.id)}
-                        >
+                        <button type="button" className="link" onClick={() => setOpenApplication(card.id)}>
                           <strong>{displayName}</strong>
                         </button>
                       </th>
@@ -1332,15 +1083,10 @@ export function PipelinePage() {
                         </Pill>
                       </td>
                       <td>
-                        <div style={{ display: "flex", gap: "4px", alignItems: "center", flexWrap: "wrap" }}>
-                          {card.job_match_score != null ? (
-                            <ScoreBadge score={card.job_match_score} label="AI Score" />
-                          ) : card.profile_interview_score != null ? (
-                            <ScoreBadge score={card.profile_interview_score} label="Interview" />
-                          ) : (
-                            <ScoreBadge score={null} />
-                          )}
-                        </div>
+                        <span className="cand-card__foot">
+                          <ScoreBadge score={card.job_match_score ?? null} label="Match" />
+                          <ScoreBadge score={card.profile_interview_score} label="Screen" />
+                        </span>
                       </td>
                       <td>
                         {card.applied_interview_status
@@ -1361,36 +1107,14 @@ export function PipelinePage() {
 
       {/* Floating Bulk Action Bar */}
       {selectedIds.size > 0 && (
-        <div
-          role="region"
-          aria-label="Bulk candidate operations"
-          style={{
-            position: "fixed",
-            bottom: "24px",
-            left: "50%",
-            transform: "translateX(-50%)",
-            backgroundColor: "var(--surface)",
-            border: "1px solid var(--border)",
-            borderRadius: "12px",
-            boxShadow: "0 10px 30px -5px rgba(0, 0, 0, 0.35)",
-            padding: "10px 18px",
-            display: "flex",
-            alignItems: "center",
-            gap: "12px",
-            zIndex: 200,
-            backdropFilter: "blur(10px)",
-            maxWidth: "90vw",
-            flexWrap: "wrap",
-          }}
-        >
-          <span style={{ fontWeight: 600, fontSize: "13px", color: "var(--ink-900)" }}>
+        <div role="region" aria-label="Bulk candidate operations" className="bulk-bar">
+          <span className="bulk-bar__count">
             {selectedIds.size} {selectedIds.size === 1 ? "candidate" : "candidates"} selected
           </span>
-          <div style={{ height: "20px", width: "1px", background: "var(--border)" }} />
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <label className="move-menu">
+            <span className="sr-only">Move selected candidates to stage</span>
             <select
               className="select"
-              style={{ height: "32px", fontSize: "12px", minWidth: "140px", padding: "4px 28px 4px 10px" }}
               value={bulkTargetStage}
               onChange={(e) => setBulkTargetStage(e.target.value)}
             >
@@ -1401,75 +1125,66 @@ export function PipelinePage() {
                 </option>
               ))}
             </select>
-            <Button
-              size="sm"
-              disabled={!bulkTargetStage || bulkBusy}
-              onClick={handleBulkMove}
-              loading={bulkBusy}
-            >
-              Apply Move
-            </Button>
-          </div>
+          </label>
+          <Button
+            size="sm"
+            disabled={!bulkTargetStage || bulkBusy}
+            onClick={handleBulkMove}
+            loading={bulkBusy}
+          >
+            Apply Move
+          </Button>
 
           {selectedReceived.length > 0 && (
             <Button
-              variant="primary"
+              variant="secondary"
               size="sm"
               onClick={() => handleScreenReceived(selectedReceived)}
               loading={screeningBusy}
               title="Screen selected received applications"
+              iconLeft={<LuSparkles size={13} />}
             >
-              <LuSparkles size={13} style={{ marginRight: "4px" }} />
               Screen ({selectedReceived.length})
             </Button>
           )}
 
           {selectedScreened.length > 0 && (
             <Button
-              variant="primary"
+              variant="secondary"
               size="sm"
               onClick={() => openShortlistModal(true)}
               title="Shortlist selected screened candidates"
+              iconLeft={<LuUserCheck size={13} />}
             >
-              <LuUserCheck size={13} style={{ marginRight: "4px" }} />
-              Shortlist ({selectedScreened.length})...
+              Shortlist ({selectedScreened.length})…
             </Button>
           )}
 
           {selectedShortlisted.length > 0 && (
             <Button
-              variant="primary"
+              variant="secondary"
               size="sm"
               onClick={() => openInviteModal(true)}
               title="Invite selected shortlisted candidates to AI Applied Interview"
+              iconLeft={<LuSend size={13} />}
             >
-              <LuSend size={13} style={{ marginRight: "4px" }} />
-              Invite to Interview ({selectedShortlisted.length})...
+              Invite to Interview ({selectedShortlisted.length})…
             </Button>
           )}
 
+          <Button variant="secondary" size="sm" onClick={handleBulkExport} iconLeft={<LuDownload size={13} />}>
+            Export CSV
+          </Button>
           <Button
             variant="danger"
             size="sm"
             disabled={bulkBusy}
             onClick={() => setBulkRejectModalOpen(true)}
+            iconLeft={<LuUserX size={13} />}
           >
-            <LuUserX size={13} style={{ marginRight: "4px" }} />
-            Reject Selected
+            Reject…
           </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={handleBulkExport}
-          >
-            <LuDownload size={13} style={{ marginRight: "4px" }} />
-            Export CSV
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setSelectedIds(new Set())}
-          >
+          <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())}>
             Clear
           </Button>
         </div>
@@ -1483,7 +1198,7 @@ export function PipelinePage() {
           title={`Reject ${selectedIds.size} Candidates`}
           description="Move selected applicants to the Rejected stage. This action will be recorded in the audit log."
         >
-          <div style={{ display: "grid", gap: "14px", marginTop: "8px" }}>
+          <div className="modal-stack">
             <label className="form-field">
               <span className="form-field__label">Rejection Reason Code (required)</span>
               <input
@@ -1504,7 +1219,7 @@ export function PipelinePage() {
                 placeholder="Add reviewer notes explaining the bulk rejection decision…"
               />
             </label>
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "12px" }}>
+            <div className="modal-actions">
               <Button
                 variant="secondary"
                 onClick={() => setBulkRejectModalOpen(false)}
@@ -1513,7 +1228,7 @@ export function PipelinePage() {
                 Cancel
               </Button>
               <Button
-                variant="danger"
+                variant="danger-filled"
                 onClick={handleBulkReject}
                 loading={bulkBusy}
               >
@@ -1536,9 +1251,9 @@ export function PipelinePage() {
           }
           description="Advance qualified candidates to Shortlisted stage. Optionally reject remaining candidates with automated AI loophole feedback."
         >
-          <div style={{ display: "grid", gap: "16px", marginTop: "8px" }}>
+          <div className="modal-stack">
             {!shortlistSelectedMode ? (
-              <div>
+              <div className="modal-stack">
                 <label className="form-field">
                   <span className="form-field__label">Number of top candidates to shortlist:</span>
                   <input
@@ -1550,143 +1265,73 @@ export function PipelinePage() {
                     onChange={(e) => setShortlistTopN(Math.max(1, parseInt(e.target.value) || 1))}
                   />
                 </label>
-                <div
-                  style={{
-                    marginTop: "8px",
-                    maxHeight: "160px",
-                    overflowY: "auto",
-                    border: "1px solid var(--border)",
-                    borderRadius: "6px",
-                    padding: "8px",
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: "11px",
-                      fontWeight: 600,
-                      color: "var(--ink-500)",
-                      display: "block",
-                      marginBottom: "6px",
-                    }}
-                  >
+                <div className="rank-list">
+                  <span className="rank-list__title">
                     AI Screening Ranked Preview ({screenedCards.length} candidate{screenedCards.length === 1 ? "" : "s"}):
                   </span>
                   {sortedScreened.map((c, i) => {
                     const isTopN = i < Math.min(shortlistTopN, screenedCards.length);
                     return (
-                      <div
-                        key={c.id}
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          fontSize: "12px",
-                          padding: "6px 8px",
-                          borderBottom: "1px solid var(--border-subtle)",
-                          background: isTopN ? "var(--brand-50, rgba(20, 100, 255, 0.05))" : "transparent",
-                          borderRadius: "4px",
-                        }}
-                      >
-                        <div style={{ display: "flex", flexDirection: "column", gap: "2px", maxWidth: "70%" }}>
-                          <span style={{ fontWeight: isTopN ? 600 : 400 }}>
+                      <div key={c.id} className={cn("rank-row", isTopN && "is-top")}>
+                        <span className="rank-row__text">
+                          <span className="rank-row__name">
                             #{i + 1} {blindMode ? `Candidate #${c.id.slice(-4)}` : c.candidate_name}
                             {isTopN ? (
-                              <span style={{ marginLeft: "6px", fontSize: "10px", color: "var(--brand-700)", fontWeight: 700 }}>
-                                [Shortlist]
-                              </span>
+                              <span className="rank-row__tag rank-row__tag--keep">[Shortlist]</span>
                             ) : shortlistRejectRemaining ? (
-                              <span style={{ marginLeft: "6px", fontSize: "10px", color: "var(--danger-600, #dc2626)" }}>
-                                [Reject]
-                              </span>
+                              <span className="rank-row__tag rank-row__tag--reject">[Reject]</span>
                             ) : null}
                           </span>
                           {c.job_match_reasons && (
-                            <span
-                              style={{
-                                fontSize: "11px",
-                                color: "var(--ink-500)",
-                                whiteSpace: "nowrap",
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                              }}
-                              title={c.job_match_reasons}
-                            >
+                            <span className="rank-row__reason" title={c.job_match_reasons}>
                               {c.job_match_reasons}
                             </span>
                           )}
-                        </div>
-                        <ScoreBadge score={c.job_match_score ?? c.profile_interview_score} label="AI Score" />
+                        </span>
+                        <ScoreBadge score={c.job_match_score ?? c.profile_interview_score} label="Match" />
                       </div>
                     );
                   })}
                 </div>
               </div>
             ) : (
-              <div
-                style={{
-                  padding: "12px",
-                  background: "var(--surface-sunken)",
-                  borderRadius: "6px",
-                  fontSize: "13px",
-                }}
-              >
+              <div className="opt-box">
                 <strong>{selectedScreened.length}</strong> candidate(s) selected to advance to{" "}
                 <strong>Shortlisted</strong>.
               </div>
             )}
 
-            {/* Reject remaining prompt */}
-            <div
-              style={{
-                padding: "14px",
-                background: "var(--surface-sunken)",
-                borderRadius: "8px",
-                border: "1px solid var(--border)",
-              }}
-            >
-              <label style={{ display: "flex", alignItems: "flex-start", gap: "10px", cursor: "pointer" }}>
+            <div className="opt-box">
+              <label className="opt-check">
                 <input
                   type="checkbox"
-                  style={{ marginTop: "3px" }}
                   checked={shortlistRejectRemaining}
                   onChange={(e) => setShortlistRejectRemaining(e.target.checked)}
                 />
-                <div>
-                  <strong style={{ fontSize: "13px", display: "block" }}>
+                <span>
+                  <strong>
                     Reject remaining un-shortlisted candidates ({unshortlistedCount} candidate{unshortlistedCount === 1 ? "" : "s"})
                   </strong>
-                  <span style={{ fontSize: "12px", color: "var(--ink-500)" }}>
-                    Applicants not meeting the shortlisting cutoff will transition to the Rejected stage.
-                  </span>
-                </div>
+                  <small>Applicants not meeting the shortlisting cutoff will transition to the Rejected stage.</small>
+                </span>
               </label>
 
               {shortlistRejectRemaining && (
-                <div
-                  style={{
-                    marginTop: "12px",
-                    marginLeft: "24px",
-                    paddingTop: "10px",
-                    borderTop: "1px dashed var(--border)",
-                  }}
-                >
-                  <label style={{ display: "flex", alignItems: "flex-start", gap: "8px", cursor: "pointer" }}>
-                    <input
-                      type="checkbox"
-                      style={{ marginTop: "2px" }}
-                      checked={shortlistSendFeedback}
-                      onChange={(e) => setShortlistSendFeedback(e.target.checked)}
-                    />
-                    <span style={{ fontSize: "12px", color: "var(--brand-800)" }}>
-                      <LuSparkles size={13} style={{ marginRight: "4px", verticalAlign: "middle" }} />
-                      <strong>AI Loophole Analysis &amp; Growth Email:</strong> Pinpoint missing qualifications and email tailored advice on how to improve for their next application.
-                    </span>
-                  </label>
-                </div>
+                <label className="opt-check opt-check--nested">
+                  <input
+                    type="checkbox"
+                    checked={shortlistSendFeedback}
+                    onChange={(e) => setShortlistSendFeedback(e.target.checked)}
+                  />
+                  <span>
+                    <strong><LuSparkles size={13} aria-hidden="true" /> AI Loophole Analysis &amp; Growth Email:</strong>{" "}
+                    <small>Pinpoint missing qualifications and email tailored advice on how to improve for their next application.</small>
+                  </span>
+                </label>
               )}
             </div>
 
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "8px" }}>
+            <div className="modal-actions">
               <Button
                 variant="secondary"
                 onClick={() => setShortlistModalOpen(false)}
@@ -1720,9 +1365,9 @@ export function PipelinePage() {
           }
           description="Advance candidates to AI Applied Interview and dispatch interview room invitations. Optionally reject remaining unselected candidates."
         >
-          <div style={{ display: "grid", gap: "16px", marginTop: "8px" }}>
+          <div className="modal-stack">
             {!inviteSelectedMode ? (
-              <div>
+              <div className="modal-stack">
                 <label className="form-field">
                   <span className="form-field__label">Number of top candidates to invite:</span>
                   <input
@@ -1734,40 +1379,13 @@ export function PipelinePage() {
                     onChange={(e) => setInviteTopN(Math.max(1, parseInt(e.target.value) || 1))}
                   />
                 </label>
-                <div
-                  style={{
-                    marginTop: "8px",
-                    maxHeight: "160px",
-                    overflowY: "auto",
-                    border: "1px solid var(--border)",
-                    borderRadius: "6px",
-                    padding: "8px",
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: "11px",
-                      fontWeight: 600,
-                      color: "var(--ink-500)",
-                      display: "block",
-                      marginBottom: "4px",
-                    }}
-                  >
+                <div className="rank-list">
+                  <span className="rank-list__title">
                     Ranked Preview (Top {Math.min(inviteTopN, shortlistedCards.length)} will be invited):
                   </span>
                   {sortedShortlisted.slice(0, Math.min(inviteTopN, shortlistedCards.length)).map((c, i) => (
-                    <div
-                      key={c.id}
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        fontSize: "12px",
-                        padding: "6px 0",
-                        borderBottom: "1px solid var(--border-subtle)",
-                      }}
-                    >
-                      <span>
+                    <div key={c.id} className="rank-row">
+                      <span className="rank-row__name">
                         #{i + 1} {blindMode ? `Candidate #${c.id.slice(-4)}` : c.candidate_name}
                       </span>
                       <ScoreBadge score={c.job_match_score ?? c.profile_interview_score} label="Match" />
@@ -1776,71 +1394,43 @@ export function PipelinePage() {
                 </div>
               </div>
             ) : (
-              <div
-                style={{
-                  padding: "12px",
-                  background: "var(--surface-sunken)",
-                  borderRadius: "6px",
-                  fontSize: "13px",
-                }}
-              >
+              <div className="opt-box">
                 <strong>{selectedShortlisted.length}</strong> candidate(s) selected to advance to{" "}
                 <strong>Applied Interview</strong>.
               </div>
             )}
 
-            {/* Reject remaining prompt */}
-            <div
-              style={{
-                padding: "14px",
-                background: "var(--surface-sunken)",
-                borderRadius: "8px",
-                border: "1px solid var(--border)",
-              }}
-            >
-              <label style={{ display: "flex", alignItems: "flex-start", gap: "10px", cursor: "pointer" }}>
+            <div className="opt-box">
+              <label className="opt-check">
                 <input
                   type="checkbox"
-                  style={{ marginTop: "3px" }}
                   checked={inviteRejectRemaining}
                   onChange={(e) => setInviteRejectRemaining(e.target.checked)}
                 />
-                <div>
-                  <strong style={{ fontSize: "13px", display: "block" }}>
+                <span>
+                  <strong>
                     Reject remaining un-invited candidates ({uninvitedCount} candidate{uninvitedCount === 1 ? "" : "s"})
                   </strong>
-                  <span style={{ fontSize: "12px", color: "var(--ink-500)" }}>
-                    Applicants not invited to interview will transition to the Rejected stage.
-                  </span>
-                </div>
+                  <small>Applicants not invited to interview will transition to the Rejected stage.</small>
+                </span>
               </label>
 
               {inviteRejectRemaining && (
-                <div
-                  style={{
-                    marginTop: "12px",
-                    marginLeft: "24px",
-                    paddingTop: "10px",
-                    borderTop: "1px dashed var(--border)",
-                  }}
-                >
-                  <label style={{ display: "flex", alignItems: "flex-start", gap: "8px", cursor: "pointer" }}>
-                    <input
-                      type="checkbox"
-                      style={{ marginTop: "2px" }}
-                      checked={inviteSendFeedback}
-                      onChange={(e) => setInviteSendFeedback(e.target.checked)}
-                    />
-                    <span style={{ fontSize: "12px", color: "var(--brand-800)" }}>
-                      <LuSparkles size={13} style={{ marginRight: "4px", verticalAlign: "middle" }} />
-                      <strong>AI Loophole Analysis &amp; Growth Email:</strong> Provide candidates actionable feedback on interview competencies and qualification improvements.
-                    </span>
-                  </label>
-                </div>
+                <label className="opt-check opt-check--nested">
+                  <input
+                    type="checkbox"
+                    checked={inviteSendFeedback}
+                    onChange={(e) => setInviteSendFeedback(e.target.checked)}
+                  />
+                  <span>
+                    <strong><LuSparkles size={13} aria-hidden="true" /> AI Loophole Analysis &amp; Growth Email:</strong>{" "}
+                    <small>Provide candidates actionable feedback on interview competencies and qualification improvements.</small>
+                  </span>
+                </label>
               )}
             </div>
 
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "8px" }}>
+            <div className="modal-actions">
               <Button
                 variant="secondary"
                 onClick={() => setInviteModalOpen(false)}
@@ -1864,49 +1454,21 @@ export function PipelinePage() {
 
       {/* Reversible Stage Move Undo Window Toast */}
       {undoToast && (
-        <div
-          role="alert"
-          style={{
-            position: "fixed",
-            bottom: "24px",
-            right: "24px",
-            background: "var(--surface)",
-            border: "1px solid var(--border)",
-            borderRadius: "10px",
-            padding: "12px 18px",
-            boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.3)",
-            display: "flex",
-            alignItems: "center",
-            gap: "12px",
-            zIndex: 300,
-          }}
-        >
-          <LuHistory size={17} style={{ color: "var(--brand-600)" }} />
-          <span style={{ fontSize: "13px", color: "var(--ink-900)" }}>
+        <div role="alert" className="undo-toast">
+          <LuHistory size={17} aria-hidden="true" />
+          <span>
             Moved <strong>{undoToast.candidateName}</strong> to <strong>{undoToast.stageLabel}</strong> ({undoSecondsLeft}s)
           </span>
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={triggerUndo}
-            style={{ height: "30px", padding: "0 12px" }}
-          >
+          <Button variant="primary" size="sm" onClick={triggerUndo}>
             Undo
           </Button>
           <button
+            type="button"
+            className="icon-button"
             onClick={() => setUndoToast(null)}
-            style={{
-              background: "none",
-              border: 0,
-              cursor: "pointer",
-              color: "var(--ink-400)",
-              display: "grid",
-              placeItems: "center",
-              padding: "4px",
-            }}
             aria-label="Dismiss undo notification"
           >
-            <LuX size={15} />
+            <LuX size={15} aria-hidden="true" />
           </button>
         </div>
       )}
@@ -1926,7 +1488,7 @@ export function PipelinePage() {
       {openApplication && (
         <ApplicationDrawer
           applicationId={openApplication}
-          onClose={() => setOpenApplication(null)}
+          onClose={closeApplication}
           onChanged={reload}
           blindMode={blindMode}
         />

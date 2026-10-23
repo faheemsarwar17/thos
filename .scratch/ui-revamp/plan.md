@@ -3762,9 +3762,11 @@ npx playwright test e2e/parity                  # all parity specs
 
 ## Task 19: Documentation
 
+> Note: design.md v3.0 was committed earlier with the session handoff (7ae9d2c); this commit holds the two READMEs. The READMEs also document `NEXT_DIST_DIR` and the read-only e2e guard. The e2e commands in the docs are exercised by Task 18 and the Finish run.
+
 **Files:** `design.md`, `Frontend/README.md`, `README.md`.
 
-- [ ] **Step 1: `design.md` → v3.0 (rewrite).** Same section skeleton as v2.0 (Philosophy, Stack, Color, Typography, Spacing/Radii/Elevation, Layout & Responsive, Components, HCI & Accessibility), with the D system content:
+- [x] **Step 1: `design.md` → v3.0 (rewrite).** Same section skeleton as v2.0 (Philosophy, Stack, Color, Typography, Spacing/Radii/Elevation, Layout & Responsive, Components, HCI & Accessibility), with the D system content:
   - **Philosophy:** "calm, dense, premium (Ashby/Linear)". Employer compact, candidate comfortable.
   - **Stack:**
     - Load order: `tokens.css` → `theme.css` → `typography.css` → `utilities.css` → `components.css` → `charts.css` → `layout.css` → `styles/screens/*.css` → globals.
@@ -3779,7 +3781,7 @@ npx playwright test e2e/parity                  # all parity specs
     - The 5 viewports × 2 themes.
     - `npm run e2e`, `npm run e2e:layout`, `npm run e2e:capture` and `npm run check:colors`.
     - The 7 must-hold rules.
-- [ ] **Step 2: `Frontend/README.md`.**
+- [x] **Step 2: `Frontend/README.md`.**
   - Route map: every route, its persona and its shell type (rail / focus / auth).
   - Shells, the component inventory, and the testing section (Vitest + Playwright commands, how to run with existing servers or `PW_START_SERVERS=1`, and the read-only guard).
   - **Correct the claims that don't match the code**:
@@ -3788,12 +3790,12 @@ npx playwright test e2e/parity                  # all parity specs
     - Candidate jobs show no match scores.
     - Pipeline keyboard moves use the per-card "Move stage" select, plus drag and drop on the Board.
     - `app/api/interviews/token` returns `{ token, serverUrl }`.
-- [ ] **Step 3: Root `README.md`.**
+- [x] **Step 3: Root `README.md`.**
   - Update the frontend overview: the new navigation (rail, ⌘K, notifications, the requisitions panel, the Today dashboard with charts, the pipeline funnel/board/table, the candidate journey, and the focus layout for interviews).
   - Add e2e to the "Running" or "Checks" section.
   - Keep the backend sections unchanged.
-- [ ] **Step 4: Proofread.** Check every command in the docs actually runs, and every path exists (`ls` them).
-- [ ] **Step 5: Commit** `docs: design.md v3.0 and READMEs for the UI revamp`
+- [x] **Step 4: Proofread.** Check every command in the docs actually runs, and every path exists (`ls` them).
+- [x] **Step 5: Commit** `docs: design.md v3.0 and READMEs for the UI revamp`
 
 ---
 

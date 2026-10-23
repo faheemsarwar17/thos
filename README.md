@@ -15,28 +15,36 @@ Industry-specific behaviour comes from swappable **domain packs** (Education and
 
 ## What is built
 
+**Navigation (both personas)**
+- An icon rail, with bottom tabs and a **More** sheet on phones.
+- A command palette (⌘/Ctrl K) and a notifications panel in the topbar.
+- Light and dark themes.
+- Interviews and the sandbox open in a distraction-free **focus layout** with no app navigation.
+
 **Employer workspace**
-- A dashboard with an attention queue.
-- Job authoring, including AI job-description generation, an AI question-pool generator, curation and locking.
-- A pipeline shown as a list and as a 4-lane Kanban board, with:
-  - drag-and-drop and keyboard moves
+- A **Today** dashboard: stat tiles, an agenda (Now / Today / Recent) and charts (funnel, stage mix, trend, score distribution).
+- A **requisitions panel** beside Home and Pipeline, listing every posting with its stage mix. It can be toggled and remembers its state.
+- Job authoring, including AI job-description generation, an AI question-pool generator, curation and locking. New jobs are created in a drawer.
+- A pipeline with **Funnel**, **Board** and **Table** views, with:
+  - drag and drop on the Board, and a per-card "Move stage" select for keyboard users
   - bulk moves and undo
   - auto-screen, shortlist and invite actions
   - an application drawer with scorecards and the decision
 - Talent discovery.
-- Analytics: overview, funnel, velocity, sources, fairness and calibration.
+- Analytics: funnel, SLA & bottlenecks, and fairness & calibration.
 - Automation rules, which can be built and dry-run.
 - Messaging and notifications.
 - Administration: units, members, roles, domain packs, workflows, email templates and the audit log.
 
 **Candidate portal**
+- A home page that leads with the next step.
 - Profile and privacy consents, with a profile photo.
 - CV upload: PDF, DOCX or text, which is parsed into the profile.
-- Job discovery with match scores, and applications.
-- An application timeline (Received → Under review → Interview → Decision).
+- Job discovery and applications.
+- An application **journey** card per application (Received → Under review → Interview → Decision).
 - Messages.
-- Voice **Profile Screening**: retakeable, with a cooldown.
-- Voice **Job Interviews** from an employer's locked pool, plus a **proctored sandbox** (coding or written exercise, with webcam recording and violation tracking).
+- Voice **Skill screening** (profile screening): retakeable, with a cooldown.
+- Voice **Job interviews** from an employer's locked pool, plus a **proctored sandbox** (coding or written exercise, with webcam recording and violation tracking).
 
 **Platform**
 - Multi-tenant organizations with units, memberships and role checks. Every tenant-owned query is scoped to its tenant.
@@ -77,7 +85,7 @@ Industry-specific behaviour comes from swappable **domain packs** (Education and
 │       ├── ai/                graph/ (LangGraph turn engine), plan/, runtime/ (LiveKit agent), sandbox/, prompts/
 │       ├── db/                database.py (Postgres/SQLite + schema), store.py (queries), seed.py
 │       └── domain/            stages, permissions, evaluation rules
-├── Frontend/                  Next.js App Router app, components, styles (design tokens), Vitest tests
+├── Frontend/                  Next.js App Router app, components, styles (design tokens), Vitest + Playwright tests
 ├── domain-packs/              education/ and software-engineering/ manifests
 ├── infrastructure/local/      PostgreSQL 17 + pgvector Docker Compose (host port 5433)
 ├── docker-compose.yml         Optional local LiveKit server + Redis (livekit-docker-compose.yml is a copy)
@@ -179,9 +187,9 @@ Every seeded account uses the password `Password123!`.
 | --- | --- | --- |
 | Sign in / register | `/login`, `/register` | Public |
 | Organization application | `/register/organization` | Public |
-| Employer dashboard | `/` | Employer |
+| Employer dashboard (Today) | `/` | Employer |
 | Jobs, job detail and question pool | `/jobs`, `/jobs/<postingId>` | Employer |
-| Pipeline (list + Kanban) | `/pipeline` | Employer |
+| Pipeline (funnel, board, table) | `/pipeline` | Employer |
 | Talent discovery | `/talent` | Employer |
 | Analytics | `/analytics` | Employer |
 | Messages | `/messages` | Employer |
@@ -248,7 +256,17 @@ npm test                      # Vitest
 npm run typecheck
 npm run lint
 npm run build
+npm run check:colors          # no hard-coded colours outside the design tokens
+
+# End-to-end (Playwright): needs the backend on :8000 and `npm run dev` on :3000,
+# or set PW_START_SERVERS=1 to have Playwright start both (backend on Backend/data/e2e.db).
+npx playwright install chromium   # once
+npm run e2e                   # layout rules + parity specs, 5 viewports × light/dark
+npm run e2e:layout            # layout rules only
+npm run e2e:capture           # screenshots to e2e/__screens__/ (gitignored)
 ```
+
+The e2e suite is read-only: it blocks every mutating API call, so it never changes data. See [`Frontend/README.md`](Frontend/README.md#testing) for details.
 
 ## API overview
 

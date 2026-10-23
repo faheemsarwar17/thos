@@ -3168,6 +3168,8 @@ test("analytics tabs", async ({ page }, testInfo) => {
 
 ## Task 12: Automations and Administration
 
+> Note: Automations/Analytics app pages now just wrap the component, which owns PageHeader. The simulation modal now also shows testResult.error (it used to silently read as 'Conditions Not Met'). Superadmin reject: required-reason Modal.
+
 **Files:**
 - Modify: `Frontend/components/automations/automation-builder.tsx`
 - Modify: `Frontend/components/admin/admin-page.tsx`
@@ -3276,11 +3278,11 @@ test("admin sections + hash navigation", async ({ page }, testInfo) => {
 });
 ```
 
-- [ ] Step 1: tests (red)
-- [ ] Step 2: automations restyle + toasts
-- [ ] Step 3: admin settings layout, hash sync, reject modal, Organization section
-- [ ] Step 4: green (unit, parity, layout `automations` + all `admin*`)
-- [ ] Step 5: commit `feat(ui): automations cards/table, admin settings layout with hash sync`
+- [x] Step 1: tests (red)
+- [x] Step 2: automations restyle + toasts
+- [x] Step 3: admin settings layout, hash sync, reject modal, Organization section
+- [x] Step 4: green (unit, parity, layout `automations` + all `admin*`)
+- [x] Step 5: commit `feat(ui): automations cards/table, admin settings layout with hash sync`
 
 ---
 

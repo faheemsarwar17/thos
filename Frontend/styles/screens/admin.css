@@ -1,0 +1,9 @@
+.settings { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 18px; align-items: start; }
+.settings__nav { position: sticky; top: calc(var(--topbar-h) + 16px); display: grid; gap: 2px; }
+.settings__nav button { height: 34px; padding: 0 12px; border: 0; border-radius: var(--r-md); background: none; color: var(--ink-2); font-weight: 500; text-align: left; white-space: nowrap; cursor: pointer; }
+.settings__nav button[aria-current="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-1), inset 0 0 0 1px var(--border); }
+.settings__body { display: grid; gap: 16px; min-width: 0; }
+@media (max-width: 960px) {
+  .settings { grid-template-columns: minmax(0, 1fr); }
+  .settings__nav { position: static; display: flex; overflow-x: auto; scrollbar-width: none; }
+}

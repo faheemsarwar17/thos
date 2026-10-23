@@ -8,7 +8,10 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "e2e": "playwright test --grep-invert @capture",
+    "e2e:layout": "playwright test e2e/layout.spec.ts",
+    "e2e:capture": "playwright test --grep @capture --workers=1"
   },
   "dependencies": {
     "@livekit/components-react": "^2.9.14",
@@ -21,6 +24,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
+    "@playwright/test": "^1.64.1",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
     "@types/node": "^22.16.4",

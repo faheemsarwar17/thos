@@ -8,3 +8,8 @@ coverage/
 .env.*.local
 !.env.example
 .DS_Store
+
+# Playwright
+e2e/.results/
+e2e/.report/
+e2e/__screens__/

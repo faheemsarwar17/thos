@@ -168,6 +168,8 @@ From PRD §3–§4, §7.
 
 ## Task 1: Playwright harness and layout rules
 
+> Note: Red on today's UI as intended: 36 failed / 20 passed at w390. webServer uses THOS_DATABASE_PATH (the config has no THOS_DATABASE_URL for SQLite); data/e2e.db added to Backend/.gitignore.
+
 The safety net: a Playwright suite that encodes the glitch-log rules. **It must fail on today's UI.**
 
 **Files:**
@@ -189,7 +191,7 @@ The safety net: a Playwright suite that encodes the glitch-log rules. **It must 
 - `detectLayoutIssues(): LayoutIssue[]` (runs inside the page)
 - `onlyProject(testInfo, name = "w1366")`: skips a test on every other viewport project.
 
-- [ ] **Step 1: Install and add scripts**
+- [x] **Step 1: Install and add scripts**
 
 ```bash
 cd Frontend
@@ -205,7 +207,7 @@ Add to the `"scripts"` in `package.json`:
 "e2e:capture": "playwright test --grep @capture --workers=1"
 ```
 
-- [ ] **Step 2: Exclude e2e from Vitest.** Replace the `test` block in `vitest.config.ts`:
+- [x] **Step 2: Exclude e2e from Vitest.** Replace the `test` block in `vitest.config.ts`:
 
 ```ts
 import { configDefaults, defineConfig } from "vitest/config";
@@ -218,7 +220,7 @@ import { configDefaults, defineConfig } from "vitest/config";
   },
 ```
 
-- [ ] **Step 3: Create `Frontend/playwright.config.ts`**
+- [x] **Step 3: Create `Frontend/playwright.config.ts`**
 
 ```ts
 import { defineConfig, devices } from "@playwright/test";
@@ -275,7 +277,7 @@ export default defineConfig({
 
 > If `THOS_DATABASE_URL` uses a different format in `Backend/app/core` or the config file, adapt it. Run `grep -rn "THOS_DATABASE_URL" Backend/app` to check. By default, the suite reuses the servers the user already has running.
 
-- [ ] **Step 4: Create `Frontend/e2e/fixtures.ts`**
+- [x] **Step 4: Create `Frontend/e2e/fixtures.ts`**
 
 ```ts
 import { test as base, expect, type Page, type TestInfo } from "@playwright/test";
@@ -357,7 +359,7 @@ export const test = base;
 export { expect };
 ```
 
-- [ ] **Step 5: Create `Frontend/e2e/routes.ts`**
+- [x] **Step 5: Create `Frontend/e2e/routes.ts`**
 
 ```ts
 import type { Persona } from "./fixtures";
@@ -401,7 +403,7 @@ export function resolvePath(route: RouteSpec, ids: Ids): string | null {
 }
 ```
 
-- [ ] **Step 6: Create `Frontend/e2e/layout-rules.ts`.** This is the detector from the audit, which found every defect in the glitch log.
+- [x] **Step 6: Create `Frontend/e2e/layout-rules.ts`.** This is the detector from the audit, which found every defect in the glitch log.
 
 ```ts
 export type LayoutIssue = { kind: string; detail: string };
@@ -478,7 +480,7 @@ export function detectLayoutIssues(): LayoutIssue[] {
 }
 ```
 
-- [ ] **Step 7: Create `Frontend/e2e/layout.spec.ts`**
+- [x] **Step 7: Create `Frontend/e2e/layout.spec.ts`**
 
 ```ts
 import { expect, readOnly, resolveIds, signIn, test, type Theme } from "./fixtures";
@@ -507,7 +509,7 @@ for (const theme of ["light", "dark"] as Theme[]) {
 }
 ```
 
-- [ ] **Step 8: Create `Frontend/e2e/capture.spec.ts`** (screenshots for human review; never asserts)
+- [x] **Step 8: Create `Frontend/e2e/capture.spec.ts`** (screenshots for human review; never asserts)
 
 ```ts
 import { readOnly, resolveIds, signIn, test, type Theme } from "./fixtures";
@@ -536,13 +538,13 @@ for (const theme of ["light", "dark"] as Theme[]) {
 }
 ```
 
-- [ ] **Step 9: Run the layout spec against TODAY's UI. Expect failures.**
+- [x] **Step 9: Run the layout spec against TODAY's UI. Expect failures.**
 
 Run: `cd Frontend && npx playwright test e2e/layout.spec.ts --project=w390 --reporter=line`
 
 Expected: **FAIL**. At minimum, `page-horizontal-scroll` should appear on most routes (glitch G1), along with `control-offscreen` on `messages` (G6) and `register-org` (G7). This proves the rules catch the known defects. Save a one-line summary of the failing count into the task note.
 
-- [ ] **Step 10: Typecheck, Vitest, commit**
+- [x] **Step 10: Typecheck, Vitest, commit**
 
 Run: `npm run typecheck && npm test`. Expected: both pass. Vitest must not pick up `e2e/`.
 

@@ -1,73 +1,74 @@
 # THOS Design System (design.md)
 
-Version: 2.0 · October 2026
+Version: 3.0 · October 2026 ("D" system)
 
-> This is the single source of truth for visual design and layout. It describes what is implemented in `Frontend/styles/*.css` and `Frontend/components/ui/*`. When code and this document disagree, fix one of them in the same change.
+> This is the single source of truth for visual design and layout. It describes what is implemented in `Frontend/styles/*.css`, `Frontend/styles/screens/*.css` and `Frontend/components/ui/*`. When code and this document disagree, fix one of them in the same change.
 
 ---
 
 ## 1. Philosophy
 
-- **Archetype:** modern enterprise B2B SaaS, in the spirit of Linear, Stripe and Vercel. Crisp, institutional, precise and uncluttered.
-- **Anti-slop rules:**
-  - no generic centred 3-card heroes
-  - no purple or pink neon gradients
-  - 1px precision borders (`var(--border)`)
-  - two elevation levels: in-flow (`--shadow-card`) and overlay (`--shadow-overlay` / `--shadow-drawer`)
-- **Motion:** 120–240ms on `opacity` and `transform` only. Everything respects `prefers-reduced-motion`.
-- **Density** depends on the role:
-  - Employer data screens (pipeline, tables, scorecards) are **compact**.
-  - Candidate flows are **comfortable**.
-
-| Dial | Value |
-|---|---|
-| Design variance | 4 / 10: high consistency, subtle micro-lifts |
-| Motion intensity | 4 / 10: `--duration-fast 120ms`, `--duration-normal 180ms`, `--duration-slow 240ms` |
-| Visual density | Employer 6 / 10, candidate 4 / 10 |
+- **Calm, dense, premium**, in the spirit of Ashby and Linear. Few borders, quiet greys, one brand blue, colour reserved for status.
+- **One page header per page.** `PageHeader` (title, optional meta line, actions) replaces the old eyebrow + H1 + paragraph stack.
+- **Density depends on the role:**
+  - Employer screens are **compact** (13.5px base).
+  - Candidate screens are **comfortable** (14px base, max content width 1120px).
+- **Motion:** 120–180ms on `opacity` and `transform` only. Everything respects `prefers-reduced-motion`.
+- **Honest data:** a missing number renders "—" with "Not enough data". Never show a fabricated fallback.
 
 ---
 
 ## 2. Implementation Stack
 
-- **Plain CSS with custom properties. No CSS framework**: no Tailwind, no CSS-in-JS.
+- **Plain CSS with custom properties.** No Tailwind, no CSS-in-JS, no component library. Icons are `react-icons/lu` (Lucide).
 - Load order, all through `app/globals.css`:
-  1. `styles/tokens.css`
-  2. `typography.css`
-  3. `utilities.css`
-  4. `components.css`
-  5. `layout.css`
-  6. the screen-specific rules in `globals.css` itself (auth, sandbox, candidate portal, timeline)
-- Icons come from `react-icons/lu` (Lucide).
-- Many feature components still use inline `style={{}}`. **New code should prefer classes.** Where inline styles stay, they must use tokens and responsive grids (§6.4).
+  1. `styles/tokens.css`: legacy token names (kept so older selectors resolve)
+  2. `styles/theme.css`: **the D semantic tokens** for light and dark, and the legacy names re-pointed to them
+  3. `styles/typography.css`
+  4. `styles/utilities.css`
+  5. `styles/components.css`: primitives (the `D primitives` section at the end is authoritative)
+  6. `styles/charts.css`
+  7. `styles/layout.css`: shell (rail, requisitions panel, topbar, bottom tabs, focus layout), command palette, notifications
+  8. `styles/screens/*.css`: one file per screen family (home, pipeline, jobs, talent, messages, analytics, automations, admin, candidate, focus, auth)
+  9. the remaining legacy rules in `globals.css` itself
+- **Semantic tokens first.** New code uses `--bg`, `--surface`, `--ink`, `--brand`… (§3). Legacy names (`--surface-card`, `--ink-900`, `--brand-500`…) still resolve to the same values.
+- **No hard-coded colours in `.tsx`.** `npm run check:colors` fails on hex, `rgb()`/`hsl()` or `"white"`/`"black"` literals in `components/` and `app/`. The only exceptions are the chart components and the sandbox recording canvas. Dark media surfaces (`#0f1115` video tiles and the code editor) live in CSS.
+- Inline `style={{}}` is only for truly dynamic values, such as a bar width (`width: \`${pct}%\``) or a grid column count.
 
 ---
 
 ## 3. Color System
 
-All colors are tokens in `styles/tokens.css`.
+**Themes.**
+- Light is the default under `:root` / `[data-theme="light"]`; dark comes from `[data-theme="dark"]`, or from `prefers-color-scheme: dark` when nothing is stored.
+- The choice is stored in `localStorage["thos-theme"]` and applied as `data-theme` on `<html>`. A small inline script in `app/layout.tsx` applies it before first paint, so shell-less pages honour it too.
+- `ThemeToggle` and the command palette's "Toggle theme" action stay in sync through the `thos-theme-change` window event.
 
-**Themes:**
-- Light is the default, under `:root` and `[data-theme="light"]`.
-- Dark comes from `[data-theme="dark"]`, or from `prefers-color-scheme: dark` when no theme is set.
-- `ThemeToggle` stores the choice in `localStorage["thos-theme"]` and sets `data-theme` on `<html>`.
-
-| Family | Tokens | Semantic use |
+| Role | Light | Dark |
 |---|---|---|
-| Surfaces | `--surface-app`, `-card`, `-card-hover`, `-card-active`, `-sunken`, `-subtle`, `-warm` | Page background, cards, wells |
-| Sidebar | `--surface-sidebar` (navy `#0c1527`), `-hover`, `-active`, `-border` | The signature executive-navy navigation |
-| Borders | `--border`, `--border-subtle`, `--border-strong`, `--border-focus` | 1px dividers and inputs |
-| Ink | `--ink-900` … `--ink-100`, `--ink-inverse` | Text. `--ink-500` is the minimum for AA body text. |
-| **Brand blue** | `--brand-900` … `--brand-50` (500 = `#2563eb`) | Primary actions, active nav, links, focus |
-| **Verification teal** | `--teal-*` (600 = `#0c8577`) | **Reserved** for domain-pack chips, verified credentials and proven capability. Never for warnings or secondary CTAs. |
-| **Amber** | `--amber-*` | SLA warnings, candidate waiting, Gold tier |
-| **Red** | `--red-*` | Danger, rejection, SLA breach. Use sparingly. |
-| **Green** | `--green-*` | Success, passed, hired |
-| **Violet** | `--violet-*` | Approval-gated steps (offer sign-off, conditional automation) |
+| `--bg` (page) | `#f7f7f8` | `#0c0d10` |
+| `--surface` (card) | `#ffffff` | `#141519` |
+| `--surface-2` | `#f2f3f5` | `#1a1c21` |
+| `--surface-3` | `#eaebee` | `#22252b` |
+| `--border` / `--border-strong` | `#e5e6ea` / `#d4d6dc` | `#25282f` / `#343842` |
+| `--ink` / `--ink-2` / `--ink-3` / `--ink-4` | `#111318` / `#4b505b` / `#767c88` / `#9aa0ab` | `#eceef2` / `#b0b5bf` / `#7d838f` / `#5c626d` |
+| `--brand` / `--brand-ink` / `--brand-soft` / `--brand-line` | `#2f5bea` / `#ffffff` / `#eef2fe` / `#c9d5fb` | `#7090ff` / `#0c0d10` / `#1b2340` / `#2e3d73` |
+| `--teal` / `-soft` (verified, packs only) | `#0f7f74` / `#e5f4f1` | `#4cc7b8` / `#11302c` |
+| `--amber` / `-soft` | `#9a5b00` / `#fcf1de` | `#e7a94a` / `#33260f` |
+| `--red` / `-soft` | `#b8322a` / `#fbeceb` | `#f0837a` / `#3a1a18` |
+| `--green` / `-soft` | `#1d7a45` / `#e6f4ec` | `#5fcf8e` / `#12301f` |
+| `--violet` / `-soft` | `#6247b8` / `#f0ecfb` | `#a996f2` / `#251f3d` |
 
-**Rules**
-1. Every status or score shows a **text label** alongside its color (WCAG 1.4.1).
-2. Use only canonical tokens in new code. `tokens.css` ends with a **compatibility alias block** for older names: `--surface`, `--surface-raised`, `--surface-muted`, `--color-*`, `--danger-*`, `--text-muted`, `--font-mono`, `--teal-200`, `--red-200`. These aliases follow the active theme, but they are deprecated.
-3. Never reference an undefined custom property. An undefined variable renders as transparent, which looks like a broken screen.
+**Chart palette** (`--viz-*`, validated with the dataviz validator):
+- Categorical, 4 slots (Received / Shortlisted / Interview / Results): light `#2a78d6, #eb6834, #1baf7a, #eda100`; dark `#3987e5, #d95926, #199e70, #c98500`.
+- Magnitude (one hue): `--viz-mag` = `#2a78d6` light / `#3987e5` dark.
+- Grid / axis: `--viz-grid` / `--viz-axis`.
+- In light mode, aqua and yellow fall below 3:1, so **every chart shows visible counts or a legend and has a Table view.**
+
+**Rules.**
+1. Every status or score shows a **text label** alongside its colour (WCAG 1.4.1).
+2. Teal is reserved for domain packs and verified credentials.
+3. Never reference an undefined custom property: it renders transparent.
 
 ---
 
@@ -75,119 +76,128 @@ All colors are tokens in `styles/tokens.css`.
 
 | Role | Family | Size / weight |
 |---|---|---|
-| Body & UI | **Inter** 400/500/600 | 14px, line-height 1.5 |
-| Headings | **Poppins** 600/700 | h1 `clamp(20px, 2.2vw, 26px)`; page h1 `clamp(22px, 2.4vw, 28px)`; h2 `clamp(16px, 1.6vw, 19px)`; h3 15px; h4 13px |
-| Code / IDs | **JetBrains Mono** 400/500 (`--font-mono`) | 13px |
-| Labels / eyebrows | Inter 600–700, uppercase, tracked | 10–12px |
+| Body & UI | **Inter** 400/500/600/700 (`--font-sans`) | 13.5px employer, 14px candidate; line-height 1.45 |
+| Page H1 (`PageHeader`) | Inter | 20px / 650, letter-spacing −0.015em |
+| Section H2 | Inter | 13.5–15px / 600 |
+| Code / IDs | **JetBrains Mono** 400/500 (`--font-mono`) | 12.5–13px |
 
-- Fonts load from Google Fonts in `typography.css`.
-- Metrics, timers, SLA ages and `ScoreBadge` values use `font-variant-numeric: tabular-nums` (`.tabular-nums`).
-- Headings use `text-wrap: balance`.
-- Use `…` rather than `...`, curly quotes, and non-breaking spaces before units.
+- Poppins is removed.
+- Metrics, timers and scores use `.tabular-nums`. Headings use `text-wrap: balance`.
 - Truncation helpers: `.truncate`, `.line-clamp-1/2/3`. Any truncated flex child also needs `min-width: 0`.
 
 ---
 
 ## 5. Spacing, Radii, Elevation
 
-- **Spacing:** an 8px grid (4, 8, 12, 16, 24, 32, 48). There are no spacing tokens yet, so use these values literally.
-- **Radii:**
-  - `--radius-xs` 4px: tags and code chips
-  - `--radius-sm` 6px: small buttons
-  - `--radius-md` 8px: buttons, inputs, Kanban cards
-  - `--radius-lg` 12px: panels and cards
-  - `--radius-xl` 16px: dialogs and auth cards
-  - `--radius-full`: pills, pack chips, score badges
-- **Shadows:** `--shadow-xs`, `-sm`, `-card`, `-hover`, `-popover`, `-overlay`, `-drawer`.
-- **Focus:** `--focus-ring`, a 2px gap plus a 2px brand ring, shown on `:focus-visible` everywhere.
+- **Spacing:** an 8px grid (4, 8, 12, 16, 24, 32, 48).
+- **Radii:** `--r-sm` 6px, `--r-md` 8px, `--r-lg` 12px, `--r-xl` 16px (dialogs, focus cards), and 99px for pills.
+- **Shadows:** two levels only: `--shadow-1` (in-flow) and `--shadow-pop` (overlays: popovers, dialogs, drawers, palette, bulk bar).
+- **Focus:** `--focus-ring` (`0 0 0 2px surface, 0 0 0 4px brand`) on `:focus-visible` everywhere.
 
 ---
 
 ## 6. Layout & Responsive System
 
-### 6.1 Shell
-`components/layout/app-shell.tsx` renders the following:
-- **Sidebar.** Fixed, `--sidebar-width` 256px. It holds the wordmark, the tenant switcher, the Workspace and Manage nav groups, and the user footer with sign-out.
-- **Top bar.** Sticky, `--topbar-height` 64px. It holds global search, the pack chip, the theme toggle, the notifications bell and the persona action ("Create job" / "Browse jobs").
-- **`<main id="main-content">`.** A column flex container. Pages render `.dashboard` (max-width 1440px, padding 32/36px), `.candidate-main` (max-width 1200px) or `.content` (a full-width flex child).
+### 6.1 Shells
+
+**Employer and candidate app shell** (`components/layout/app-shell.tsx`, used by `DashboardShell` and `CandidateShell`):
+- **Icon rail** (`--rail-w` 60px). Mark, nav icons (tooltip + `aria-label`, `aria-current="page"` when active), and at the bottom: ThemeToggle, Sign out, and an initials avatar. The employer rail has Workspace items, a divider, then Manage items (Automations, Administration).
+- **Requisitions panel** (`--panel-w` 248px, employer only). Shown on `/` and `/pipeline` only, togglable from the topbar and remembered in `localStorage["thos.panel"]`, hidden at ≤1180px. It lists every posting with a count, a status line and a compact stage-mix bar, and links to `/pipeline?posting={id}`.
+- **Topbar** (`--topbar-h` 52px, sticky). Panel toggle (Home and Pipeline), page title, the command-palette trigger (⌘/Ctrl K), `NotificationsPanel`, `PackChip` (hidden ≤600px) and the persona action ("New job" / "Browse jobs").
+- **Bottom tabs** at ≤820px (`--tabbar-h` 60px, ≥44px targets). Items marked `mobile` plus **More**, which opens a sheet with the remaining destinations, the theme toggle and Sign out. Content gets bottom padding so nothing hides behind the bar.
+- Kept: skip link → `#main-content`; `<main id="main-content" tabIndex={-1}>`; active matching (exact for `/` and `/candidate`, prefix otherwise).
+
+**Focus layout** (`components/layout/focus-layout.tsx`): no app shell. Used by `/candidate/interview`, `/candidate/applied/[id]`, `/candidate/sandbox/[id]` and `/interviews/[roomName]`. A 56px header holds the mark, title, optional step indicator, an optional right slot (timer, REC, Submit) and Exit. Content is either a centred `.fx-card` or full-bleed (`full`, used by the live interview and the sandbox IDE). The sandbox shows **no Exit while active**, because leaving fullscreen submits.
+
+**Auth layout** (`components/auth/auth-layout.tsx`): at ≥1024px a brand panel (wordmark, value line, trust line) beside a centred form card (420px, or 720px when `wide`); one column below.
 
 ### 6.2 Breakpoints
 
-All breakpoints use viewport width. The breakpoints between 821 and 1366px exist so that the sidebar doesn't take room from content on laptops.
-
-| Range | Behaviour |
+| Width | Behaviour |
 |---|---|
-| **> 1366px** | Full 256px sidebar. 4-lane Kanban. 2-column detail and lower grids. |
-| **821–1366px** (laptops; **1600×900 at 125% = 1280px**, 1366×768, 1920×1080 at 150%) | **Icon rail:** the sidebar collapses to `--sidebar-collapsed-width` (72px). Labels are visually hidden but stay available to screen readers, and links get a `title` tooltip. Nav counts become corner badges. |
-| ≤ 1120px | `.detail-grid`, `.admin-grid`, `.candidate-grid` and `.lower-grid` collapse to 1 column. The attention grid goes to 2 columns. |
-| ≤ 1024px | `.kanban--fit` goes to 2 lanes |
-| ≤ 960px | The sandbox problem and editor stack vertically |
-| ≤ 820px | The sidebar is hidden and a hamburger opens a full-screen `.mobile-nav`. Page padding becomes 24/16px. |
-| ≤ 640px | Kanban goes to 1 lane |
-| ≤ 600px | Attention grid goes to 1 column. Pack-chip and button labels are hidden. The page heading stacks. |
-| height ≤ 760px | Dialogs and drawers use tighter padding. The voice-interview video is capped by viewport height. |
+| ≤1180px | Requisitions panel hidden; Home agenda stacks to one column |
+| ≤1120px | Two-column detail grids (job detail) become one column |
+| ≤960px | Settings nav (Admin, candidate Profile) becomes a horizontal scroller; the sandbox IDE stacks |
+| ≤900px | Messages become list → thread; the live interview stacks (stage 220/160px, transcript 320px with its own scroll); the device check stacks |
+| ≤820px | Rail becomes bottom tabs; topbar keeps title, search icon, bell and a compact action |
+| ≤720px | Tables marked `.table--stack` become card lists (`data-label` on cells); the org-registration grid goes to one column |
+| ≤600px | Drawers go full-screen; the bulk bar spans the width; the pack chip hides |
 
 ### 6.3 Height rules
-- Use **`100dvh`**, never `100vh`. On browsers with dynamic toolbars, `vh` is taller than the visible area.
-- Full-height screens (messages, voice interview, sandbox) use `calc(100dvh - var(--topbar-height))` as a **minimum** or flexible height. They scroll instead of clipping (`overflow-y: auto`).
-- **Never combine a fixed height with `overflow: hidden` on a container whose content can grow.** That combination is what hid the message composer and interview controls on short screens.
-- `.dialog` has `max-height: calc(100dvh - 40px)` and scrolls internally. `.drawer` is `100dvh` tall and scrolls.
-- Flex and grid children that hold scrolling content need `min-height: 0`.
+- Use **`100dvh`**, never `100vh`.
+- Never combine a fixed height with `overflow: hidden` on a container whose content can grow.
+- Scrolling flex/grid children need `min-height: 0`. Dialogs cap at `100dvh - 40px` and scroll inside; drawers are inset 8px and scroll their body.
 
 ### 6.4 Grid rules
-- Use `minmax(0, 1fr)` rather than bare `1fr`. A bare `1fr` cannot shrink below its content's width, which causes horizontal overflow and overlapping text.
-- For inline grids, use `repeat(auto-fit, minmax(min(100%, <N>px), 1fr))` rather than fixed `1fr 1fr` or `repeat(3, 1fr)`, so they reflow without media queries.
-- Responsive overrides must come **after** the base rule in the cascade. `globals.css` keeps its own media block at the end of the file for this reason.
-- Wide tables go inside `TableContainer` (`.table-container`, `overflow-x: auto`). `.table` has `min-width: 850px`, and `.panel` clips overflow.
+- Use `minmax(0, 1fr)` or `repeat(auto-fit, minmax(min(100%, Npx), 1fr))`, never a bare `1fr`.
+- Rows holding a title plus actions use `flex-wrap: wrap`, so actions wrap **below** the title instead of squeezing it.
+- Text-holding flex children get `min-width: 0`.
+- Horizontal scrollers are intentional only for the pipeline board, the funnel stage strip, tables (`TableContainer`), tabs and the settings nav on narrow screens.
 
 ### 6.5 Verification sizes
-Before merging a layout change, check these viewports:
-- **1280×620**: the user's 1600×900 screen at 125% scaling, after browser chrome
-- 1366×768
-- 1536×730
-- 1920×1080
-- 390×844
+**1280×620, 1366×768, 1536×730, 1920×1080, 390×844**, each in light and dark.
 
-Pass criteria: no horizontal page scroll, no clipped buttons, no overlapping text.
+**Must-hold rules** (enforced by `e2e/layout.spec.ts`):
+1. No horizontal page scroll on any route.
+2. Every interactive control is visible and unclipped (unless inside an intentional horizontal scroller).
+3. No text or control escapes its bordered container; titles are never truncated by sibling actions.
+4. Messages collapse to list → thread on mobile with the composer reachable.
+5. Admin tabs follow hash changes; analytics never shows fabricated numbers.
+6. Native controls (selects, checkboxes via `accent-color`, file inputs, switches) are themed in both modes.
+7. One `PageHeader` per page; media routes use `FocusLayout`.
 
 ---
 
-## 7. Component Inventory (`components/ui`)
+## 7. Component Inventory
+
+**`components/ui`**
 
 | Component | Notes |
 |---|---|
-| `Button` | Variants: `primary`, `secondary`, `outline`, `ghost`, `danger`, `danger-filled`. Sizes: `sm`, `default`, `lg`. Shows `aria-busy` while loading. Legacy `.btn` / `.btn-*` classes map to the same look. |
-| `Badge`, `Pill` | Badge variants: `default`, `brand`, `teal`, `amber`, `red`. Pill tones: `neutral`, `brand`, `verified`, `attention`, `danger`, `success`, `approval`. |
-| `ScoreBadge` | Tiers `gold`, `silver`, `bronze`, `weak`, `none`, from `getScoreTier`. Numbers are tabular. |
-| `PackChip` | A teal domain-pack identity chip. Always in the same place in the top bar. |
-| `AttentionQueueCard` | Dashboard attention tiles |
-| `Table`, `TableContainer`, `TableEmpty`, `TableSkeletonRows` | Data tables |
-| `Drawer`, `Modal` | Dismiss with `Esc` and restore focus. They scroll inside the viewport. |
-| `Tabs`, `Breadcrumbs`, `FormField` | `FormField` wires errors with `aria-describedby` |
-| `Skeleton*`, `LoadingState`, `ErrorState`, `EmptyState` | Async states |
-| `ToastProvider` / `useToast` | Polite, non-blocking toasts |
-| `ThemeToggle`, `AuthedImage` | Theme switch. `AuthedImage` fetches an image with the Bearer token. |
+| `PageHeader` | `{ title, meta?, actions? }` → one `<h1>`; actions wrap below the title |
+| `Button` | Variants `primary`, `secondary`, `outline`, `ghost`, `danger`, `danger-filled`; sizes `sm`, default, `lg`; `loading`, `iconLeft/Right` |
+| `Badge`, `Pill`, `ScoreBadge`, `PackChip` | Pill tones `neutral`, `brand`, `verified`, `attention`, `danger`, `success`, `approval`; ScoreBadge tiers by `getScoreTier` |
+| `Switch` | Accessible `role="switch"` checkbox with label and optional description |
+| `SegmentedControl` | `aria-pressed` buttons in a `role="group"` (pipeline view, analytics section) |
+| `Stepper` | Horizontal or vertical progress, `aria-current="step"`, optional `renderStep` |
+| `StatTile` | Label, tabular value, optional hint and link |
+| `Popover` | Anchored panel, closes on Esc or outside click; `.menu` / `.menu__item` for action menus |
+| `Tabs` | Roving focus with ←/→/Home/End |
+| `Modal`, `Drawer` | Esc, backdrop, focus + restore, labelled close. `Drawer` takes `drawer--wide` |
+| `Table`, `TableContainer`, `TableEmpty`, `TableSkeletonRows` | `table--stack` opts into the ≤720px card layout |
+| `Skeleton*`, `LoadingState`, `ErrorState` (Retry), `EmptyState` | Async states |
+| `ToastProvider` / `useToast` | Polite live region; success / error / info / warning |
+| `ThemeToggle`, `AuthedImage`, `Breadcrumbs`, `FormField` | `FormField` associates its label when given an `id` |
 
-Legacy helper classes defined for older screens: `.card`, `.content`, `.spinner`, `.animate-fade-up`.
+**`components/layout`**: `AppShell`, `RequisitionsPanel`, `CommandPalette` (⌘/Ctrl K; Go to, Actions, and live search after 2 characters with a 220ms debounce), `NotificationsPanel` (bell popover, mark all read), `FocusLayout`.
+
+**`components/charts`**: `ChartCard` (Table/Chart toggle), `ChartTable`, `FunnelChart`, `StageMixChart` (full and `compact`), `TrendColumns`, `ScoreHistogram`, `useChartTooltip`. Every mark is focusable, with a tooltip on hover and focus; zero values render at 0 width.
 
 ---
 
 ## 8. HCI & Accessibility Checklist
 
-1. **System status:** autosave indicators, voice setup steps, mic level meter, `aria-busy` spinners, polite toasts.
-2. **Real-world language:** Under review, Job Interview, Shortlisted, Offer. Never internal IDs.
-3. **User control:** exit interview with confirmation, `Esc` on overlays, undo on pipeline moves.
-4. **Consistency:** shared Button variants, ScoreBadge tiers and pack-chip placement.
-5. **Error prevention:** a diff before locking a pool, required reasons on consequential moves, disabled-but-explained submit buttons.
-6. **Recognition over recall:** the application drawer sits beside the board, and the JD is shown beside pool curation.
-7. **Efficiency:** global search, keyboard Kanban moves, bulk actions.
-8. **Minimalism:** cards show decision data only; evidence lives in drawers.
-9. **Error recovery:** specific copy under the failed field.
+1. **System status:** autosave, voice setup progress, mic meter, `aria-busy`, polite toasts and pipeline announcements.
+2. **Real-world language:** Received, Shortlisted, Job interview, Offer. Never internal IDs.
+3. **User control:** confirm before ending an interview, Esc on overlays, undo on pipeline moves.
+4. **Consistency:** one page header, shared buttons, pills, score tiers and pack-chip placement.
+5. **Error prevention:** required reasons on consequential moves, disabled-but-explained actions (Publish until the pool is locked), modal confirmations for reject/withdraw.
+6. **Recognition over recall:** the application drawer beside the board; deep links (`?applicationId=`, `/admin#audit`) open the exact item.
+7. **Efficiency:** ⌘/Ctrl K, bulk actions, the board, and the per-card Move select.
+8. **Minimalism:** cards show decision data; evidence lives in drawers.
+9. **Error recovery:** specific copy and Retry on every failed request; bulk and automation failures raise visible toasts.
 10. **Help:** inline rubric criteria and pack tooltips.
 
-**Accessibility baseline:**
-- skip link, `focus-visible` rings and `.sr-only`
-- keyboard alternatives for drag-and-drop
-- reduced motion
-- 44px minimum touch targets in the mobile nav
-- icon-only controls always carry `aria-label` or `title`
+**Accessibility baseline:** skip link, `:focus-visible` rings, `.sr-only`, keyboard alternatives for drag-and-drop (Move select), Tabs with arrow keys, 44px touch targets on mobile nav, `aria-label` on icon-only buttons, status never by colour alone, charts with Table views, reduced motion.
+
+---
+
+## 9. Verification
+
+| Command (from `Frontend/`) | What it checks |
+|---|---|
+| `npm run typecheck`, `npm run lint`, `npm test`, `npm run build` | Types, lint, Vitest unit tests, production build |
+| `npm run check:colors` | No hard-coded colours in `.tsx` |
+| `npm run e2e` | All Playwright specs: layout rules on every route × 5 viewports × 2 themes, plus `e2e/parity/*` |
+| `npm run e2e:layout` | Only the layout rules |
+| `npm run e2e:capture` | Full-page screenshots into `e2e/__screens__/{viewport}/{theme}/{route}.png` |

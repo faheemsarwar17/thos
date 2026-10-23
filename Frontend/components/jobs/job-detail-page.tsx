@@ -9,7 +9,6 @@ import {
   LuLock,
   LuSparkles,
   LuSave,
-  LuShieldCheck,
   LuGitFork,
   LuCircleCheck,
   LuMapPin,
@@ -18,10 +17,10 @@ import {
   LuCopy,
   LuCheck,
 } from "react-icons/lu";
-import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { PackChip } from "@/components/ui/pack-chip";
+import { PageHeader } from "@/components/ui/page-header";
 import { Pill, type PillTone } from "@/components/ui/pill";
 import { ErrorState, LoadingState } from "@/components/ui/state";
 import { api, ApiError } from "@/lib/api";
@@ -83,16 +82,13 @@ function QuestionPoolPanel({
   return (
     <section className="panel" aria-labelledby="pool-heading">
       <div className="panel__header">
-        <div>
-          <p className="eyebrow">Applied Interview</p>
-          <h2 id="pool-heading">Interview Question Pool</h2>
-        </div>
+        <h2 id="pool-heading">Interview Question Pool</h2>
         <div className="panel__actions">
           <Pill tone={locked ? "verified" : "attention"}>
             {locked ? (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
-                <LuLock size={12} /> Locked & Ready
-              </span>
+              <>
+                <LuLock size={12} aria-hidden="true" /> Locked & Ready
+              </>
             ) : (
               "Draft Pool"
             )}
@@ -104,8 +100,8 @@ function QuestionPoolPanel({
       <div className="panel-body">
         {error && <p className="form-error" role="alert">{error}</p>}
         {!pool && (
-          <div style={{ padding: "12px", background: "var(--surface-sunken)", borderRadius: "8px" }}>
-            <p className="panel-note" style={{ marginBottom: "12px" }}>
+          <div className="note-box app-stack">
+            <p className="panel-note">
               Generate an interview question pool from the assigned domain pack. You can edit, reorder,
               and curate questions before locking. Once locked, all applicants receive the same standardized pool.
             </p>
@@ -123,20 +119,19 @@ function QuestionPoolPanel({
         )}
 
         {pool && (
-          <ol className="question-list">
+          <ol className="pool-list">
             {questions.map((question, index) => (
-              <li key={question.id}>
-                <div style={{ flex: 1 }}>
-                  <p className="question-list__prompt">
-                    <strong style={{ marginRight: "6px", color: "var(--ink-500)" }}>{index + 1}.</strong>
-                    {question.prompt}
-                  </p>
+              <li key={question.id} className="pool-row">
+                <span className="pool-row__index">{index + 1}.</span>
+                <div className="pool-row__body">
+                  <p>{question.prompt}</p>
                   <Pill tone="brand">{question.competency}</Pill>
                 </div>
                 {!locked && (
-                  <div className="question-list__controls">
+                  <div className="pool-row__controls">
                     <button
                       type="button"
+                      className="icon-button"
                       aria-label={`Move question ${index + 1} up`}
                       disabled={index === 0 || busy}
                       onClick={() => moveQuestion(index, -1)}
@@ -146,6 +141,7 @@ function QuestionPoolPanel({
                     </button>
                     <button
                       type="button"
+                      className="icon-button"
                       aria-label={`Move question ${index + 1} down`}
                       disabled={index === questions.length - 1 || busy}
                       onClick={() => moveQuestion(index, 1)}
@@ -155,12 +151,13 @@ function QuestionPoolPanel({
                     </button>
                     <button
                       type="button"
+                      className="icon-button icon-button--danger"
                       aria-label={`Remove question ${index + 1}`}
                       disabled={busy}
                       onClick={() => removeQuestion(index)}
                       title="Remove question"
                     >
-                      <LuTrash2 size={13} style={{ color: "var(--red-600)" }} />
+                      <LuTrash2 size={13} />
                     </button>
                   </div>
                 )}
@@ -170,7 +167,7 @@ function QuestionPoolPanel({
         )}
 
         {pool && !locked && (
-          <div className="form-actions" style={{ marginTop: "16px" }}>
+          <div className="form-actions panel-gap">
             <Button
               variant="secondary"
               size="sm"
@@ -224,7 +221,7 @@ function QuestionPoolPanel({
         )}
 
         {pool && !locked && draftQuestions !== null && (
-          <p className="panel-note" style={{ marginTop: "8px", color: "var(--amber-700)" }}>
+          <p className="panel-note panel-note--warn">
             Save your curated question order before locking the pool.
           </p>
         )}
@@ -238,7 +235,7 @@ function QuestionPoolPanel({
           title="Lock Question Pool?"
           description="Locking freezes the question set for this requisition so that every candidate receives identical interview evaluation. Once locked, editing requires creating a new version."
         >
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "14px" }}>
+          <div className="modal-actions">
             <Button variant="secondary" onClick={() => setShowLockModal(false)} disabled={busy}>
               Cancel
             </Button>
@@ -288,10 +285,7 @@ function SandboxPanel({ posting, onChanged }: { posting: Posting; onChanged: () 
   return (
     <section className="panel" aria-labelledby="sandbox-heading">
       <div className="panel__header">
-        <div>
-          <p className="eyebrow">Practical Assessment</p>
-          <h2 id="sandbox-heading">Proctored Sandbox</h2>
-        </div>
+        <h2 id="sandbox-heading">Proctored Sandbox</h2>
         <div className="panel__actions">
           <Pill tone={posting.sandbox_required ? "brand" : "neutral"}>
             {posting.sandbox_required ? "Required" : "Optional / Disabled"}
@@ -309,7 +303,7 @@ function SandboxPanel({ posting, onChanged }: { posting: Posting; onChanged: () 
             </div>
             <div>
               <dt>Difficulty</dt>
-              <dd style={{ textTransform: "capitalize" }}>{config.difficulty}</dd>
+              <dd className="capitalize">{config.difficulty}</dd>
             </div>
             <div>
               <dt>Time Limit</dt>
@@ -323,7 +317,7 @@ function SandboxPanel({ posting, onChanged }: { posting: Posting; onChanged: () 
         ) : null}
 
         {draft && (
-          <div className="form-grid">
+          <div className="form-grid form-grid--3">
             <label className="form-field">
               <span className="form-field__label">Format</span>
               <select
@@ -371,7 +365,7 @@ function SandboxPanel({ posting, onChanged }: { posting: Posting; onChanged: () 
         )}
 
         {editable && (
-          <div className="form-actions" style={{ marginTop: "14px" }}>
+          <div className="form-actions panel-gap">
             {!draft ? (
               <Button
                 variant="secondary"
@@ -457,78 +451,60 @@ export function JobDetailPage({ postingId }: { postingId: string }) {
 
   return (
     <div className="dashboard">
-      <div style={{ marginBottom: "16px" }}>
-        <Breadcrumbs
-          items={[
-            { label: "Employer Workspace", href: "/" },
-            { label: "Job Requisitions", href: "/jobs" },
-            { label: posting?.title ?? "Requisition Detail" },
-          ]}
-        />
-      </div>
-
       {loading ? (
         <LoadingState label="Loading requisition details…" />
       ) : error || !posting ? (
         <ErrorState message={error?.message ?? "Job could not be found."} onRetry={reload} />
       ) : (
         <>
-          <div className="page-heading">
-            <div>
-              <p className="eyebrow">Job Requisition</p>
-              <h1>{posting.title}</h1>
-              <p style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
-                  <LuMapPin size={13} style={{ color: "var(--brand-600)" }} />
-                  {posting.location || "Location not set"}
-                </span>
-                <span style={{ color: "var(--border-strong)" }}>•</span>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
-                  <LuLaptop size={13} style={{ color: "var(--ink-500)" }} />
-                  <strong style={{ textTransform: "capitalize", color: "var(--brand-700)" }}>
-                    {posting.work_mode || "Hybrid"}
-                  </strong>
-                </span>
-                <span style={{ color: "var(--border-strong)" }}>•</span>
+          <PageHeader
+            title={posting.title}
+            meta={
+              <span className="meta-line">
+                <span><LuMapPin size={13} aria-hidden="true" /> {posting.location || "Location not set"}</span>
+                <span aria-hidden="true">·</span>
+                <span className="capitalize"><LuLaptop size={13} aria-hidden="true" /> {posting.work_mode || "Hybrid"}</span>
+                <span aria-hidden="true">·</span>
                 <Pill tone={STATUS_TONE[posting.status] ?? "neutral"}>{posting.status}</Pill>
-              </p>
-            </div>
+              </span>
+            }
+            actions={
+              <>
+                <Link className="button button--secondary button--sm" href={`/pipeline?posting=${posting.id}`}>
+                  <LuGitFork size={14} aria-hidden="true" />
+                  <span>Open Pipeline ({posting.application_count ?? 0})</span>
+                </Link>
 
-            <div className="panel__actions">
-              <Link className="button button--secondary button--sm" href={`/pipeline?posting=${posting.id}`}>
-                <LuGitFork size={14} aria-hidden="true" />
-                <span>Open Pipeline ({posting.application_count ?? 0})</span>
-              </Link>
+                {posting.status === "draft" && (
+                  <Button
+                    size="sm"
+                    onClick={publish}
+                    loading={publishing}
+                    disabled={posting.pool_status !== "locked"}
+                    title={
+                      posting.pool_status !== "locked"
+                        ? "Lock the question pool before publishing this requisition"
+                        : "Publish job requisition"
+                    }
+                    iconLeft={<LuCircleCheck size={14} />}
+                  >
+                    Publish Requisition
+                  </Button>
+                )}
 
-              {posting.status === "draft" && (
-                <Button
-                  size="sm"
-                  onClick={publish}
-                  loading={publishing}
-                  disabled={posting.pool_status !== "locked"}
-                  title={
-                    posting.pool_status !== "locked"
-                      ? "Lock the question pool before publishing this requisition"
-                      : "Publish job requisition"
-                  }
-                  iconLeft={<LuCircleCheck size={14} />}
-                >
-                  Publish Requisition
-                </Button>
-              )}
-
-              {posting.status === "published" && (
-                <Button
-                  variant="danger"
-                  size="sm"
-                  onClick={closePosting}
-                  loading={publishing}
-                >
-                  Close Requisition
-                </Button>
-              )}
-            </div>
-          </div>
+                {posting.status === "published" && (
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    onClick={closePosting}
+                    loading={publishing}
+                  >
+                    Close Requisition
+                  </Button>
+                )}
+              </>
+            }
+          />
 
           {publishError && <p className="form-error" role="alert">{publishError}</p>}
 
@@ -536,141 +512,103 @@ export function JobDetailPage({ postingId }: { postingId: string }) {
             <div className="detail-grid__main">
               <QuestionPoolPanel posting={posting} onChanged={reload} />
               <SandboxPanel posting={posting} onChanged={reload} />
-            </div>
-
-            <div className="detail-grid__side">
-              <section className="panel" aria-labelledby="side-meta-heading">
-                <div className="panel__header">
-                  <div>
-                    <p className="eyebrow">Configuration</p>
-                    <h2 id="side-meta-heading">Job Metadata</h2>
-                  </div>
-                </div>
-                <div className="panel-body">
-                  <dl className="meta-list">
-                    <div>
-                      <dt>Requisition ID</dt>
-                      <dd>
-                        <span className="meta-code">
-                          <span>{posting.id}</span>
-                          <button
-                            type="button"
-                            className="meta-code-btn"
-                            title="Copy Requisition ID"
-                            aria-label="Copy Requisition ID"
-                            onClick={() => {
-                              navigator.clipboard.writeText(posting.id);
-                              setCopied(true);
-                              setTimeout(() => setCopied(false), 2000);
-                            }}
-                          >
-                            {copied ? (
-                              <LuCheck size={11} style={{ color: "var(--green-600)" }} />
-                            ) : (
-                              <LuCopy size={11} />
-                            )}
-                          </button>
-                        </span>
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>Domain Pack</dt>
-                      <dd>
-                        {posting.pack_id ? (
-                          <PackChip name={posting.pack_id} />
-                        ) : (
-                          <span style={{ color: "var(--ink-400)" }}>None assigned</span>
-                        )}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>Location</dt>
-                      <dd style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}>
-                        <LuMapPin size={13} style={{ color: "var(--brand-600)" }} />
-                        <span>{posting.location || "Location not set"}</span>
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>Work Mode</dt>
-                      <dd>
-                        <Pill
-                          tone={
-                            posting.work_mode?.toLowerCase() === "remote"
-                              ? "brand"
-                              : posting.work_mode?.toLowerCase() === "hybrid"
-                              ? "attention"
-                              : "neutral"
-                          }
-                        >
-                          <span
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: "4px",
-                              textTransform: "capitalize",
-                            }}
-                          >
-                            <LuLaptop size={11} /> {posting.work_mode || "Hybrid"}
-                          </span>
-                        </Pill>
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>Status</dt>
-                      <dd>
-                        <Pill tone={STATUS_TONE[posting.status] ?? "neutral"}>
-                          {posting.status}
-                        </Pill>
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>Applicants</dt>
-                      <dd>
-                        <Link
-                          href={`/pipeline?posting=${posting.id}`}
-                          className="table-action"
-                          style={{ fontSize: "12.5px" }}
-                        >
-                          <LuGitFork size={12} />
-                          <span>
-                            {posting.application_count ?? 0} candidate
-                            {(posting.application_count ?? 0) === 1 ? "" : "s"}
-                          </span>
-                        </Link>
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>Created</dt>
-                      <dd style={{ display: "inline-flex", alignItems: "center", gap: "5px", color: "var(--ink-600)" }}>
-                        <LuCalendar size={13} />
-                        <span>
-                          {new Date(posting.created_at).toLocaleDateString(undefined, {
-                            year: "numeric",
-                            month: "short",
-                            day: "numeric",
-                          })}
-                        </span>
-                      </dd>
-                    </div>
-                  </dl>
-                </div>
-              </section>
-
               {posting.description && (
                 <section className="panel" aria-labelledby="side-desc-heading">
                   <div className="panel__header">
-                    <div>
-                      <p className="eyebrow">Context</p>
-                      <h2 id="side-desc-heading">Job Description</h2>
-                    </div>
+                    <h2 id="side-desc-heading">Job Description</h2>
                   </div>
                   <div className="panel-body">
-                    <div className="prose-desc">
+                    <div className="jd">
                       {renderJobDescription(posting.description)}
                     </div>
                   </div>
                 </section>
               )}
+            </div>
+
+            <div className="detail-grid__aside">
+              <section className="panel" aria-labelledby="side-meta-heading">
+                <div className="panel__header">
+                  <h2 id="side-meta-heading">Job Metadata</h2>
+                </div>
+                <dl className="meta-list">
+                  <div>
+                    <dt>Requisition ID</dt>
+                    <dd>
+                      <span className="meta-code">
+                        <span className="mono">{posting.id}</span>
+                        <button
+                          type="button"
+                          className="icon-button icon-button--xs"
+                          title="Copy Requisition ID"
+                          aria-label="Copy Requisition ID"
+                          onClick={() => {
+                            navigator.clipboard.writeText(posting.id);
+                            setCopied(true);
+                            setTimeout(() => setCopied(false), 2000);
+                          }}
+                        >
+                          {copied ? <LuCheck size={12} className="text-green" /> : <LuCopy size={12} />}
+                        </button>
+                      </span>
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Domain Pack</dt>
+                    <dd>
+                      {posting.pack_id ? <PackChip name={posting.pack_id} /> : <span className="muted">None assigned</span>}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Location</dt>
+                    <dd>{posting.location || "Location not set"}</dd>
+                  </div>
+                  <div>
+                    <dt>Work Mode</dt>
+                    <dd>
+                      <Pill
+                        tone={
+                          posting.work_mode?.toLowerCase() === "remote"
+                            ? "brand"
+                            : posting.work_mode?.toLowerCase() === "hybrid"
+                            ? "attention"
+                            : "neutral"
+                        }
+                      >
+                        <span className="capitalize">{posting.work_mode || "Hybrid"}</span>
+                      </Pill>
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Status</dt>
+                    <dd>
+                      <Pill tone={STATUS_TONE[posting.status] ?? "neutral"}>
+                        {posting.status}
+                      </Pill>
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Applicants</dt>
+                    <dd>
+                      <Link href={`/pipeline?posting=${posting.id}`} className="link">
+                        {posting.application_count ?? 0} candidate
+                        {(posting.application_count ?? 0) === 1 ? "" : "s"}
+                      </Link>
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Created</dt>
+                    <dd>
+                      <LuCalendar size={13} aria-hidden="true" />{" "}
+                      {new Date(posting.created_at).toLocaleDateString(undefined, {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </dd>
+                  </div>
+                </dl>
+              </section>
             </div>
           </div>
         </>
@@ -694,7 +632,7 @@ function renderJobDescription(content: string) {
 
     if (firstLine.startsWith("### ")) {
       return (
-        <div key={pIdx} style={{ marginBottom: "14px" }}>
+        <div key={pIdx}>
           <h3>{firstLine.replace(/^###\s+/, "")}</h3>
           {lines.slice(1).map((subLine, sIdx) => (
             <p key={sIdx}>{renderInlineMarkdown(subLine)}</p>
@@ -705,7 +643,7 @@ function renderJobDescription(content: string) {
 
     if (firstLine.startsWith("## ")) {
       return (
-        <div key={pIdx} style={{ marginBottom: "14px" }}>
+        <div key={pIdx}>
           <h2>{firstLine.replace(/^##\s+/, "")}</h2>
           {lines.slice(1).map((subLine, sIdx) => (
             <p key={sIdx}>{renderInlineMarkdown(subLine)}</p>
@@ -716,9 +654,9 @@ function renderJobDescription(content: string) {
 
     if (lines.every((l) => l.startsWith("- ") || l.startsWith("* "))) {
       return (
-        <ul key={pIdx} style={{ margin: "6px 0 14px 18px", padding: 0 }}>
+        <ul key={pIdx}>
           {lines.map((l, lIdx) => (
-            <li key={lIdx} style={{ marginBottom: "4px" }}>
+            <li key={lIdx}>
               {renderInlineMarkdown(l.replace(/^[-*]\s+/, ""))}
             </li>
           ))}
@@ -727,7 +665,7 @@ function renderJobDescription(content: string) {
     }
 
     return (
-      <div key={pIdx} style={{ marginBottom: "12px" }}>
+      <div key={pIdx}>
         {lines.map((line, lIdx) => {
           if (line.startsWith("## ")) {
             return <h2 key={lIdx}>{line.replace(/^##\s+/, "")}</h2>;
@@ -737,7 +675,7 @@ function renderJobDescription(content: string) {
           }
           if (line.startsWith("- ") || line.startsWith("* ")) {
             return (
-              <li key={lIdx} style={{ marginLeft: "18px", listStyle: "disc", marginBottom: "4px" }}>
+              <li key={lIdx} className="jd__li">
                 {renderInlineMarkdown(line.replace(/^[-*]\s+/, ""))}
               </li>
             );

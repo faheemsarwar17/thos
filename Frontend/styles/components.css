@@ -1674,7 +1674,7 @@ textarea[aria-invalid="true"]:focus {
 .form-success { font-size: 12.5px; color: var(--green); }
 .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 14px; }
 .form-grid__full { grid-column: 1 / -1; }
-.form-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.form-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 0; background: none; border: 0; }
 input[type="file"].file-input-hidden { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .file-button { position: relative; }
 .file-button:focus-within { box-shadow: var(--focus-ring); }
@@ -1847,3 +1847,8 @@ input[type="file"].file-input-hidden { position: absolute; width: 1px; height: 1
 .toast__text p { font-size: 12.5px; color: var(--ink-2); }
 .toast__close { width: 24px; height: 24px; }
 .icon-button[data-placeholder] { opacity: 0; }
+.form-field__req { margin-left: 3px; color: var(--red); }
+/* Legacy form rules size every input to 100%; checkboxes and radios keep their intrinsic size. */
+.form-grid input[type="checkbox"], .form-grid input[type="radio"],
+.dialog input[type="checkbox"], .dialog input[type="radio"],
+.scorecard-form input[type="checkbox"], .scorecard-form input[type="radio"] { width: auto; padding: 0; }

@@ -2898,6 +2898,8 @@ test("pipeline: views, blind review, actions menu, bulk bar, deep link", async (
 
 ## Task 9: Jobs list (create drawer) and Job detail
 
+> Note: Create form fields got ids so FormField labels associate (getByLabel). Form actions stay at the end of the form inside the drawer. Job description moved to the main column per PRD; metadata is the aside. Global fixes: legacy .form-actions chrome reset, checkboxes no longer stretched by legacy .form-grid/.dialog input width.
+
 **Files:**
 - Modify: `Frontend/components/jobs/jobs-page.tsx`
 - Modify: `Frontend/components/jobs/job-detail-page.tsx`
@@ -2977,11 +2979,11 @@ test("job detail controls", async ({ page }, testInfo) => {
 
 > If labels differ slightly in the existing form (for example "Domain Pack (Standardized Ontology & Question Pool)"), the regexes above already tolerate that. Keep the visible labels as they are. Do not rename fields.
 
-- [ ] Step 1: parity spec (red: no drawer yet)
-- [ ] Step 2: jobs list + create drawer
-- [ ] Step 3: job detail restyle
-- [ ] Step 4: typecheck, test, parity, layout (`jobs`, `jobs-create`, `job-detail`) all green
-- [ ] Step 5: commit `feat(ui): jobs list with create drawer, job detail layout`
+- [x] Step 1: parity spec (red: no drawer yet)
+- [x] Step 2: jobs list + create drawer
+- [x] Step 3: job detail restyle
+- [x] Step 4: typecheck, test, parity, layout (`jobs`, `jobs-create`, `job-detail`) all green
+- [x] Step 5: commit `feat(ui): jobs list with create drawer, job detail layout`
 
 ---
 

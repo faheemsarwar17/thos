@@ -22,7 +22,7 @@ export function FormField({
     <div className={cn("form-field", className)}>
       <label htmlFor={id} className="form-field__label">
         {label}
-        {required && <span style={{ color: "var(--red-600)", marginLeft: "3px" }}>*</span>}
+        {required && <span className="form-field__req" aria-hidden="true">*</span>}
       </label>
       {children}
       {hint && !error && <p className="form-field__hint">{hint}</p>}

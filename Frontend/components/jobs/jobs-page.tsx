@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { LuPlus, LuBriefcase, LuShieldCheck, LuX, LuSparkles, LuMapPin, LuLaptop, LuCheck } from "react-icons/lu";
-import { Breadcrumbs } from "@/components/ui/breadcrumbs";
+import { LuPlus, LuBriefcase, LuShieldCheck, LuSparkles, LuMapPin, LuLaptop, LuCheck } from "react-icons/lu";
 import { Button } from "@/components/ui/button";
+import { Drawer } from "@/components/ui/drawer";
 import { FormField } from "@/components/ui/form-field";
+import { PageHeader } from "@/components/ui/page-header";
 import { Pill, type PillTone } from "@/components/ui/pill";
 import { Table, TableContainer, TableEmpty } from "@/components/ui/table";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/state";
@@ -124,27 +125,12 @@ function CreateJobForm({
   }
 
   return (
-    <form className="panel form-panel" onSubmit={submit} aria-label="Create new job requisition">
-      <div className="panel__header">
-        <div>
-          <p className="eyebrow">New Requisition</p>
-          <h2>Create Job Requisition</h2>
-        </div>
-        <button
-          type="button"
-          className="icon-button"
-          style={{ width: "32px", height: "32px" }}
-          aria-label="Cancel job creation"
-          onClick={onCancel}
-        >
-          <LuX size={16} />
-        </button>
-      </div>
-
+    <form className="job-form" onSubmit={submit} aria-label="Create new job requisition">
       <div className="form-grid">
         <div className="form-grid__full">
-          <FormField label="Job Title" required hint="Specific position title for this requisition">
+          <FormField id="job-title" label="Job Title" required hint="Specific position title for this requisition">
             <input
+              id="job-title"
               className="input"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -157,42 +143,33 @@ function CreateJobForm({
 
         {/* Distinct Section: Location */}
         <FormField
+          id="job-location"
           label="Location"
           hint="Primary office, campus, city, or geographic hub"
         >
-          <div style={{ position: "relative" }}>
+          <div className="input-icon">
             <input
+              id="job-location"
               className="input"
-              style={{ paddingLeft: "34px" }}
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               placeholder="e.g. San Francisco, CA or London, UK"
             />
-            <LuMapPin
-              size={15}
-              style={{
-                position: "absolute",
-                left: "11px",
-                top: "50%",
-                transform: "translateY(-50%)",
-                color: "var(--ink-400)",
-                pointerEvents: "none",
-              }}
-              aria-hidden="true"
-            />
+            <LuMapPin size={15} aria-hidden="true" />
           </div>
         </FormField>
 
         {/* Distinct Section: Work Mode (Dropdown) */}
         <FormField
+          id="job-work-mode"
           label="Work Mode"
           required
           hint="Workplace flexibility arrangement"
         >
-          <div style={{ position: "relative" }}>
+          <div className="input-icon">
             <select
+              id="job-work-mode"
               className="select"
-              style={{ paddingLeft: "34px" }}
               value={workMode}
               onChange={(e) => setWorkMode(e.target.value as "remote" | "hybrid" | "onsite")}
               required
@@ -201,28 +178,19 @@ function CreateJobForm({
               <option value="hybrid">Hybrid (Blended office &amp; remote days)</option>
               <option value="onsite">On-site (Physical office / campus)</option>
             </select>
-            <LuLaptop
-              size={15}
-              style={{
-                position: "absolute",
-                left: "11px",
-                top: "50%",
-                transform: "translateY(-50%)",
-                color: "var(--ink-400)",
-                pointerEvents: "none",
-              }}
-              aria-hidden="true"
-            />
+            <LuLaptop size={15} aria-hidden="true" />
           </div>
         </FormField>
 
         <div className="form-grid__full">
           <FormField
+            id="job-pack"
             label="Domain Pack (Standardized Ontology & Question Pool)"
             required
             hint="Defines the interview rubric dimensions, question pool generation, and evaluation rules."
           >
             <select
+              id="job-pack"
               className="select"
               value={selectedPack}
               onChange={(e) => setPackId(e.target.value)}
@@ -242,43 +210,37 @@ function CreateJobForm({
 
         {/* Job Description with AI Auto-Generation Button */}
         <div className="form-grid__full">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px", flexWrap: "wrap", gap: "8px" }}>
-            <label style={{ fontSize: "13px", fontWeight: 600, color: "var(--ink-800)" }}>
+          <div className="form-field">
+          <div className="label-row">
+            <label className="form-field__label" htmlFor="job-description">
               Job Description &amp; Requirements
             </label>
             <Button
               type="button"
               variant="secondary"
               size="sm"
+              className="button--ai"
               onClick={handleGenerateAIDescription}
               loading={generatingAI}
               disabled={generatingAI}
-              style={{
-                height: "30px",
-                fontSize: "12px",
-                padding: "0 10px",
-                fontWeight: 600,
-                color: "var(--brand-700)",
-                borderColor: "var(--brand-300)",
-                background: "var(--brand-50)",
-              }}
+              iconLeft={<LuSparkles size={13} />}
               title="AI reads the job title, location, work mode, and domain pack to draft a complete description"
             >
-              <LuSparkles size={13} style={{ marginRight: "5px", color: "var(--brand-600)" }} />
               <span>Auto-generate with AI</span>
             </Button>
           </div>
 
-          <p style={{ fontSize: "12px", color: "var(--ink-500)", margin: "0 0 8px" }}>
+          <p className="form-field__hint">
             Parsed alongside the Domain Pack to generate targeted interview questions.
             {aiGenerated && (
-              <span style={{ marginLeft: "10px", color: "var(--teal-700)", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "3px" }}>
-                <LuCheck size={13} /> Generated by AI — review and edit as needed
+              <span className="ai-mark">
+                <LuCheck size={13} aria-hidden="true" /> Generated by AI — review and edit as needed
               </span>
             )}
           </p>
 
           <textarea
+            id="job-description"
             className="textarea"
             value={description}
             onChange={(e) => {
@@ -288,23 +250,24 @@ function CreateJobForm({
             rows={7}
             placeholder="Detailed responsibilities, required qualifications, and role context… Or click 'Auto-generate with AI' above to draft automatically."
           />
+          </div>
         </div>
 
-        <div className="form-grid__full" style={{ padding: "12px 16px", background: "var(--surface-sunken)", borderRadius: "8px" }}>
-          <label style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", fontWeight: 600 }}>
+        <div className="form-grid__full opt-box">
+          <label className="opt-check">
             <input
               type="checkbox"
               checked={sandboxRequired}
               onChange={(e) => toggleSandbox(e.target.checked)}
-              style={{ width: "16px", height: "16px", accentColor: "var(--brand-600)" }}
             />
-            <span>Require Proctored Practical Assessment Sandbox</span>
+            <span><strong>Require Proctored Practical Assessment Sandbox</strong></span>
           </label>
 
           {sandboxRequired && (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 160px), 1fr))", gap: "12px", marginTop: "14px" }}>
-              <FormField label="Sandbox Type">
+            <div className="form-grid form-grid--3">
+              <FormField id="job-sandbox-type" label="Sandbox Type">
                 <select
+                  id="job-sandbox-type"
                   className="select"
                   value={sandboxType}
                   onChange={(e) => setSandboxType(e.target.value as "coding" | "written")}
@@ -314,8 +277,9 @@ function CreateJobForm({
                 </select>
               </FormField>
 
-              <FormField label="Difficulty">
+              <FormField id="job-sandbox-difficulty" label="Difficulty">
                 <select
+                  id="job-sandbox-difficulty"
                   className="select"
                   value={sandboxDifficulty}
                   onChange={(e) => setSandboxDifficulty(e.target.value as "easy" | "medium" | "hard")}
@@ -326,8 +290,9 @@ function CreateJobForm({
                 </select>
               </FormField>
 
-              <FormField label="Time Limit (Minutes)">
+              <FormField id="job-sandbox-minutes" label="Time Limit (Minutes)">
                 <input
+                  id="job-sandbox-minutes"
                   type="number"
                   className="input"
                   min={5}
@@ -371,36 +336,29 @@ export function JobsPage() {
 
   return (
     <div className="dashboard">
-      <div style={{ marginBottom: "16px" }}>
-        <Breadcrumbs items={[{ label: "Employer Workspace", href: "/" }, { label: "Job Requisitions" }]} />
-      </div>
-
-      <div className="page-heading">
-        <div>
-          <p className="eyebrow">Hiring portfolio</p>
-          <h1>Job Requisitions</h1>
-          <p>Create requisitions, curate AI question pools, and publish to start receiving verified candidates.</p>
-        </div>
-        {!showCreate && (
+      <PageHeader
+        title="Jobs"
+        meta={data ? `${data.postings.length} requisition${data.postings.length === 1 ? "" : "s"}` : undefined}
+        actions={
           <Link className="button button--primary" href="/jobs?create=1">
             <LuPlus size={15} aria-hidden="true" />
-            <span>Create job</span>
+            <span>New job</span>
           </Link>
-        )}
-      </div>
+        }
+      />
 
-      {showCreate && (
+      <Drawer open={showCreate} title="New requisition" onClose={() => router.push("/jobs")} className="drawer--wide">
         <CreateJobForm
           onCreated={(id) => router.push(`/jobs/${id}`)}
           onCancel={() => router.push("/jobs")}
         />
-      )}
+      </Drawer>
 
       {loading ? (
         <LoadingState label="Loading job requisitions…" />
       ) : error ? (
         <ErrorState message={error.message} onRetry={reload} />
-      ) : data && data.postings.length === 0 && !showCreate ? (
+      ) : data && data.postings.length === 0 ? (
         <EmptyState
           icon={<LuBriefcase size={22} />}
           title="No job requisitions created yet"
@@ -415,16 +373,16 @@ export function JobsPage() {
       ) : (
         <section className="panel" aria-label="All job requisitions">
           <TableContainer>
-            <Table>
+            <Table className="table--stack">
               <caption className="sr-only">All job requisitions across your organization</caption>
               <thead>
                 <tr>
                   <th scope="col">Job Requisition</th>
-                  <th scope="col" style={{ width: "130px" }}>Candidates</th>
-                  <th scope="col" style={{ width: "130px" }}>Status</th>
-                  <th scope="col" style={{ width: "160px" }}>Question Pool</th>
+                  <th scope="col">Candidates</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Question Pool</th>
                   <th scope="col">Pinned Pack</th>
-                  <th scope="col" style={{ width: "130px", textAlign: "right" }}>Actions</th>
+                  <th scope="col" className="is-end">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -438,43 +396,35 @@ export function JobsPage() {
                         <strong>{posting.title}</strong>
                         <span>
                           {posting.location || "Location not set"}
-                          {posting.work_mode && (
-                            <span style={{ marginLeft: "8px", textTransform: "capitalize", color: "var(--brand-700)", fontWeight: 600 }}>
-                              · {posting.work_mode}
-                            </span>
-                          )}
+                          {posting.work_mode && <span className="role-link__mode"> · {posting.work_mode}</span>}
                         </span>
                       </Link>
                     </th>
-                    <td>
-                      <strong style={{ fontVariantNumeric: "tabular-nums" }}>
-                        {posting.application_count ?? 0}
-                      </strong>
-                      <span style={{ color: "var(--ink-400)", fontSize: "11px", marginLeft: "4px" }}>
-                        applicants
-                      </span>
+                    <td data-label="Candidates">
+                      <strong className="tabular-nums">{posting.application_count ?? 0}</strong>
+                      <span className="muted-xs"> applicants</span>
                     </td>
-                    <td>
+                    <td data-label="Status">
                       <Pill tone={STATUS_TONE[posting.status] ?? "neutral"}>
                         {posting.status}
                       </Pill>
                     </td>
-                    <td>
+                    <td data-label="Pool">
                       <Pill tone={posting.pool_status === "locked" ? "verified" : "attention"}>
                         {posting.pool_status === "locked" ? "Locked & Ready" : "Draft Pool"}
                       </Pill>
                     </td>
-                    <td>
+                    <td data-label="Pack">
                       {posting.pack_id ? (
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                          <LuShieldCheck size={14} style={{ color: "var(--teal-600)" }} />
+                        <span className="pack-inline">
+                          <LuShieldCheck size={14} aria-hidden="true" />
                           <span>{posting.pack_id}</span>
                         </span>
                       ) : (
                         "—"
                       )}
                     </td>
-                    <td style={{ textAlign: "right" }}>
+                    <td className="is-end">
                       <Link className="table-action" href={`/jobs/${posting.id}`}>
                         <span>Manage</span>
                         <span aria-hidden="true"> →</span>

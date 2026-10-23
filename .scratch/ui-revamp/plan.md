@@ -861,6 +861,8 @@ git commit -m "feat(ui): add D design tokens, Inter-only typography and base res
 
 ## Task 3: UI primitives (restyle existing, add new)
 
+> Note: Did not hide .eyebrow globally: several screens still use it for real data (org names, question numbers, labels). It is restyled as a micro label; screen tasks remove decorative ones. Moved Modal/Drawer/State/Toast inline styles to classes; Drawer no longer forces an inline width so .drawer--wide and the mobile rule apply.
+
 **Files:**
 - Modify: `Frontend/styles/components.css`. Append a `/* === D primitives === */` section at the **end** (later rules win; dead rules are removed in Task 17).
 - Modify: `Frontend/components/ui/tabs.tsx` (keyboard roving, count pill as a class)
@@ -884,7 +886,7 @@ SegmentedControl<T extends string>({ value: T; onChange: (v: T) => void; options
 Tabs — unchanged props; adds ArrowLeft/ArrowRight/Home/End roving focus and aria-controls-free tabIndex management
 ```
 
-- [ ] **Step 1: Write the failing tests** `Frontend/tests/primitives.test.tsx`
+- [x] **Step 1: Write the failing tests** `Frontend/tests/primitives.test.tsx`
 
 ```tsx
 import { fireEvent, render, screen } from "@testing-library/react";
@@ -962,9 +964,9 @@ describe("Tabs keyboard", () => {
 });
 ```
 
-- [ ] **Step 2: Run them.** `npx vitest run tests/primitives.test.tsx`. Expected: FAIL (modules not found).
+- [x] **Step 2: Run them.** `npx vitest run tests/primitives.test.tsx`. Expected: FAIL (modules not found).
 
-- [ ] **Step 3: Create the components**
+- [x] **Step 3: Create the components**
 
 `components/ui/page-header.tsx`
 ```tsx
@@ -1151,7 +1153,7 @@ export function Tabs<T extends string = string>({ tabs, activeTab, onChange, cla
 }
 ```
 
-- [ ] **Step 4: Append the D primitive styles** to the end of `styles/components.css`. These restyle the **existing** class names, so every screen improves at once, and add styles for the new components.
+- [x] **Step 4: Append the D primitive styles** to the end of `styles/components.css`. These restyle the **existing** class names, so every screen improves at once, and add styles for the new components.
 
 ```css
 /* =========================================================================
@@ -1353,9 +1355,9 @@ input[type="file"].file-input-hidden { position: absolute; width: 1px; height: 1
 }
 ```
 
-- [ ] **Step 5: Run the tests.** `npx vitest run tests/primitives.test.tsx`, then `npm test`. Expected: PASS. If `tests/components.test.tsx` asserts an old class or markup that changed, update the assertion, not the behaviour.
+- [x] **Step 5: Run the tests.** `npx vitest run tests/primitives.test.tsx`, then `npm test`. Expected: PASS. If `tests/components.test.tsx` asserts an old class or markup that changed, update the assertion, not the behaviour.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add Frontend/components/ui Frontend/styles/components.css Frontend/tests/primitives.test.tsx

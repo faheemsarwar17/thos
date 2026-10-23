@@ -11,7 +11,7 @@ export function Drawer({
   subtitle,
   children,
   footer,
-  width = "min(600px, 100vw)",
+  width,
   className,
 }: {
   open: boolean;
@@ -60,24 +60,20 @@ export function Drawer({
         ref={drawerRef}
         tabIndex={-1}
         className={cn("drawer", className)}
-        style={{ width }}
+        style={width ? { width } : undefined}
         role="dialog"
         aria-modal="true"
         aria-label={typeof title === "string" ? title : undefined}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="drawer__header">
-          <div>
+          <div className="drawer__titles">
             <h2>{title}</h2>
-            {subtitle && (
-              <p className="eyebrow" style={{ marginTop: "4px" }}>
-                {subtitle}
-              </p>
-            )}
+            {subtitle && <p className="drawer__subtitle">{subtitle}</p>}
           </div>
           <button
             type="button"
-            className="icon-button focus-ring"
+            className="icon-button"
             aria-label="Close drawer"
             onClick={onClose}
           >

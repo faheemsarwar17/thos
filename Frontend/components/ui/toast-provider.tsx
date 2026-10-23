@@ -74,22 +74,21 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             className={cn("toast", `toast--${t.type}`)}
             role="status"
           >
-            <div style={{ display: "flex", alignItems: "flex-start", gap: "10px", flex: 1 }}>
-              <span style={{ fontSize: "16px", marginTop: "2px", flexShrink: 0 }}>
-                {t.type === "success" && <LuCircleCheck color="var(--green-600)" aria-hidden="true" />}
-                {t.type === "error" && <LuCircleAlert color="var(--red-600)" aria-hidden="true" />}
-                {t.type === "info" && <LuInfo color="var(--brand-500)" aria-hidden="true" />}
-                {t.type === "warning" && <LuTriangleAlert color="var(--amber-500)" aria-hidden="true" />}
+            <div className="toast__main">
+              <span className="toast__icon">
+                {t.type === "success" && <LuCircleCheck aria-hidden="true" />}
+                {t.type === "error" && <LuCircleAlert aria-hidden="true" />}
+                {t.type === "info" && <LuInfo aria-hidden="true" />}
+                {t.type === "warning" && <LuTriangleAlert aria-hidden="true" />}
               </span>
-              <div>
-                {t.title && <strong style={{ display: "block", fontSize: "13px", color: "var(--ink-900)" }}>{t.title}</strong>}
-                <p style={{ margin: 0, fontSize: "12.5px", color: "var(--ink-700)" }}>{t.message}</p>
+              <div className="toast__text">
+                {t.title && <strong>{t.title}</strong>}
+                <p>{t.message}</p>
               </div>
             </div>
             <button
               type="button"
-              className="icon-button focus-ring"
-              style={{ width: "24px", height: "24px", border: "none", background: "transparent" }}
+              className="icon-button toast__close"
               aria-label="Dismiss notification"
               onClick={() => removeToast(t.id)}
             >

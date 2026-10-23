@@ -3098,6 +3098,8 @@ for (const [persona, path] of [["employer", "/messages"], ["candidate", "/candid
 
 ## Task 11: Analytics
 
+> Note: Time-to-hire and offer acceptance show '—' when hired_count is 0 (rates over zero hires are not real). Parity pill uses four_fifths_rule_met; calibration pill shows the API's calibration_health. Observed: /analytics/calibration itself returns 6.2 / 92.4 / 12, the same numbers the old frontend fallbacks used, so the backend may be returning placeholders (out of scope, flagged).
+
 **Files:**
 - Modify: `Frontend/components/analytics/analytics-dashboard.tsx`
 - Create: `Frontend/styles/screens/analytics.css`
@@ -3157,10 +3159,10 @@ test("analytics tabs", async ({ page }, testInfo) => {
 });
 ```
 
-- [ ] Step 1: tests (red)
-- [ ] Step 2: restyle + remove fallbacks + error states
-- [ ] Step 3: green (unit, parity, layout `analytics`)
-- [ ] Step 4: commit `feat(ui): analytics with chart cards, honest KPIs, error states`
+- [x] Step 1: tests (red)
+- [x] Step 2: restyle + remove fallbacks + error states
+- [x] Step 3: green (unit, parity, layout `analytics`)
+- [x] Step 4: commit `feat(ui): analytics with chart cards, honest KPIs, error states`
 
 ---
 

@@ -22,6 +22,7 @@
 @import "../styles/screens/jobs.css";
 @import "../styles/screens/talent.css";
 @import "../styles/screens/messages.css";
+@import "../styles/screens/analytics.css";
 
 /* Base Reset */
 /* margin/padding reset on every element is kept from v2: existing screens rely on it (lists, headings, forms). */

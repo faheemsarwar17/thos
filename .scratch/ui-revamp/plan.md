@@ -1368,6 +1368,8 @@ git commit -m "feat(ui): restyle primitives and add PageHeader, Switch, Stepper,
 
 ## Task 4: Chart components
 
+> Note: lib/pipeline-phases.ts also exports phaseOf(column), the exact classifier pipeline-page uses (category/label fallbacks for custom stages); StageMixChart groups by it.
+
 **Files:**
 - Create: `Frontend/components/charts/chart-card.tsx`, `use-chart-tooltip.tsx`, `funnel-chart.tsx`, `stage-mix-chart.tsx`, `trend-columns.tsx`, `score-histogram.tsx` and `index.ts`
 - Create: `Frontend/styles/charts.css`. Import it in `app/globals.css` after `components.css`.
@@ -1405,7 +1407,7 @@ ScoreHistogram({ cards: PipelineCard[] })                         // profile_int
 - No dual axes.
 - In compact mode, rows are `<span>`, not `<a>`, so they never nest inside the panel's links.
 
-- [ ] **Step 1: Write the failing tests** `Frontend/tests/charts.test.tsx`
+- [x] **Step 1: Write the failing tests** `Frontend/tests/charts.test.tsx`
 
 ```tsx
 import { fireEvent, render, screen } from "@testing-library/react";
@@ -1457,9 +1459,9 @@ describe("charts", () => {
 });
 ```
 
-- [ ] **Step 2: Run.** `npx vitest run tests/charts.test.tsx`. Expected: FAIL.
+- [x] **Step 2: Run.** `npx vitest run tests/charts.test.tsx`. Expected: FAIL.
 
-- [ ] **Step 3: Create `lib/pipeline-phases.ts`**
+- [x] **Step 3: Create `lib/pipeline-phases.ts`**
 
 ```ts
 import type { PipelineCard, PipelineColumn } from "@/lib/types";
@@ -1482,7 +1484,7 @@ export function phaseCards(columns: PipelineColumn[], stages: readonly string[])
 
 > If `pipeline-page.tsx` already defines an equivalent macro-phase mapping (it groups "Received / Shortlisted / Applied Interview / Results"), keep its exact stage membership. Copy it here and make the pipeline import it in Task 8, so there is a single source.
 
-- [ ] **Step 4: Create the chart components** by porting `charts.tsx` from the prototype branch. These are the exact contents to write (adapted from the prototype):
+- [x] **Step 4: Create the chart components** by porting `charts.tsx` from the prototype branch. These are the exact contents to write (adapted from the prototype):
 
 `components/charts/use-chart-tooltip.tsx`
 ```tsx
@@ -1706,7 +1708,7 @@ export { ScoreHistogram } from "./score-histogram";
 export { useChartTooltip } from "./use-chart-tooltip";
 ```
 
-- [ ] **Step 5: Create `styles/charts.css`** and import it in `globals.css` after `components.css`.
+- [x] **Step 5: Create `styles/charts.css`** and import it in `globals.css` after `components.css`.
 
 ```css
 /* Charts — PRD §4.2 (palette validated: --viz-1..4, --viz-mag). */
@@ -1756,9 +1758,9 @@ export { useChartTooltip } from "./use-chart-tooltip";
 .chart-table th { font-weight: 500; color: var(--ink-3); }
 ```
 
-- [ ] **Step 6: Run.** `npx vitest run tests/charts.test.tsx`, then `npm test` and `npm run typecheck`. Expected: PASS.
+- [x] **Step 6: Run.** `npx vitest run tests/charts.test.tsx`, then `npm test` and `npm run typecheck`. Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add Frontend/components/charts Frontend/lib/pipeline-phases.ts Frontend/styles/charts.css Frontend/app/globals.css Frontend/tests/charts.test.tsx

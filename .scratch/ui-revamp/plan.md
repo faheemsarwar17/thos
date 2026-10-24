@@ -3736,7 +3736,9 @@ console.log("colour gate: ok");
 
 ## Task 18: Full verification and parity sign-off
 
-- [ ] **Step 1: The full Playwright run** (all 5 viewports, both themes). Servers must be running.
+> Note: Full run (`npx playwright test --grep-invert @capture`, 470 tests) on 2026-10-24: 313 passed, 154 skipped (parity specs run on one viewport), 3 failed with `ERR_CONNECTION_RESET`/`REFUSED` when the dev server restarted mid-run; those routes (login, messages, cand-sandbox at w1536 and w1920, both themes) were re-run: 12/12 passed. An earlier attempt was discarded because a leftover run from the previous session shared `e2e/.results` and clobbered its traces. Added `e2e/parity/signoff.spec.ts` (17 read-only tests; mocks GETs where seed data lacks a state) to cover inventory items the per-screen specs did not reach.
+
+- [x] **Step 1: The full Playwright run** (all 5 viewports, both themes). Servers must be running.
 
 ```bash
 cd Frontend
@@ -3746,17 +3748,18 @@ npx playwright test e2e/parity                  # all parity specs
 
   Expected: **0 failures**. For each failure, fix the CSS or markup (not the rule) and re-run. Only add `data-layout-ignore` to a wrapper if the element is an intentional off-canvas thing (a closed drawer kept in the DOM, for example), and explain why in a comment.
 
-- [ ] **Step 2: Capture screenshots for the user.** Run `npm run e2e:capture`. It writes `e2e/__screens__/{project}/{theme}/{route}.png`. Open a sample (w1280, w390 and dark) and compare with `.scratch/ui-revamp/assets/proto/D_*` and `cand_*`.
+- [x] **Step 2: Capture screenshots for the user.** Run `npm run e2e:capture`. It writes `e2e/__screens__/{project}/{theme}/{route}.png`. Open a sample (w1280, w390 and dark) and compare with `.scratch/ui-revamp/assets/proto/D_*` and `cand_*`.
+> Note: 280 screenshots captured (one re-captured after a mid-run failure; the capture run stalled for hours, probably machine sleep). The prototype images `assets/proto/D_*` / `cand_*` are not in the repo or on `prototype/ui-revamp`, so the spot-check (w1280, w390, dark) was against design.md. It found two defects, both fixed: the journey card's Withdraw icon touched its label (icon passed as a child instead of `iconLeft`), and drawers and modals showed a focus ring around the whole panel when opened (the global `:focus-visible` box-shadow now skips `tabindex="-1"` targets). Parity (w1366 + w390) and the affected layout tests were re-run green afterwards. Known soft spot: the desktop messages parity test skips if conversations take more than 800ms to load.
 
-- [ ] **Step 3: Parity sign-off.**
+- [x] **Step 3: Parity sign-off.**
   - Copy `.scratch/ui-revamp/feature-inventory.md` to `.scratch/ui-revamp/parity-signoff.md`.
   - Tick every `- [ ]`. Cover each one by a parity spec, a unit test, or a manual check you actually did; next to each, add ` — e2e:<spec>` / ` — unit:<test>` / ` — manual`.
   - Any item you could not verify stays unticked, with a reason.
   - The README-mismatch section becomes "fixed in docs (Task 19)".
 
-- [ ] **Step 4: Final checks.** `npm run typecheck && npm run lint && npm test && npm run build && npm run check:colors`. All green.
+- [x] **Step 4: Final checks.** `npm run typecheck && npm run lint && npm test && npm run build && npm run check:colors`. All green.
 
-- [ ] **Step 5: Commit** `test(e2e): parity specs and sign-off for the UI revamp` (include `parity-signoff.md`; do **not** commit `e2e/__screens__`, which is gitignored).
+- [x] **Step 5: Commit** `test(e2e): parity specs and sign-off for the UI revamp` (include `parity-signoff.md`; do **not** commit `e2e/__screens__`, which is gitignored).
 
 ---
 

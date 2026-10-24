@@ -48,7 +48,9 @@ button, input, select, textarea { font: inherit; color: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
 input[type="checkbox"], input[type="radio"] { accent-color: var(--brand); }
 a { color: inherit; text-decoration: none; }
-:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--r-sm); }
+:focus-visible { outline: none; }
+/* Programmatic focus targets (drawer, modal, #main-content) aren't in the tab order, so they get no ring */
+:focus-visible:not([tabindex="-1"]) { box-shadow: var(--focus-ring); border-radius: var(--r-sm); }
 ::selection { background: var(--brand-soft); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }

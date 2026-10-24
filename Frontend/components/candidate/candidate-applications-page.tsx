@@ -261,13 +261,13 @@ export function CandidateApplicationsPage() {
                         variant="ghost"
                         size="sm"
                         className="button--danger-text"
+                        iconLeft={<LuCircleX size={13} />}
                         onClick={() => {
                           setWithdrawError(null);
                           setWithdrawingApp(application);
                         }}
                       >
-                        <LuCircleX size={13} aria-hidden="true" />
-                        <span>Withdraw</span>
+                        Withdraw
                       </Button>
                     )}
                   </footer>

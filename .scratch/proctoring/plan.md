@@ -736,6 +736,8 @@ async def dispatch_decision(*, conn, settings, kind, attempt_id, decision: polic
 
 ## Task 4: Candidate API, plus `/voice/start` and payload changes
 
+> Note: `enabled_for` lives in `proctoring/service.py` (the API and `voice_interviews.py` both use it). Until the first `/voice/start`, every write keeps `record.enabled` in step with it, so events on a not-yet-started profile attempt are accepted. `_session_payload` now takes `conn`; the stop reason comes from a new pure `policy.terminated_view(record)`, so no settings lookup is needed. Routes for both kinds are registered from one factory (`_register(kind)`) instead of hand-written wrapper pairs. `/start` rolls back the frozen record when it refuses (409), so a refused start freezes nothing.
+
 **Files:**
 - Create: `Backend/app/api/v1/proctoring.py`
 - Modify: `Backend/app/api/v1/router.py` (include the router after `voice_interviews_router`)
@@ -799,7 +801,7 @@ def _cfg(settings) -> ProctoringConfig
   ```
   For an applied attempt that has never started, `enabled` comes from the posting (use `enabled_for`). The `max_warnings` value comes from settings: read `get_settings()`.
 
-- [ ] **Step 1: Failing tests** `tests/test_proctoring_api.py`. Use the profile-attempt flow, because profile attempts are created `in_progress` and need no LiveKit; log in as the demo-style candidate the way `test_profile_interview.py` does.
+- [x] **Step 1: Failing tests** `tests/test_proctoring_api.py`. Use the profile-attempt flow, because profile attempts are created `in_progress` and need no LiveKit; log in as the demo-style candidate the way `test_profile_interview.py` does.
   - `GET` before consent: `consent_required` and `calibration_required` are both true.
   - `consent` → `calibration` → `GET` shows both false.
   - **Strike flow with cooldown 0** (override settings: `settings.proctoring_strike_cooldown_seconds = 0` via the fixture):
@@ -817,10 +819,10 @@ def _cfg(settings) -> ProctoringConfig
   - Another candidate's attempt id → 404.
   - The candidate `GET` never contains `"events"` or `"counts"`.
   - **Applied job with `proctoring_enabled=false`:** `GET` → `enabled: false`; `/events` → 409 `proctoring_disabled`; `/start` (with `ensure_voice_ready` and `start_voice_session` monkeypatched) succeeds without consent.
-- [ ] **Step 2:** Run. Expected: FAIL.
-- [ ] **Step 3:** Implement.
-- [ ] **Step 4:** `uv run pytest -q` and `uv run ruff check app tests`. Expected: PASS.
-- [ ] **Step 5: Commit**: `feat(proctoring): candidate proctoring API and start gating`
+- [x] **Step 2:** Run. Expected: FAIL.
+- [x] **Step 3:** Implement.
+- [x] **Step 4:** `uv run pytest -q` and `uv run ruff check app tests`. Expected: PASS.
+- [x] **Step 5: Commit**: `feat(proctoring): candidate proctoring API and start gating`
 
 ---
 

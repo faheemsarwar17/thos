@@ -280,6 +280,22 @@ def termination_message(record: dict[str, Any]) -> str | None:
     return f"{len(parts)} proctoring violations: " + " ".join(parts)
 
 
+def terminated_view(record: dict[str, Any] | None) -> dict[str, Any] | None:
+    """The stop reason and the counted strikes, safe for candidates and employers."""
+    term = (record or {}).get("terminated")
+    if not term:
+        return None
+    return {
+        "reason_code": term["reason"],
+        "message": termination_message(record),
+        "at": term["at"],
+        "strikes": [
+            {"type": s["type"], "at": s["at"], "message": reason_message(s["type"])}
+            for s in term.get("strikes", [])
+        ],
+    }
+
+
 def public_view(
     record: dict[str, Any] | None, *, audience: str, max_warnings: int
 ) -> dict[str, Any] | None:
@@ -290,19 +306,7 @@ def public_view(
         "max_warnings": max_warnings,
         "warnings_used": _warnings_used(record, max_warnings),
         "pending_warning": record.get("pending_warning"),
-        "terminated": (
-            {
-                "reason_code": record["terminated"]["reason"],
-                "message": termination_message(record),
-                "at": record["terminated"]["at"],
-                "strikes": [
-                    {"type": s["type"], "at": s["at"], "message": reason_message(s["type"])}
-                    for s in record["terminated"].get("strikes", [])
-                ],
-            }
-            if record.get("terminated")
-            else None
-        ),
+        "terminated": terminated_view(record),
     }
     if audience == "candidate":
         calibration = record.get("calibration") or {}

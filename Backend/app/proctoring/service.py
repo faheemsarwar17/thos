@@ -67,6 +67,21 @@ def ensure_record(
     return record
 
 
+def enabled_for(conn: Connection, attempt: dict[str, Any], kind: str) -> bool:
+    """Whether proctoring applies to this attempt.
+
+    Frozen on the record at the first ``/voice/start``. Before that, profile screening is
+    always proctored and a job interview follows its posting's toggle.
+    """
+    record = attempt.get("proctoring") or {}
+    if record.get("started_at_interview"):
+        return bool(record.get("enabled"))
+    if kind == "profile":
+        return True
+    posting = store.get_posting_by_id(conn, posting_id=attempt["posting_id"]) or {}
+    return bool(posting.get("proctoring_enabled", True))
+
+
 # --- snapshots ----------------------------------------------------------------------
 
 

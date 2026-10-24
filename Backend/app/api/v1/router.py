@@ -13,6 +13,7 @@ from app.api.v1.organizations import router as organizations_router
 from app.api.v1.packs import router as packs_router
 from app.api.v1.pipeline import router as pipeline_router
 from app.api.v1.postings import router as postings_router
+from app.api.v1.proctoring import router as proctoring_router
 from app.api.v1.sandbox import router as sandbox_router
 from app.api.v1.search import router as search_router
 from app.api.v1.storage import router as storage_router
@@ -34,6 +35,7 @@ router.include_router(packs_router)
 router.include_router(workflows_router)
 router.include_router(candidates_router)
 router.include_router(voice_interviews_router)
+router.include_router(proctoring_router)
 router.include_router(postings_router)
 router.include_router(jobs_router)
 router.include_router(pipeline_router)

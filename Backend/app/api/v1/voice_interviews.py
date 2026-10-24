@@ -16,6 +16,9 @@ from app.api.dependencies import (
 )
 from app.core.errors import ApiError
 from app.db import store
+from app.db.database import Connection
+from app.proctoring import policy as proctoring_policy
+from app.proctoring import service as proctoring_service
 from app.services import identity as identity_service
 from app.services import voice_interview as voice
 from app.services.avatars import resolve_avatar
@@ -34,7 +37,9 @@ _IDENTITY_FINAL_STATUSES = {
 _MAX_LIVE_IMAGE_CHARS = 7_000_000  # ~5 MB binary after base64 decoding
 
 
-def _session_payload(attempt: dict[str, Any], *, kind: str, title: str) -> dict[str, Any]:
+def _session_payload(
+    attempt: dict[str, Any], *, kind: str, title: str, conn: Connection
+) -> dict[str, Any]:
     return {
         "id": attempt["id"],
         "kind": kind,
@@ -54,7 +59,38 @@ def _session_payload(attempt: dict[str, Any], *, kind: str, title: str) -> dict[
             }
             for q in (attempt.get("questions") or [])
         ],
+        "proctoring": {
+            "enabled": proctoring_service.enabled_for(conn, attempt, kind),
+            "terminated": proctoring_policy.terminated_view(attempt.get("proctoring")),
+        },
     }
+
+
+def _gate_proctoring(
+    conn: Connection, attempt: dict[str, Any], kind: str, config: dict[str, Any]
+) -> None:
+    """Freeze proctoring at the first start and refuse to start without its setup."""
+    enabled = proctoring_service.enabled_for(conn, attempt, kind)
+    record = proctoring_service.ensure_record(
+        conn, kind=kind, attempt_id=attempt["id"], enabled=enabled,
+        now=proctoring_service.utcnow(),
+    )
+    enabled = bool(record.get("enabled"))
+    if record.get("terminated"):
+        conn.rollback()
+        raise ApiError(
+            code="proctoring_terminated",
+            message="This interview was ended by proctoring.",
+            status_code=409,
+        )
+    if enabled and (not record.get("consent") or not record.get("calibration")):
+        conn.rollback()
+        raise ApiError(
+            code="proctoring_setup_incomplete",
+            message="Complete the proctoring consent and calibration first.",
+            status_code=409,
+        )
+    config["proctoring_enabled"] = enabled
 
 
 class IdentityCheckRequest(BaseModel):
@@ -160,7 +196,7 @@ async def get_profile_voice_session(
     attempt = voice.load_profile_attempt(
         conn, attempt_id=attempt_id, candidate_id=ctx.candidate["id"]
     )
-    return _session_payload(attempt, kind="profile", title="Profile Screening")
+    return _session_payload(attempt, kind="profile", title="Profile Screening", conn=conn)
 
 
 @router.post("/candidates/me/profile-interview-attempts/{attempt_id}/voice/livekit")
@@ -198,6 +234,7 @@ async def start_profile_voice(
     config = voice.build_profile_screening_config(
         attempt=attempt, candidate=ctx.candidate, settings=settings
     )
+    _gate_proctoring(conn, attempt, "profile", config)
     store.update_profile_interview_voice(
         conn,
         attempt_id=attempt_id,
@@ -229,7 +266,7 @@ async def complete_profile_voice(
     refreshed = voice.load_profile_attempt(
         conn, attempt_id=attempt_id, candidate_id=ctx.candidate["id"]
     )
-    return _session_payload(refreshed, kind="profile", title="Profile Screening")
+    return _session_payload(refreshed, kind="profile", title="Profile Screening", conn=conn)
 
 
 @router.websocket("/candidates/me/profile-interview-attempts/{attempt_id}/voice/telemetry")
@@ -268,7 +305,7 @@ async def get_applied_voice_session(
         conn, posting_id=attempt["posting_id"]
     ) or {}
     title = f"Job Interview — {posting.get('title') or 'Role'}"
-    payload = _session_payload(attempt, kind="applied", title=title)
+    payload = _session_payload(attempt, kind="applied", title=title, conn=conn)
     sandbox_session = attempt.get("sandbox_session")
     payload["sandbox"] = {
         "required": bool(posting.get("sandbox_required")),
@@ -322,6 +359,7 @@ async def start_applied_voice(
         posting=posting,
         settings=settings,
     )
+    _gate_proctoring(conn, attempt, "applied", config)
     store.update_applied_interview_voice(
         conn,
         attempt_id=attempt_id,
@@ -357,7 +395,7 @@ async def complete_applied_voice(
         conn, attempt_id=attempt_id, candidate_id=ctx.candidate["id"]
     )
     title = f"Job Interview — {posting.get('title') or 'Role'}"
-    return _session_payload(refreshed, kind="applied", title=title)
+    return _session_payload(refreshed, kind="applied", title=title, conn=conn)
 
 
 @router.websocket("/candidates/me/applied-interviews/{attempt_id}/voice/telemetry")

@@ -33,6 +33,7 @@ A locked **PRD** (`.scratch/ui-revamp/prd.md`) and a single **implementation pla
 - [Prototype the new shell, employer home and pipeline](issues/02-prototype-shell-home-pipeline.md) — Variant D: icon rail + requisitions panel (Home/Pipeline only) with B's stage bars, bottom tabs on mobile; "Today" home with KPI row + 4 charts + Now/Today/Recent agenda; funnel-strip pipeline with card grid, single Actions menu, drawer; approved tokens + validated chart palette.
 - [Prototype the candidate portal and interview/sandbox screens](issues/03-prototype-candidate-and-media-screens.md) — candidate D shell (rail → bottom tabs); Home = next-step hero + tiles; Applications = vertical journey cards with inline action; Profile = settings with section nav; interview + sandbox in a shell-less focus layout (visual only).
 - [Research a Playwright setup for this Next.js app with a real backend](issues/04-research-playwright-setup.md) — `Frontend/e2e/`, API login per worker into storageState, viewport projects × theme param, toHaveScreenshot + capture mode, fake-media flags and getDisplayMedia/fullscreen stubs for sandbox.
+- Implementation complete on feat/ui-revamp — see plan.md (all tasks ticked) and parity-signoff.md.
 
 ## Not yet specified
 

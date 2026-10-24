@@ -3804,11 +3804,12 @@ npx playwright test e2e/parity                  # all parity specs
 
 ## Finish
 
-- [ ] **Run everything one last time** from `Frontend/`:
+- [x] **Run everything one last time** from `Frontend/`:
   - `npm run typecheck && npm run lint && npm test && npm run build && npm run check:colors`
   - `npx playwright test --grep-invert @capture`
   - Report the actual output to the user. If anything is red, say so; do not claim success.
-- [ ] **Update the Wayfinder map.** Append to `.scratch/ui-revamp/map.md` under "Decisions so far": `- Implementation complete on feat/ui-revamp — see plan.md (all tasks ticked) and parity-signoff.md.`
+- [x] **Update the Wayfinder map.** Append to `.scratch/ui-revamp/map.md` under "Decisions so far": `- Implementation complete on feat/ui-revamp — see plan.md (all tasks ticked) and parity-signoff.md.`
+  > Note (2026-10-24): final checks all green: typecheck, lint (0 errors, 10 pre-existing warnings), 36/36 unit tests, build (`NEXT_DIST_DIR=.next-build`), colour gate. Final `npx playwright test --grep-invert @capture` (485 tests): 318 passed, 165 skipped (one-viewport parity specs), 2 failed: `cand-profile` dark at w1280 and w1366, both page-load timeouts at the same moment (dev-server stall); re-run of `cand-profile` on all 5 viewports × 2 themes: 10/10 passed. Merging is left for the user: no PR opened.
 - [ ] **Merging:** invoke `superpowers:finishing-a-development-branch` to decide how to merge or open a PR. **Do not push or open a PR without the user's go-ahead.** The local branch `prototype/ui-revamp` is throwaway: never merge it. Delete it only if the user asks.
 
 ---

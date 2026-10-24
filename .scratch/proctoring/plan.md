@@ -201,6 +201,8 @@ All of these must hold: `OK-focus`, `OK-css`, `OK-e2e`, `0` unticked boxes, and 
 - Create: `Backend/app/proctoring/policy.py`
 - Test: `Backend/tests/test_proctoring_policy.py`
 
+> Note: `ProctoringConfig` also carries `accommodation_email` (exposed as `accommodationEmail` in `client_view()`), which Task 11 needs for the consent step.
+
 **Interfaces (used by every later backend task):**
 
 ```python
@@ -237,7 +239,7 @@ class ProctoringConfig:
     def client_view(self) -> dict[str, Any]: ...                  # camelCase JSON for the browser (every gaze/focus/heartbeat field + maxWarnings + policyVersion)
 ```
 
-- [ ] **Step 1: Write the failing tests** `tests/test_proctoring_policy.py`:
+- [x] **Step 1: Write the failing tests** `tests/test_proctoring_policy.py`:
 
 ```python
 from datetime import UTC, datetime, timedelta
@@ -361,9 +363,9 @@ def test_reason_messages_cover_all_violation_types():
         assert policy.reason_message(t)
 ```
 
-- [ ] **Step 2:** `uv run pytest tests/test_proctoring_policy.py -q`. Expected: FAIL (module missing).
+- [x] **Step 2:** `uv run pytest tests/test_proctoring_policy.py -q`. Expected: FAIL (module missing).
 
-- [ ] **Step 3: Implement `app/proctoring/policy.py`**
+- [x] **Step 3: Implement `app/proctoring/policy.py`**
 
 ```python
 """Pure proctoring policy: strikes, warnings, termination, views. No I/O.
@@ -666,9 +668,9 @@ def public_view(record: dict[str, Any] | None, *, audience: str, max_warnings: i
     }
 ```
 
-- [ ] **Step 4: Implement `config.py`** as in the interface block. `client_view()` returns camelCase keys: `sustainedS, glanceS, glanceCount, glanceWindowS, readingMinS, readingReversals, faceMissingS, multiFaceS, multiFaceConfidence, questionGraceS, aiSpeakingMultiplier, tabHiddenS, blurS, heartbeatIntervalS, envelopeMarginDeg, fallbackYawDeg, fallbackPitchDownDeg, fallbackPitchUpDeg, calibrationMinPresence, maxWarnings, policyVersion`. Add a test that `ProctoringConfig.from_settings(Settings())` reads `gaze_sustained_seconds == 10.0`.
-- [ ] **Step 5:** `uv run pytest tests/test_proctoring_policy.py -q`. Expected: PASS. Then `uv run ruff check app/proctoring tests/test_proctoring_policy.py`.
-- [ ] **Step 6: Commit**: `feat(proctoring): pure strike/warning/termination policy`
+- [x] **Step 4: Implement `config.py`** as in the interface block. `client_view()` returns camelCase keys: `sustainedS, glanceS, glanceCount, glanceWindowS, readingMinS, readingReversals, faceMissingS, multiFaceS, multiFaceConfidence, questionGraceS, aiSpeakingMultiplier, tabHiddenS, blurS, heartbeatIntervalS, envelopeMarginDeg, fallbackYawDeg, fallbackPitchDownDeg, fallbackPitchUpDeg, calibrationMinPresence, maxWarnings, policyVersion`. Add a test that `ProctoringConfig.from_settings(Settings())` reads `gaze_sustained_seconds == 10.0`.
+- [x] **Step 5:** `uv run pytest tests/test_proctoring_policy.py -q`. Expected: PASS. Then `uv run ruff check app/proctoring tests/test_proctoring_policy.py`.
+- [x] **Step 6: Commit**: `feat(proctoring): pure strike/warning/termination policy`
 
 ---
 

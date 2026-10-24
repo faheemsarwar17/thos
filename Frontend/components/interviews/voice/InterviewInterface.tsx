@@ -5,7 +5,7 @@ import { useRoomContext, useLocalParticipant } from "@livekit/components-react";
 import { ConnectionState, RoomEvent, LocalVideoTrack, createLocalVideoTrack, ParticipantEvent } from "livekit-client";
 import { RiBrainLine, RiCameraLine, RiMessage3Line, RiMicLine } from "react-icons/ri";
 import { Interview } from "@/types/tracking";
-import { TranscriptEntry } from "./TranscriptOverlay";
+import type { TranscriptEntry } from "./types";
 import { publicApi } from "@/utils/api";
 import EndInterviewModal from "./EndInterviewModal";
 import MicLevelIndicator from "./MicLevelIndicator";
@@ -69,6 +69,8 @@ interface InterviewInterfaceProps {
 	onSetupStageChange?: (stage: string) => void;
 	onSetupStatusChange?: (status: string) => void;
 	onSetupFailed?: (detail: { error: string; sessionId?: string }) => void;
+	/** Header title; profile screenings pass "Skill screening" (PRD §8.7). */
+	title?: string;
 }
 
 export default function InterviewInterface({
@@ -79,7 +81,8 @@ export default function InterviewInterface({
 	uiMode = "interview",
 	onSetupStageChange,
 	onSetupStatusChange,
-	onSetupFailed
+	onSetupFailed,
+	title
 }: InterviewInterfaceProps) {
 	const room = useRoomContext();
 	const { localParticipant } = useLocalParticipant();
@@ -924,79 +927,25 @@ export default function InterviewInterface({
 		const isNearEnd = totalSeconds > 0 && elapsedSeconds >= totalSeconds * 0.85;
 
 		return (
-			<div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
-				<span
-					style={{
-						fontFamily: "var(--font-mono)",
-						fontSize: "1rem",
-						fontWeight: 600,
-						letterSpacing: "-0.02em",
-						color: isNearEnd ? "var(--color-error)" : "var(--color-text)",
-						fontVariantNumeric: "tabular-nums"
-					}}
-				>
-					{elapsedMinutes.toString().padStart(2, "0")}:{elapsedSecs.toString().padStart(2, "0")}
-				</span>
-				<span style={{ fontSize: "0.6875rem", color: "var(--color-text-muted)" }}>elapsed</span>
-			</div>
-		);
-	};
-
-	const AudioWaveBars = ({ active, color }: { active: boolean; color: "primary" | "emerald" }) => {
-		const barColor = color === "emerald" ? "rgba(34,197,94,0.9)" : "rgba(37,99,235,0.9)";
-		const idleColor = "rgba(100,116,139,0.55)";
-		const heights = [5, 8, 12, 9, 14, 11, 7, 13, 10, 6];
-		return (
-			<div style={{ display: "flex", height: "20px", alignItems: "flex-end", gap: "2px" }}>
-				{heights.map((h, i) => (
-					<div
-						key={i}
-						className={active ? "animate-pulse" : undefined}
-						style={{
-							width: "3px",
-							borderRadius: "999px",
-							height: active ? `${h}px` : "3px",
-							backgroundColor: active ? barColor : idleColor,
-							opacity: active ? 1 : 0.8,
-							transition: "height 300ms",
-							animationDelay: `${i * 0.07}s`
-						}}
-					/>
-				))}
-			</div>
+			<span className={isNearEnd ? "fx-timer is-late" : "fx-timer"} aria-label="Elapsed time">
+				{elapsedMinutes.toString().padStart(2, "0")}:{elapsedSecs.toString().padStart(2, "0")}
+			</span>
 		);
 	};
 
 	const AIAvatar = ({ speaking }: { speaking: boolean }) => (
-		<div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
-			<div
-				style={{
-					position: "relative",
-					width: "44px",
-					height: "44px",
-					borderRadius: "999px",
-					background: "linear-gradient(135deg, rgba(30,41,59,1) 0%, rgba(15,23,42,1) 100%)",
-					display: "flex",
-					alignItems: "center",
-					justifyContent: "center",
-					transition: "all 500ms",
-					boxShadow: speaking ? "0 0 0 2px rgba(37,99,235,0.45), 0 0 0 6px rgba(37,99,235,0.14)" : undefined
-				}}
-			>
-				<RiBrainLine size={20} color="rgba(147,197,253,0.95)" aria-hidden />
+		<div className="fx-ai">
+			<span className={speaking ? "fx-ai__badge is-speaking" : "fx-ai__badge"}>
+				<RiBrainLine size={22} aria-hidden />
+			</span>
+			<p className="fx-ai__label">AI interviewer</p>
+			<div className={speaking ? "fx-wave" : "fx-wave is-idle"} aria-hidden="true">
+				<i />
+				<i />
+				<i />
+				<i />
+				<i />
 			</div>
-			<p
-				style={{
-					margin: 0,
-					fontSize: "10px",
-					fontWeight: 800,
-					letterSpacing: "0.12em",
-					color: "rgba(255,255,255,0.82)"
-				}}
-			>
-				AI INTERVIEWER
-			</p>
-			<AudioWaveBars active={speaking} color="primary" />
 		</div>
 	);
 
@@ -1013,490 +962,130 @@ export default function InterviewInterface({
 	}) => {
 		const isUser = speaker === "user";
 		return (
-			<div
-				style={{
-					display: "flex",
-					flexDirection: "column",
-					alignItems: isUser ? "flex-end" : "flex-start",
-					gap: "3px"
-				}}
-			>
-				<span style={{ padding: "0 2px", fontSize: "0.625rem", color: "var(--color-text-muted)" }}>
-					{isUser ? participantLabel : "AI Interviewer"}
-				</span>
-				<div
-					style={{
-						maxWidth: "92%",
-						backgroundColor: isUser
-							? "var(--color-success-light)"
-							: isLatest
-								? "var(--color-accent-light)"
-								: "var(--color-bg-subtle)",
-						border: isUser
-							? "1px solid var(--color-success-border)"
-							: isLatest
-								? "1px solid var(--color-accent-border)"
-								: "1px solid var(--color-border)",
-						padding: "8px 10px",
-						borderRadius: "var(--radius-lg)"
-					}}
-				>
-					<p
-						style={{
-							margin: 0,
-							fontSize: "0.8125rem",
-							lineHeight: 1.5,
-							color: "var(--color-text)"
-						}}
-					>
-						{text}
-					</p>
-					{timeLabel ? (
-						<div
-							style={{
-								marginTop: "4px",
-								fontSize: "0.625rem",
-								color: "var(--color-text-muted)"
-							}}
-						>
-							{timeLabel}
-						</div>
-					) : null}
-				</div>
+			<div className={isUser ? "fx-msg fx-msg--me" : isLatest ? "fx-msg is-latest" : "fx-msg"}>
+				<b>{isUser ? participantLabel : "AI Interviewer"}</b>
+				<p>{text}</p>
+				{timeLabel ? <time>{timeLabel}</time> : null}
 			</div>
 		);
 	};
 
 	return (
-		<div
-			className="animate-fade-up"
-			style={{
-				display: "flex",
-				flexDirection: "column",
-				flex: 1,
-				minHeight: 0,
-				height: "100%"
-			}}
-		>
+		<div className="fx-live-wrap">
 			{uiMode === "setup" ? null : (
-				<main
-					className="interview-stage"
-					style={{
-						margin: "0 auto",
-						width: "100%",
-						maxWidth: "960px",
-						padding: "16px",
-						display: "flex",
-						flexDirection: "column",
-						gap: "14px",
-						flex: 1,
-						minHeight: 0,
-						overflowX: "hidden",
-						overflowY: "auto",
-						boxSizing: "border-box"
-					}}
-				>
-					{/* Header */}
-					<div
-						className="card"
-						style={{
-							padding: "12px 16px",
-							display: "flex",
-							alignItems: "center",
-							justifyContent: "space-between",
-							gap: "12px",
-							flexShrink: 0
-						}}
-					>
-						<div style={{ minWidth: 0 }}>
-							<h1
-								style={{
-									fontSize: "0.9375rem",
-									fontWeight: 700,
-									color: "var(--color-text)",
-									margin: 0,
-									letterSpacing: "-0.02em"
-								}}
-							>
-								Job Interview
-							</h1>
-							<p
-								style={{
-									margin: "2px 0 0",
-									fontSize: "0.75rem",
-									color: "var(--color-text-secondary)",
-									whiteSpace: "nowrap",
-									overflow: "hidden",
-									textOverflow: "ellipsis"
-								}}
-							>
-								{isRoomConnected ? "Connected" : "Connecting…"} · {interviewerDisplayName}
-							</p>
-						</div>
-
-						<div style={{ display: "flex", alignItems: "center", gap: "12px", flexShrink: 0 }}>
+				<div className="fx-live">
+					<div className="fx-stage">
+						<div className="fx-live__bar">
+							<div className="fx-live__who">
+								<h1>{title ?? "Job interview"}</h1>
+								<p>
+									{isRoomConnected ? "Connected" : "Connecting…"} · {interviewerDisplayName}
+								</p>
+							</div>
 							<CircularTimer elapsedSeconds={elapsedTime} />
-							<button
-								className="btn btn-ghost"
-								onClick={() => setShowEndModal(true)}
-								style={{
-									border: "1px solid var(--color-error-border, rgba(220,38,38,0.35))",
-									color: "var(--color-error)",
-									padding: "6px 12px",
-									fontSize: "0.8125rem"
-								}}
-							>
+							<button type="button" className="button button--danger button--sm" onClick={() => setShowEndModal(true)}>
 								End
 							</button>
 						</div>
-					</div>
 
-					{/* Stage: constrained video + compact transcript */}
-					<div
-						className="interview-stage-grid"
-						style={{
-							display: "grid",
-							flex: 1,
-							minHeight: 0,
-							width: "100%",
-							gap: "14px",
-							gridTemplateColumns: "minmax(0, 1fr) minmax(260px, 300px)",
-							gridTemplateRows: "minmax(0, 1fr)",
-							alignItems: "start"
-						}}
-					>
-						{/* Video — fixed 16:9, not stretched */}
-						<div
-							style={{
-								display: "flex",
-								flexDirection: "column",
-								gap: "10px",
-								minWidth: 0,
-								// Cap by viewport height too, so the 16:9 video and its controls fit on short laptop screens.
-								width: "min(100%, 640px, calc((100dvh - 300px) * 16 / 9))",
-								justifySelf: "center"
-							}}
-						>
-							<div
-								style={{
-									position: "relative",
-									width: "100%",
-									aspectRatio: "16 / 9",
-									overflow: "hidden",
-									borderRadius: "var(--radius-xl)",
-									backgroundColor: "#0f172a",
-									border: userSpeaking
-										? "1px solid var(--color-success-border)"
-										: "1px solid var(--color-border)",
-									boxShadow: "var(--shadow-card)",
-									transition: "border-color 200ms"
-								}}
-							>
-								<video
-									ref={selfVideoRef}
-									autoPlay
-									playsInline
-									muted
-									style={{
-										position: "absolute",
-										inset: 0,
-										width: "100%",
-										height: "100%",
-										objectFit: "cover",
-										transform: "scaleX(-1)",
-										opacity: isCameraOff ? 0 : 1,
-										transition: "opacity 200ms"
-									}}
+						<div className="fx-tile fx-tile--ai">
+							<AIAvatar speaking={agentSpeaking} />
+							<span className="fx-chip">
+								{agentSpeaking ? "Speaking" : awaitingAgentReply ? "Thinking" : "Listening"}
+							</span>
+						</div>
+
+						<div className={userSpeaking ? "fx-tile fx-tile--self is-speaking" : "fx-tile fx-tile--self"}>
+							<video
+								ref={selfVideoRef}
+								autoPlay
+								playsInline
+								muted
+								className={isCameraOff ? "fx-self is-off" : "fx-self"}
+							/>
+							{isCameraOff && (
+								<div className="fx-tile__off">
+									<RiCameraLine size={22} aria-hidden />
+									<p>Camera starting…</p>
+								</div>
+							)}
+							<span className="fx-tile__name">
+								<span className={isMuted ? "fx-dot" : "fx-dot is-live"} aria-hidden="true" />
+								{participantLabel}
+							</span>
+						</div>
+
+						<div className="fx-micbar">
+							<span className="fx-micbar__label">Mic</span>
+							<div className="fx-micbar__meter">
+								<MicLevelIndicator
+									micSourceRef={localMicSourceRef}
+									audioContextRef={audioContextRef}
+									isMuted={isMuted}
 								/>
-
-								{isCameraOff && (
-									<div
-										style={{
-											position: "absolute",
-											inset: 0,
-											display: "flex",
-											flexDirection: "column",
-											alignItems: "center",
-											justifyContent: "center",
-											backgroundColor: "#0f172a",
-											gap: "8px"
-										}}
-									>
-										<div
-											style={{
-												width: "48px",
-												height: "48px",
-												borderRadius: "999px",
-												backgroundColor: "rgba(30,41,59,1)",
-												display: "flex",
-												alignItems: "center",
-												justifyContent: "center"
-											}}
-										>
-											<RiCameraLine size={22} color="rgba(148,163,184,0.9)" aria-hidden />
-										</div>
-										<p style={{ margin: 0, fontSize: "0.8125rem", color: "var(--color-text-muted)" }}>
-											Camera starting…
-										</p>
-									</div>
-								)}
-
-								<div
-									style={{
-										position: "absolute",
-										left: "12px",
-										bottom: "12px",
-										display: "flex",
-										alignItems: "center",
-										gap: "6px",
-										borderRadius: "var(--radius-md)",
-										padding: "5px 10px",
-										backgroundColor: "rgba(15,23,42,0.72)",
-										backdropFilter: "blur(6px)"
-									}}
-								>
-									<span
-										style={{
-											width: "6px",
-											height: "6px",
-											borderRadius: "999px",
-											backgroundColor: isMuted
-												? "var(--color-text-muted)"
-												: "var(--color-success)"
-										}}
-									/>
-									<span style={{ fontSize: "0.75rem", fontWeight: 600, color: "#fff" }}>
-										{participantLabel}
-									</span>
-								</div>
-
-								<div
-									style={{
-										position: "absolute",
-										right: "12px",
-										bottom: "12px",
-										width: "112px",
-										borderRadius: "var(--radius-lg)",
-										border: "1px solid rgba(255,255,255,0.12)",
-										backgroundColor: "rgba(15,23,42,0.88)",
-										backdropFilter: "blur(8px)",
-										overflow: "hidden"
-									}}
-								>
-									<div style={{ padding: "10px 8px", display: "flex", justifyContent: "center" }}>
-										<AIAvatar speaking={agentSpeaking} />
-									</div>
-								</div>
 							</div>
-
-							<div
-								style={{
-									display: "flex",
-									alignItems: "center",
-									gap: "10px",
-									padding: "8px 10px",
-									borderRadius: "var(--radius-lg)",
-									backgroundColor: "var(--color-surface)",
-									border: "1px solid var(--color-border)",
-									boxShadow: "var(--shadow-card)"
-								}}
-							>
-								<span
-									style={{
-										fontSize: "0.6875rem",
-										fontWeight: 700,
-										letterSpacing: "0.06em",
-										color: "var(--color-text-muted)",
-										textTransform: "uppercase",
-										flexShrink: 0
-									}}
-								>
-									Mic
-								</span>
-								<div style={{ flex: 1, minWidth: 0 }}>
-									<MicLevelIndicator
-										micSourceRef={localMicSourceRef}
-										audioContextRef={audioContextRef}
-										isMuted={isMuted}
-									/>
-								</div>
-								<span
-									className={`badge ${isMuted ? "badge-yellow" : "badge-green"}`}
-									style={{ flexShrink: 0 }}
-								>
-									{isMuted ? "Muted" : "Live"}
-								</span>
-							</div>
-						</div>
-
-						{/* Transcript */}
-						<div
-							style={{
-								display: "flex",
-								flexDirection: "column",
-								minWidth: 0,
-								minHeight: 0,
-								height: "100%",
-								maxHeight: "100%"
-							}}
-						>
-							<div
-								className="card"
-								style={{
-									display: "flex",
-									flexDirection: "column",
-									flex: 1,
-									minHeight: 0,
-									overflow: "hidden"
-								}}
-							>
-								<div
-									style={{
-										display: "flex",
-										alignItems: "center",
-										justifyContent: "space-between",
-										padding: "12px 14px",
-										borderBottom: "1px solid var(--color-border)",
-										flexShrink: 0
-									}}
-								>
-									<div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-										<RiMessage3Line size={14} color="var(--color-accent)" aria-hidden />
-										<h3
-											style={{
-												margin: 0,
-												fontSize: "0.6875rem",
-												fontWeight: 700,
-												letterSpacing: "0.06em",
-												color: "var(--color-text-secondary)",
-												textTransform: "uppercase"
-											}}
-										>
-											Transcript
-										</h3>
-									</div>
-									<span style={{ fontSize: "0.6875rem", color: "var(--color-text-muted)" }}>
-										{agentSpeaking ? "Speaking" : awaitingAgentReply ? "Thinking" : "Listening"}
-									</span>
-								</div>
-
-								<div
-									ref={transcriptScrollRef}
-									style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "12px 14px" }}
-								>
-									{transcript.length === 0 ? (
-										<div
-											style={{
-												height: "100%",
-												minHeight: "120px",
-												display: "flex",
-												flexDirection: "column",
-												alignItems: "center",
-												justifyContent: "center",
-												textAlign: "center",
-												gap: "8px"
-											}}
-										>
-											<RiMessage3Line size={22} color="var(--color-text-muted)" aria-hidden />
-											<p style={{ margin: 0, fontSize: "0.8125rem", color: "var(--color-text-muted)" }}>
-												{setupStatus || "Waiting for the interview to begin…"}
-											</p>
-										</div>
-									) : (
-										<div style={{ display: "grid", gap: "10px" }}>
-											{transcript.map((m, idx, arr) => (
-												<TranscriptMessage
-													key={idx}
-													text={m.text}
-													speaker={m.speaker}
-													isLatest={idx === arr.length - 1}
-													timeLabel={
-														m.timestamp
-															? new Date(m.timestamp).toLocaleTimeString([], {
-																	hour: "2-digit",
-																	minute: "2-digit"
-																})
-															: undefined
-													}
-												/>
-											))}
-
-											{!agentSpeaking && !awaitingAgentReply && !isMuted && (
-												<div
-													style={{
-														display: "inline-flex",
-														alignItems: "center",
-														gap: "6px",
-														alignSelf: "flex-start",
-														borderRadius: "var(--radius-md)",
-														backgroundColor: "var(--color-success-light)",
-														padding: "4px 8px",
-														fontSize: "0.6875rem",
-														fontWeight: 600,
-														color: "var(--color-success)",
-														border: "1px solid var(--color-success-border)"
-													}}
-												>
-													<RiMicLine size={11} aria-hidden />
-													Listening
-												</div>
-											)}
-
-											{awaitingAgentReply && !agentSpeaking && (
-												<div
-													style={{
-														display: "inline-flex",
-														alignItems: "center",
-														gap: "6px",
-														alignSelf: "flex-start",
-														borderRadius: "var(--radius-md)",
-														backgroundColor: "var(--color-accent-light)",
-														padding: "4px 8px",
-														fontSize: "0.6875rem",
-														fontWeight: 600,
-														color: "var(--color-accent)",
-														border: "1px solid var(--color-accent-border)"
-													}}
-												>
-													Preparing…
-												</div>
-											)}
-
-											{agentSpeaking && (
-												<div
-													style={{
-														display: "inline-flex",
-														alignItems: "center",
-														gap: "6px",
-														alignSelf: "flex-start",
-														borderRadius: "var(--radius-md)",
-														backgroundColor: "var(--color-accent-light)",
-														padding: "8px 10px",
-														border: "1px solid var(--color-accent-border)"
-													}}
-												>
-													{[0, 0.15, 0.3].map((d, i) => (
-														<div
-															key={i}
-															className="animate-bounce"
-															style={{
-																width: "6px",
-																height: "6px",
-																borderRadius: "999px",
-																backgroundColor: "var(--color-accent)",
-																animationDelay: `${d}s`
-															}}
-														/>
-													))}
-												</div>
-											)}
-										</div>
-									)}
-								</div>
-							</div>
+							<span className={isMuted ? "pill pill--attention" : "pill pill--success"}>
+								{isMuted ? "Muted" : "Live"}
+							</span>
 						</div>
 					</div>
-				</main>
+
+					<section className="fx-transcript" aria-labelledby="transcript-heading">
+						<header>
+							<h2 id="transcript-heading">
+								<RiMessage3Line size={14} aria-hidden /> Transcript
+							</h2>
+							<span className="fx-transcript__state">
+								{agentSpeaking ? "Speaking" : awaitingAgentReply ? "Thinking" : "Listening"}
+							</span>
+						</header>
+
+						<div ref={transcriptScrollRef} className="fx-msgs">
+							{transcript.length === 0 ? (
+								<div className="fx-msgs__empty">
+									<RiMessage3Line size={22} aria-hidden />
+									<p>{setupStatus || "Waiting for the interview to begin…"}</p>
+								</div>
+							) : (
+								<>
+									{transcript.map((m, idx, arr) => (
+										<TranscriptMessage
+											key={idx}
+											text={m.text}
+											speaker={m.speaker}
+											isLatest={idx === arr.length - 1}
+											timeLabel={
+												m.timestamp
+													? new Date(m.timestamp).toLocaleTimeString([], {
+															hour: "2-digit",
+															minute: "2-digit"
+														})
+													: undefined
+											}
+										/>
+									))}
+
+									{!agentSpeaking && !awaitingAgentReply && !isMuted && (
+										<span className="fx-state fx-state--live">
+											<RiMicLine size={11} aria-hidden />
+											Listening
+										</span>
+									)}
+
+									{awaitingAgentReply && !agentSpeaking && <span className="fx-state">Preparing…</span>}
+
+									{agentSpeaking && (
+										<span className="fx-state fx-state--dots" aria-label="Interviewer speaking">
+											<i />
+											<i />
+											<i />
+										</span>
+									)}
+								</>
+							)}
+						</div>
+					</section>
+				</div>
 			)}
 
 			{/* Confirmation Modal */}

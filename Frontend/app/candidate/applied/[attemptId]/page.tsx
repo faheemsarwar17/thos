@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { CandidateShell } from "@/components/candidate/candidate-shell";
+import { RequireAuth } from "@/components/auth/require-auth";
 import { VoiceInterviewPortal } from "@/components/interviews/voice/voice-portal";
 
-export const metadata: Metadata = { title: "Job Interview · THOS" };
+export const metadata: Metadata = { title: "Job interview · THOS" };
 
 export default async function AppliedInterview({
   params,
@@ -11,8 +11,8 @@ export default async function AppliedInterview({
 }) {
   const { attemptId } = await params;
   return (
-    <CandidateShell>
-      <VoiceInterviewPortal kind="applied" attemptId={attemptId} label="Job Interview" />
-    </CandidateShell>
+    <RequireAuth>
+      <VoiceInterviewPortal kind="applied" attemptId={attemptId} label="Job interview" />
+    </RequireAuth>
   );
 }

@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
-import { LuLogIn, LuShieldCheck, LuBriefcase, LuUser } from "react-icons/lu";
+import { LuLogIn, LuBriefcase, LuUser } from "react-icons/lu";
+import { AuthLayout } from "@/components/auth/auth-layout";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { ApiError, login } from "@/lib/api";
@@ -36,48 +37,23 @@ export function LoginForm() {
   }
 
   return (
-    <main id="main-content" className="auth-page">
-      <form className="auth-card" onSubmit={onSubmit} aria-label="Sign in to THOS">
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
-          <div className="wordmark__symbol">T</div>
-          <span style={{ font: "600 18px Poppins, sans-serif", letterSpacing: "0.04em" }}>THOS</span>
-        </div>
-
-        <div>
-          <p className="eyebrow" style={{ color: "var(--brand-600)" }}>Talent Hiring Operating System</p>
-          <h1 style={{ fontSize: "22px", marginTop: "2px" }}>Sign In to Workspace</h1>
-          <p className="panel-note" style={{ marginTop: "4px" }}>
-            Access your verified candidate profile or hiring organization console.
-          </p>
-        </div>
-
-        {/* Quick Demo Fill Buttons */}
-        <div style={{ padding: "10px 12px", background: "var(--surface-sunken)", borderRadius: "8px", display: "grid", gap: "6px" }}>
-          <span style={{ fontSize: "11px", fontWeight: 600, color: "var(--ink-500)", textTransform: "uppercase" }}>
-            Quick Demo Accounts:
-          </span>
-          <div style={{ display: "flex", gap: "8px" }}>
-            <button
-              type="button"
-              className="button button--secondary button--sm"
-              style={{ flex: 1, fontSize: "11px" }}
-              onClick={() => fillDemo("ayesha.khan@nut.edu.pk")}
-            >
-              <LuBriefcase size={12} /> Employer Admin
+    <AuthLayout title="Sign in" subtitle="Access your verified candidate profile or hiring organization console.">
+      <form className="auth__form" onSubmit={onSubmit} aria-label="Sign in to THOS">
+        <div className="auth__demo">
+          <span className="auth__demo-label">Quick Demo Accounts</span>
+          <div className="auth__demo-row">
+            <button type="button" className="button button--secondary button--sm" onClick={() => fillDemo("ayesha.khan@nut.edu.pk")}>
+              <LuBriefcase size={12} aria-hidden="true" /> Employer Admin
             </button>
-            <button
-              type="button"
-              className="button button--secondary button--sm"
-              style={{ flex: 1, fontSize: "11px" }}
-              onClick={() => fillDemo("hira.ahmed@gmail.com")}
-            >
-              <LuUser size={12} /> Candidate
+            <button type="button" className="button button--secondary button--sm" onClick={() => fillDemo("hira.ahmed@gmail.com")}>
+              <LuUser size={12} aria-hidden="true" /> Candidate
             </button>
           </div>
         </div>
 
-        <FormField label="Email Address" required>
+        <FormField id="login-email" label="Email Address" required>
           <input
+            id="login-email"
             className="input"
             type="email"
             autoComplete="username"
@@ -88,8 +64,9 @@ export function LoginForm() {
           />
         </FormField>
 
-        <FormField label="Password" required>
+        <FormField id="login-password" label="Password" required>
           <input
+            id="login-password"
             className="input"
             type="password"
             autoComplete="current-password"
@@ -101,28 +78,16 @@ export function LoginForm() {
 
         {error && <p className="form-error" role="alert">{error}</p>}
 
-        <Button type="submit" loading={busy} iconLeft={<LuLogIn size={15} />}>
+        <Button type="submit" size="lg" loading={busy} iconLeft={<LuLogIn size={15} />}>
           Sign In
         </Button>
 
-        <div style={{ textAlign: "center", paddingTop: "8px", borderTop: "1px solid var(--border-subtle)" }}>
-          <p className="panel-note" style={{ fontSize: "12px" }}>
-            Don&apos;t have an account?{" "}
-            <Link href="/register" style={{ color: "var(--brand-600)", fontWeight: 600 }}>
-              Candidate Registration
-            </Link>
-            {" · "}
-            <Link href="/register/organization" style={{ color: "var(--brand-600)", fontWeight: 600 }}>
-              Register Organization
-            </Link>
-          </p>
-        </div>
-
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", color: "var(--ink-400)", fontSize: "11px" }}>
-          <LuShieldCheck size={14} style={{ color: "var(--teal-600)" }} />
-          <span>Tenant-isolated &amp; WCAG 2.2 AA compliant</span>
-        </div>
+        <p className="auth__links">
+          Don&apos;t have an account? <Link href="/register" className="link">Candidate Registration</Link>
+          {" · "}
+          <Link href="/register/organization" className="link">Register Organization</Link>
+        </p>
       </form>
-    </main>
+    </AuthLayout>
   );
 }

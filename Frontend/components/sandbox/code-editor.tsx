@@ -49,7 +49,7 @@ export function CodeEditor({
   return (
     <div className="sandbox-editor">
       <div className="sandbox-editor__toolbar">
-        <label className="eyebrow" htmlFor="sandbox-language" style={{ margin: 0 }}>
+        <label className="eyebrow" htmlFor="sandbox-language">
           Language
         </label>
         <select

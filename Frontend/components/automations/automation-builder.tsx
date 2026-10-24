@@ -1,27 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import {
-  LuPlay,
-  LuPlus,
-  LuTrash2,
-  LuToggleLeft,
-  LuToggleRight,
-  LuSparkles,
-  LuMail,
-  LuBell,
-  LuTag,
-  LuClock,
-  LuCheck,
-  LuX,
-  LuArrowRight,
-  LuHistory,
-  LuFlaskConical,
-} from "react-icons/lu";
+import { LuPlus, LuTrash2, LuFlaskConical } from "react-icons/lu";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
-import { Pill, type PillTone } from "@/components/ui/pill";
+import { PageHeader } from "@/components/ui/page-header";
+import { Pill } from "@/components/ui/pill";
+import { Switch } from "@/components/ui/switch";
+import { Table, TableContainer } from "@/components/ui/table";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/state";
+import { useToast } from "@/components/ui/toast-provider";
 import { api, ApiError } from "@/lib/api";
 import { useApi } from "@/lib/use-api";
 import type {
@@ -69,6 +57,7 @@ const RECIPES = [
 ];
 
 export function AutomationBuilder() {
+  const toast = useToast();
   const [isCreating, setIsCreating] = useState(false);
   const [testResult, setTestResult] = useState<AutomationTestResult | null>(null);
   const [testingRuleId, setTestingRuleId] = useState<string | null>(null);
@@ -184,6 +173,7 @@ export function AutomationBuilder() {
       await reload();
     } catch (err: unknown) {
       console.error("Failed to toggle rule:", err);
+      toast.error(err instanceof ApiError ? err.message : "Failed to toggle the automation rule.");
     }
   }
 
@@ -194,6 +184,7 @@ export function AutomationBuilder() {
       await reload();
     } catch (err: unknown) {
       console.error("Failed to delete rule:", err);
+      toast.error(err instanceof ApiError ? err.message : "Failed to delete the automation rule.");
     }
   }
 
@@ -214,65 +205,43 @@ export function AutomationBuilder() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-      {/* Header with Create Action */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div>
-          <h2 style={{ margin: 0, fontSize: "18px", fontWeight: 700 }}>Hiring Workflow Automations</h2>
-          <p style={{ margin: "4px 0 0", fontSize: "13px", color: "var(--ink-500)" }}>
-            WHEN / IF / THEN deterministic workflows with zero silent rejections and full audit logs
-          </p>
-        </div>
-        <Button
-          variant="primary"
-          onClick={() => {
-            resetForm();
-            setIsCreating(true);
-          }}
-          iconLeft={<LuPlus size={15} />}
-        >
-          Create Automation
-        </Button>
-      </div>
+    <div className="dashboard">
+      <PageHeader
+        title="Automations"
+        meta="WHEN / IF / THEN workflows with full audit logs"
+        actions={
+          <Button
+            variant="primary"
+            onClick={() => {
+              resetForm();
+              setIsCreating(true);
+            }}
+            iconLeft={<LuPlus size={15} />}
+          >
+            Create automation
+          </Button>
+        }
+      />
 
-      {/* Pre-built Recipes Gallery */}
-      <div className="panel" style={{ padding: "20px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "14px" }}>
-          <LuSparkles size={18} style={{ color: "var(--brand-600)" }} />
-          <h3 style={{ margin: 0, fontSize: "15px", fontWeight: 600 }}>Quick Start Automation Recipes</h3>
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "14px" }}>
+      <section aria-labelledby="recipes-heading" className="section">
+        <h2 id="recipes-heading" className="section__title">Quick-start recipes</h2>
+        <div className="recipe-grid">
           {RECIPES.map((recipe) => (
-            <div
-              key={recipe.name}
-              style={{
-                padding: "16px",
-                borderRadius: "10px",
-                background: "var(--surface-sunken)",
-                border: "1px solid var(--border)",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between",
-              }}
-            >
-              <div>
-                <strong style={{ fontSize: "14px", color: "var(--ink-900)" }}>{recipe.name}</strong>
-                <p style={{ margin: "6px 0 12px", fontSize: "12px", color: "var(--ink-600)", lineHeight: 1.4 }}>
-                  {recipe.description}
-                </p>
-              </div>
+            <article key={recipe.name} className="recipe-card">
+              <h3>{recipe.name}</h3>
+              <p>{recipe.description}</p>
               <Button size="sm" variant="secondary" onClick={() => loadRecipe(recipe)}>
-                Use This Recipe
+                Use this recipe
               </Button>
-            </div>
+            </article>
           ))}
         </div>
-      </div>
+      </section>
 
-      {/* Rules List Panel */}
-      <div className="panel" style={{ padding: "24px" }}>
-        <h3 style={{ margin: "0 0 16px", fontSize: "16px", fontWeight: 700 }}>Active Automation Rules</h3>
-
+      <section className="panel section" aria-labelledby="rules-heading">
+        <div className="panel__header">
+          <h2 id="rules-heading">Automation rules</h2>
+        </div>
         {loading && !data ? (
           <LoadingState label="Loading automations…" />
         ) : error && !data ? (
@@ -283,66 +252,58 @@ export function AutomationBuilder() {
             description="Create your first rule or pick a quick-start recipe above to automate stage notifications and task assignments."
           />
         ) : (
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
+          <TableContainer>
+            <Table className="table--stack">
               <thead>
-                <tr style={{ borderBottom: "1px solid var(--border)", textAlign: "left", color: "var(--ink-500)" }}>
-                  <th style={{ padding: "10px 12px" }}>Rule Name</th>
-                  <th style={{ padding: "10px 12px" }}>Trigger (WHEN)</th>
-                  <th style={{ padding: "10px 12px" }}>Condition (IF)</th>
-                  <th style={{ padding: "10px 12px" }}>Action (THEN)</th>
-                  <th style={{ padding: "10px 12px" }}>Executions</th>
-                  <th style={{ padding: "10px 12px" }}>Status</th>
-                  <th style={{ padding: "10px 12px", textAlign: "right" }}>Actions</th>
+                <tr>
+                  <th scope="col">Rule Name</th>
+                  <th scope="col">Trigger (WHEN)</th>
+                  <th scope="col">Condition (IF)</th>
+                  <th scope="col">Action (THEN)</th>
+                  <th scope="col">Executions</th>
+                  <th scope="col">Status</th>
+                  <th scope="col" className="is-end">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {rules.map((rule) => (
-                  <tr key={rule.id} style={{ borderBottom: "1px solid var(--border)" }}>
-                    <td style={{ padding: "12px" }}>
-                      <strong style={{ display: "block", color: "var(--ink-900)" }}>{rule.name}</strong>
-                      {rule.description && (
-                        <span style={{ fontSize: "11px", color: "var(--ink-400)" }}>{rule.description}</span>
-                      )}
-                    </td>
-                    <td style={{ padding: "12px" }}>
+                  <tr key={rule.id}>
+                    <th scope="row">
+                      <strong className="cell-title">{rule.name}</strong>
+                      {rule.description && <span className="cell-sub">{rule.description}</span>}
+                    </th>
+                    <td data-label="When">
                       <Pill tone="brand">{rule.trigger_event.replace(/_/g, " ")}</Pill>
                     </td>
-                    <td style={{ padding: "12px" }}>
-                      {rule.conditions.map((c, i) => (
-                        <span key={i} style={{ fontSize: "12px", background: "var(--surface-sunken)", padding: "2px 6px", borderRadius: "4px", margin: "2px" }}>
-                          {c.field} {c.op} {String(c.value)}
-                        </span>
-                      ))}
+                    <td data-label="If">
+                      <span className="chip-row">
+                        {rule.conditions.map((c, i) => (
+                          <code key={i} className="chip-code">
+                            {c.field} {c.op} {String(c.value)}
+                          </code>
+                        ))}
+                      </span>
                     </td>
-                    <td style={{ padding: "12px" }}>
-                      {rule.actions.map((a, i) => (
-                        <span key={i} style={{ fontSize: "12px", background: "var(--surface-sunken)", padding: "2px 6px", borderRadius: "4px", margin: "2px" }}>
-                          {a.type.replace(/_/g, " ")}
-                        </span>
-                      ))}
+                    <td data-label="Then">
+                      <span className="chip-row">
+                        {rule.actions.map((a, i) => (
+                          <code key={i} className="chip-code">{a.type.replace(/_/g, " ")}</code>
+                        ))}
+                      </span>
                     </td>
-                    <td style={{ padding: "12px", fontVariantNumeric: "tabular-nums" }}>
+                    <td data-label="Runs" className="tabular-nums">
                       <strong>{rule.run_count ?? 0}</strong> runs
-                      {rule.last_run_at && (
-                        <span style={{ display: "block", fontSize: "11px", color: "var(--ink-400)" }}>
-                          {new Date(rule.last_run_at).toLocaleDateString()}
-                        </span>
-                      )}
+                      {rule.last_run_at && <span className="cell-sub">{new Date(rule.last_run_at).toLocaleDateString()}</span>}
                     </td>
-                    <td style={{ padding: "12px" }}>
-                      <button
-                        type="button"
-                        onClick={() => toggleRule(rule.id)}
-                        style={{ background: "none", border: 0, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "4px" }}
-                      >
-                        <Pill tone={rule.is_active ? "verified" : "neutral"}>
-                          {rule.is_active ? "Active" : "Paused"}
-                        </Pill>
-                      </button>
+                    <td data-label="Status">
+                      <Switch
+                        checked={!!rule.is_active}
+                        onChange={() => void toggleRule(rule.id)}
+                        label={<><span className="sr-only">{rule.name}: </span>{rule.is_active ? "Active" : "Paused"}</>}
+                      />
                     </td>
-                    <td style={{ padding: "12px", textAlign: "right" }}>
-                      <div style={{ display: "inline-flex", gap: "6px", alignItems: "center" }}>
+                    <td className="is-end">
+                      <span className="row-actions">
                         <Button
                           variant="secondary"
                           size="sm"
@@ -354,76 +315,62 @@ export function AutomationBuilder() {
                         </Button>
                         <button
                           type="button"
+                          className="icon-button icon-button--danger"
                           onClick={() => deleteRule(rule.id)}
-                          style={{
-                            background: "none",
-                            border: 0,
-                            cursor: "pointer",
-                            padding: "6px",
-                            color: "var(--danger-700, #b91c1c)",
-                          }}
-                          aria-label="Delete rule"
+                          aria-label={`Delete rule ${rule.name}`}
                         >
-                          <LuTrash2 size={16} />
+                          <LuTrash2 size={16} aria-hidden="true" />
                         </button>
-                      </div>
+                      </span>
                     </td>
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
+            </Table>
+          </TableContainer>
         )}
-      </div>
+      </section>
 
-      {/* Execution Run Logs Panel */}
-      <div className="panel" style={{ padding: "24px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "14px" }}>
-          <LuHistory size={18} style={{ color: "var(--ink-500)" }} />
-          <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 700 }}>Recent Automation Run Log</h3>
+      <section className="panel section" aria-labelledby="runs-heading">
+        <div className="panel__header">
+          <h2 id="runs-heading">Recent run log</h2>
         </div>
-
         {runs.length === 0 ? (
-          <p style={{ margin: 0, color: "var(--ink-400)", fontSize: "13px" }}>
+          <p className="panel-body panel-note">
             No automations have run yet. Trigger a stage move or click &ldquo;Simulate&rdquo; to test.
           </p>
         ) : (
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
+          <TableContainer>
+            <Table className="table--stack">
               <thead>
-                <tr style={{ borderBottom: "1px solid var(--border)", textAlign: "left", color: "var(--ink-500)" }}>
-                  <th style={{ padding: "8px 10px" }}>Executed At</th>
-                  <th style={{ padding: "8px 10px" }}>Rule</th>
-                  <th style={{ padding: "8px 10px" }}>Trigger Resource</th>
-                  <th style={{ padding: "8px 10px" }}>Status</th>
-                  <th style={{ padding: "8px 10px" }}>Output Summary</th>
+                <tr>
+                  <th scope="col">Executed At</th>
+                  <th scope="col">Rule</th>
+                  <th scope="col">Trigger Resource</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Output Summary</th>
                 </tr>
               </thead>
               <tbody>
                 {runs.map((run) => (
-                  <tr key={run.id} style={{ borderBottom: "1px solid var(--border)" }}>
-                    <td style={{ padding: "10px", color: "var(--ink-400)" }}>
-                      {new Date(run.executed_at).toLocaleString()}
-                    </td>
-                    <td style={{ padding: "10px", fontWeight: 600 }}>{run.rule_name || "Rule"}</td>
-                    <td style={{ padding: "10px", fontFamily: "monospace" }}>{run.trigger_resource_id.slice(-8)}</td>
-                    <td style={{ padding: "10px" }}>
+                  <tr key={run.id}>
+                    <td data-label="At" className="muted">{new Date(run.executed_at).toLocaleString()}</td>
+                    <td data-label="Rule"><strong>{run.rule_name || "Rule"}</strong></td>
+                    <td data-label="Resource" className="mono">{run.trigger_resource_id.slice(-8)}</td>
+                    <td data-label="Status">
                       <Pill tone={run.status === "completed" ? "verified" : run.status === "skipped" ? "neutral" : "danger"}>
                         {run.status}
                       </Pill>
                     </td>
-                    <td style={{ padding: "10px", color: "var(--ink-600)" }}>
-                      {run.execution_log || run.error_message || "Done"}
-                    </td>
+                    <td data-label="Output" className="muted">{run.execution_log || run.error_message || "Done"}</td>
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
+            </Table>
+          </TableContainer>
         )}
-      </div>
+      </section>
 
-      {/* Modal: Create/Edit Automation Rule */}
       {isCreating && (
         <Modal
           open={isCreating}
@@ -431,192 +378,112 @@ export function AutomationBuilder() {
           title="Configure Automation Rule"
           description="Establish a reliable, trigger-based workflow for applicant stage transitions."
         >
-          <form onSubmit={handleCreateRule} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-            {formError && (
-              <div style={{ padding: "10px 12px", background: "#fee2e2", color: "#991b1b", borderRadius: "8px", fontSize: "13px" }}>
-                {formError}
-              </div>
-            )}
+          <form onSubmit={handleCreateRule} className="modal-stack">
+            {formError && <p className="thread__error" role="alert">{formError}</p>}
 
-            <div>
-              <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "4px" }}>
-                Rule Name
-              </label>
+            <label className="form-field">
+              <span className="form-field__label">Rule Name</span>
               <input
                 type="text"
+                className="input"
                 required
                 value={ruleName}
                 onChange={(e) => setRuleName(e.target.value)}
                 placeholder="e.g. Invite to Interview on Shortlist"
-                style={{
-                  width: "100%",
-                  padding: "8px 12px",
-                  borderRadius: "8px",
-                  border: "1px solid var(--border)",
-                  background: "var(--surface)",
-                  color: "var(--ink-800)",
-                  fontSize: "13px",
-                }}
               />
-            </div>
+            </label>
 
-            <div>
-              <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "4px" }}>
-                Description (Optional)
-              </label>
+            <label className="form-field">
+              <span className="form-field__label">Description (Optional)</span>
               <input
                 type="text"
+                className="input"
                 value={ruleDesc}
                 onChange={(e) => setRuleDesc(e.target.value)}
                 placeholder="Explain the intent of this automation"
-                style={{
-                  width: "100%",
-                  padding: "8px 12px",
-                  borderRadius: "8px",
-                  border: "1px solid var(--border)",
-                  background: "var(--surface)",
-                  color: "var(--ink-800)",
-                  fontSize: "13px",
-                }}
               />
-            </div>
+            </label>
 
-            {/* WHEN Trigger */}
-            <div style={{ padding: "14px", borderRadius: "8px", background: "var(--surface-sunken)", border: "1px solid var(--border)" }}>
-              <strong style={{ fontSize: "13px", color: "var(--brand-700)", textTransform: "uppercase" }}>
-                WHEN (Trigger Event)
-              </strong>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "10px", marginTop: "8px" }}>
-                <div>
-                  <select
-                    value={triggerEvent}
-                    onChange={(e) => setTriggerEvent(e.target.value)}
-                    style={{
-                      width: "100%",
-                      padding: "8px",
-                      borderRadius: "6px",
-                      border: "1px solid var(--border)",
-                      background: "var(--surface)",
-                      color: "var(--ink-800)",
-                      fontSize: "13px",
-                    }}
-                  >
+            <fieldset className="opt-box rule-block">
+              <legend className="rule-block__title">WHEN (Trigger Event)</legend>
+              <div className="form-grid form-grid--2">
+                <label className="form-field">
+                  <span className="sr-only">Trigger event</span>
+                  <select className="select" value={triggerEvent} onChange={(e) => setTriggerEvent(e.target.value)}>
                     <option value="stage_entered">Candidate Enters Stage</option>
                     <option value="score_threshold">Match Score Threshold</option>
                     <option value="sla_exceeded">Stage SLA Duration Exceeded</option>
                   </select>
-                </div>
+                </label>
 
                 {triggerEvent === "stage_entered" && (
-                  <div>
-                    <select
-                      value={targetStage}
-                      onChange={(e) => setTargetStage(e.target.value)}
-                      style={{
-                        width: "100%",
-                        padding: "8px",
-                        borderRadius: "6px",
-                        border: "1px solid var(--border)",
-                        background: "var(--surface)",
-                        color: "var(--ink-800)",
-                        fontSize: "13px",
-                      }}
-                    >
+                  <label className="form-field">
+                    <span className="sr-only">Target stage</span>
+                    <select className="select" value={targetStage} onChange={(e) => setTargetStage(e.target.value)}>
                       <option value="received">Received</option>
                       <option value="screened">Screened</option>
                       <option value="shortlisted">Shortlisted</option>
                       <option value="applied_interview">Applied Interview</option>
                       <option value="offer">Offer</option>
                     </select>
-                  </div>
+                  </label>
                 )}
 
                 {triggerEvent === "score_threshold" && (
-                  <div>
+                  <label className="form-field">
+                    <span className="sr-only">Minimum score</span>
                     <input
                       type="number"
+                      className="input"
                       min="0"
                       max="100"
                       value={scoreThreshold}
                       onChange={(e) => setScoreThreshold(e.target.value)}
                       placeholder="Min score (e.g. 80)"
-                      style={{
-                        width: "100%",
-                        padding: "8px",
-                        borderRadius: "6px",
-                        border: "1px solid var(--border)",
-                        background: "var(--surface)",
-                        color: "var(--ink-800)",
-                        fontSize: "13px",
-                      }}
                     />
-                  </div>
+                  </label>
                 )}
               </div>
-            </div>
+            </fieldset>
 
-            {/* THEN Actions */}
-            <div style={{ padding: "14px", borderRadius: "8px", background: "var(--surface-sunken)", border: "1px solid var(--border)" }}>
-              <strong style={{ fontSize: "13px", color: "var(--brand-700)", textTransform: "uppercase" }}>
-                THEN (Dispatched Action)
-              </strong>
-              <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "8px" }}>
-                <select
-                  value={actionType}
-                  onChange={(e) => setActionType(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "8px",
-                    borderRadius: "6px",
-                    border: "1px solid var(--border)",
-                    background: "var(--surface)",
-                    color: "var(--ink-800)",
-                    fontSize: "13px",
-                  }}
-                >
+            <fieldset className="opt-box rule-block">
+              <legend className="rule-block__title">THEN (Dispatched Action)</legend>
+              <label className="form-field">
+                <span className="sr-only">Action type</span>
+                <select className="select" value={actionType} onChange={(e) => setActionType(e.target.value)}>
                   <option value="send_notification">Send In-App Notification</option>
                   <option value="tag_candidate">Tag Candidate Profile</option>
                 </select>
+              </label>
 
-                {actionType === "send_notification" && (
+              {actionType === "send_notification" && (
+                <label className="form-field">
+                  <span className="sr-only">Notification message</span>
                   <input
                     type="text"
+                    className="input"
                     value={actionMessage}
                     onChange={(e) => setActionMessage(e.target.value)}
                     placeholder="Custom notification message text"
-                    style={{
-                      width: "100%",
-                      padding: "8px",
-                      borderRadius: "6px",
-                      border: "1px solid var(--border)",
-                      background: "var(--surface)",
-                      color: "var(--ink-800)",
-                      fontSize: "13px",
-                    }}
                   />
-                )}
+                </label>
+              )}
 
-                {actionType === "tag_candidate" && (
+              {actionType === "tag_candidate" && (
+                <label className="form-field">
+                  <span className="sr-only">Tag name</span>
                   <input
                     type="text"
+                    className="input"
                     value={actionTag}
                     onChange={(e) => setActionTag(e.target.value)}
                     placeholder="Tag name (e.g. Star Candidate)"
-                    style={{
-                      width: "100%",
-                      padding: "8px",
-                      borderRadius: "6px",
-                      border: "1px solid var(--border)",
-                      background: "var(--surface)",
-                      color: "var(--ink-800)",
-                      fontSize: "13px",
-                    }}
                   />
-                )}
-              </div>
-            </div>
+                </label>
+              )}
+            </fieldset>
 
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "10px" }}>
+            <div className="modal-actions">
               <Button variant="secondary" onClick={() => setIsCreating(false)} disabled={isSubmitting}>
                 Cancel
               </Button>
@@ -628,7 +495,6 @@ export function AutomationBuilder() {
         </Modal>
       )}
 
-      {/* Modal: Simulation / Dry-Run Result */}
       {testResult && (
         <Modal
           open={!!testResult}
@@ -636,76 +502,52 @@ export function AutomationBuilder() {
           title="Automation Dry-Run Simulation"
           description="Simulated execution against sample application data without executing side effects."
         >
-          <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-            <div
-              style={{
-                padding: "14px",
-                borderRadius: "8px",
-                background: testResult.matched ? "#dcfce7" : "var(--surface-sunken)",
-                border: "1px solid var(--border)",
-              }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <strong style={{ fontSize: "14px", color: testResult.matched ? "#166534" : "var(--ink-800)" }}>
+          <div className="modal-stack">
+            <div className={testResult.matched ? "note-box note-box--ok" : "note-box"}>
+              <div className="app-row app-row--between">
+                <strong>
                   Overall Evaluation: {testResult.matched ? "Matched & Triggered" : "Conditions Not Met"}
                 </strong>
                 <Pill tone={testResult.matched ? "verified" : "neutral"}>
                   {testResult.matched ? "Success" : "Skipped"}
                 </Pill>
               </div>
+              {testResult.error && <p className="form-error" role="alert">{testResult.error}</p>}
               {testResult.sample_candidate && (
-                <p style={{ margin: "4px 0 0", fontSize: "12px", color: "var(--ink-600)" }}>
+                <p className="panel-note">
                   Evaluated with: <strong>{testResult.sample_candidate}</strong>
                 </p>
               )}
             </div>
 
-            <h4 style={{ margin: 0, fontSize: "13px", fontWeight: 600 }}>Condition Evaluations:</h4>
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            <h4>Condition Evaluations:</h4>
+            <ul className="kv-list">
               {(testResult.condition_evaluations ?? []).map((c, i) => (
-                <div
-                  key={i}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    padding: "8px 12px",
-                    background: "var(--surface-sunken)",
-                    borderRadius: "6px",
-                    fontSize: "12px",
-                  }}
-                >
+                <li key={i}>
                   <span>
                     {c.field} ({c.actual ?? "null"}) {c.op} {c.expected}
                   </span>
                   <Pill tone={c.matched ? "verified" : "danger"}>
                     {c.matched ? "Pass" : "Fail"}
                   </Pill>
-                </div>
+                </li>
               ))}
-            </div>
+            </ul>
 
             {testResult.simulated_actions && testResult.simulated_actions.length > 0 && (
               <>
-                <h4 style={{ margin: "10px 0 0", fontSize: "13px", fontWeight: 600 }}>Simulated Actions:</h4>
-                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                <h4>Simulated Actions:</h4>
+                <ul className="kv-list">
                   {testResult.simulated_actions.map((act, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        padding: "8px 12px",
-                        background: "var(--surface-sunken)",
-                        borderRadius: "6px",
-                        fontSize: "12px",
-                      }}
-                    >
-                      <strong>{act.type}:</strong> {act.output}
-                    </div>
+                    <li key={i}>
+                      <span><strong>{act.type}:</strong> {act.output}</span>
+                    </li>
                   ))}
-                </div>
+                </ul>
               </>
             )}
 
-            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "12px" }}>
+            <div className="modal-actions">
               <Button variant="secondary" onClick={() => setTestResult(null)}>
                 Close Simulator
               </Button>

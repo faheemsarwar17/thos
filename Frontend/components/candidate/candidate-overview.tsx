@@ -1,15 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import {
-  LuSparkles,
-  LuArrowRight,
-} from "react-icons/lu";
+import { LuSparkles } from "react-icons/lu";
 import { Badge } from "@/components/ui/badge";
-import { Breadcrumbs } from "@/components/ui/breadcrumbs";
+import { PageHeader } from "@/components/ui/page-header";
 import { Pill } from "@/components/ui/pill";
 import { ScoreBadge } from "@/components/ui/score-badge";
+import { StatTile } from "@/components/ui/stat-tile";
 import { ErrorState, LoadingState } from "@/components/ui/state";
+import { currentSession } from "@/lib/auth";
+import { nextStep } from "@/lib/candidate-next-step";
 import { useApi } from "@/lib/use-api";
 import type { AttemptSummary, CandidateApplication, CandidateProfile } from "@/lib/types";
 
@@ -46,18 +46,50 @@ export function CandidateOverview() {
     (application) => application.status !== "Decision"
   );
 
+  const inProgress = attempts.data?.attempts.some((a) => a.status === "in_progress") ?? false;
+  const first = candidate ? currentSession()?.user.display_name.split(" ")[0] ?? "" : "";
+  const stepApp = applications.data?.applications.find((app) => nextStep(app) !== null);
+  const step = stepApp ? nextStep(stepApp) : null;
+
   return (
     <div className="dashboard">
-      <div style={{ marginBottom: "16px" }}>
-        <Breadcrumbs items={[{ label: "Candidate Portal", href: "/candidate" }, { label: "Overview" }]} />
-      </div>
+      <PageHeader title={`Welcome back${first ? `, ${first}` : ""}`} meta="Here's where your applications stand" />
 
-      <div className="page-heading">
-        <div>
-          <p className="eyebrow">Candidate workspace</p>
-          <h1>Skill Profile &amp; Opportunities</h1>
-          <p>One reusable verified profile. Domain packs standardize and validate your competencies for top roles.</p>
+      {applications.data && (step && stepApp ? (
+        <Link className={`hero hero--${step.tone}`} href={step.href}>
+          <span className="hero__eyebrow">Your next step</span>
+          <b>{step.label}</b>
+          <span className="hero__sub">{stepApp.job_title} · {stepApp.organization_name}</span>
+          <span className="button button--primary hero__cta">Start</span>
+        </Link>
+      ) : (
+        <div className="hero">
+          <span className="hero__eyebrow">You&apos;re all caught up</span>
+          <b>Nothing needs you right now</b>
+          <span className="hero__sub">We&apos;ll notify you when an employer moves your application.</span>
         </div>
+      ))}
+
+      <div className="stat-grid">
+        <StatTile
+          label="Profile screening"
+          value={bestScore !== null ? Math.round(bestScore) : "—"}
+          href="/candidate/interview"
+          action={inProgress ? "Resume screening" : bestScore !== null ? "Retake" : "Start screening"}
+        />
+        <StatTile
+          label="Active applications"
+          value={activeApplications ? activeApplications.length : "—"}
+          href="/candidate/applications"
+          action="View all"
+        />
+        <StatTile label="Open jobs" value="—" href="/candidate/jobs" action="Browse" />
+        <StatTile
+          label="Discoverable"
+          value={candidate ? (candidate.consents.discovery ? "On" : "Off") : "—"}
+          href="/candidate/profile#privacy"
+          action="Privacy"
+        />
       </div>
 
       {profile.loading ? (
@@ -65,166 +97,29 @@ export function CandidateOverview() {
       ) : profile.error ? (
         <ErrorState message={profile.error.message} onRetry={profile.reload} />
       ) : (
-        <div className="candidate-grid">
-          {/* Verified Capability Panel */}
-          <section className="panel" aria-labelledby="skill-heading">
-            <div className="panel__header">
-              <div>
-                <p className="eyebrow">Verified capability</p>
-                <h2 id="skill-heading">Profile Screening</h2>
+        <>
+          <div className="two-col">
+            <section className="panel" aria-label="Applications">
+              <div className="panel__header">
+                <h2>Applications</h2>
+                <Link className="link panel__actions" href="/candidate/applications">View all applications</Link>
               </div>
-              <ScoreBadge score={bestScore} label="Top Score" />
-            </div>
-            <div className="panel-body">
-              {attempts.data && attempts.data.attempts.length === 0 ? (
-                <div style={{ padding: "14px", background: "var(--surface-sunken)", borderRadius: "8px" }}>
-                  <p className="panel-note" style={{ marginBottom: "12px" }}>
-                    You have not taken a Profile Screening yet. Complete an interactive AI voice
-                    screening to generate a portable, verified skill score that employers trust.
-                  </p>
-                </div>
-              ) : (
-                <ul className="attempt-list">
-                  {attempts.data?.attempts.map((attempt) => (
-                    <li key={attempt.id}>
-                      <span>
-                        Attempt {attempt.attempt_number} · <strong>{attempt.pack_id}</strong>
-                      </span>
-                      <Pill tone={attempt.status === "evaluated" ? "verified" : "attention"}>
-                        {attempt.status.replace(/_/g, " ")}
-                      </Pill>
-                      <ScoreBadge score={attempt.overall_score} />
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <Link className="button button--primary button--sm" href="/candidate/interview" style={{ marginTop: "14px" }}>
-                <LuSparkles size={14} aria-hidden="true" />
-                <span>
-                  {attempts.data?.attempts.some((a) => a.status === "in_progress")
-                    ? "Resume Profile Screening"
-                    : "Start Profile Screening"}
-                </span>
-              </Link>
-            </div>
-          </section>
-
-          {/* Profile Identity Card */}
-          <section className="panel" aria-labelledby="profile-heading">
-            <div className="panel__header">
-              <div>
-                <p className="eyebrow">Candidate identity</p>
-                <h2 id="profile-heading">Profile Snapshot</h2>
-              </div>
-              <Link className="table-action" href="/candidate/profile">
-                <span>Edit Profile</span>
-                <LuArrowRight size={12} aria-hidden="true" />
-              </Link>
-            </div>
-            <dl className="meta-list panel-body">
-              <div>
-                <dt>Headline</dt>
-                <dd><strong>{candidate?.profile.headline || "Add a professional headline"}</strong></dd>
-              </div>
-              <div>
-                <dt>Skills</dt>
-                <dd>
-                  {candidate?.profile.skills && candidate.profile.skills.length > 0 ? (
-                    <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "2px" }}>
-                      {candidate.profile.skills.slice(0, 5).map((skill) => (
-                        <Badge key={skill}>{skill}</Badge>
-                      ))}
-                    </div>
-                  ) : (
-                    "No skills added yet"
-                  )}
-                </dd>
-              </div>
-              <div>
-                <dt>Discovery status</dt>
-                <dd>
-                  <Pill tone={candidate?.consents.discovery ? "verified" : "neutral"}>
-                    {candidate?.consents.discovery ? "Visible to verified employers" : "Hidden from talent search"}
-                  </Pill>
-                </dd>
-              </div>
-            </dl>
-          </section>
-
-          {/* Suggested Matching Jobs */}
-          <section className="panel candidate-grid__full" aria-labelledby="matches-heading">
-            <div className="panel__header">
-              <div>
-                <p className="eyebrow">Proactive matching</p>
-                <h2 id="matches-heading">Suggested Job Matches</h2>
-              </div>
-              <Link className="table-action" href="/candidate/jobs">
-                <span>Browse all jobs</span>
-                <LuArrowRight size={12} aria-hidden="true" />
-              </Link>
-            </div>
-            <div className="panel-body">
-              {matches.loading ? (
-                <LoadingState label="Loading matched opportunities…" />
-              ) : matches.error ? (
-                <ErrorState message={matches.error.message} onRetry={matches.reload} />
-              ) : !matches.data || matches.data.matches.length === 0 ? (
-                <p className="panel-note">
-                  No automatic matches yet. Ensure discovery consent is enabled and complete a Profile Screening
-                  to be matched with relevant openings.
-                </p>
-              ) : (
-                <ul className="application-list">
-                  {matches.data.matches.map((match) => (
-                    <li key={match.id}>
-                      <div>
-                        <strong>{match.title}</strong>
-                        <span style={{ display: "block", color: "var(--ink-500)", fontSize: "12px", marginTop: "2px" }}>
-                          {match.location || "Location flexible"} · {match.reasons[0]}
-                        </span>
-                      </div>
-                      <ScoreBadge score={match.score} label="Match Score" />
-                      <Link className="button button--secondary button--sm" href="/candidate/jobs">
-                        View Role
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </section>
-
-          {/* Active Applications */}
-          <section className="panel candidate-grid__full" aria-labelledby="apps-heading">
-            <div className="panel__header">
-              <div>
-                <p className="eyebrow">Status tracking</p>
-                <h2 id="apps-heading">Active Applications</h2>
-              </div>
-              <Link className="table-action" href="/candidate/applications">
-                <span>View all applications</span>
-                <LuArrowRight size={12} aria-hidden="true" />
-              </Link>
-            </div>
-            <div className="panel-body">
               {applications.loading ? (
                 <LoadingState label="Loading your applications…" />
               ) : applications.error ? (
                 <ErrorState message={applications.error.message} onRetry={applications.reload} />
               ) : activeApplications && activeApplications.length === 0 ? (
-                <p className="panel-note">
-                  No active applications. <Link href="/candidate/jobs" style={{ color: "var(--brand-600)", fontWeight: 600 }}>Explore open jobs</Link> to submit your verified profile.
+                <p className="panel-body panel-note">
+                  No active applications. <Link href="/candidate/jobs" className="link">Explore open jobs</Link> to submit your verified profile.
                 </p>
               ) : (
-                <ul className="application-list">
+                <div>
                   {activeApplications?.map((application) => (
-                    <li key={application.id}>
-                      <div>
-                        <strong>{application.job_title}</strong>
-                        <span style={{ display: "block", color: "var(--ink-500)", fontSize: "12px", marginTop: "2px" }}>
-                          {application.organization_name}
-                        </span>
-                      </div>
+                    <div key={application.id} className="row-link">
+                      <span className="row-link__text">
+                        <b>{application.job_title}</b>
+                        <small>{application.organization_name}</small>
+                      </span>
                       <Pill tone="brand">{application.status}</Pill>
                       {application.applied_interview &&
                         ["invited", "in_progress"].includes(application.applied_interview.status) && (
@@ -236,13 +131,90 @@ export function CandidateOverview() {
                             <span>Take Job Interview</span>
                           </Link>
                         )}
-                    </li>
+                    </div>
                   ))}
-                </ul>
+                </div>
               )}
+            </section>
+
+            <section className="panel" aria-label="Suggested jobs">
+              <div className="panel__header">
+                <h2>Suggested jobs</h2>
+                <Link className="link panel__actions" href="/candidate/jobs">Browse all jobs</Link>
+              </div>
+              {matches.loading ? (
+                <LoadingState label="Loading matched opportunities…" />
+              ) : matches.error ? (
+                <ErrorState message={matches.error.message} onRetry={matches.reload} />
+              ) : !matches.data || matches.data.matches.length === 0 ? (
+                <p className="panel-body panel-note">
+                  No automatic matches yet. Ensure discovery consent is enabled and complete a Profile Screening
+                  to be matched with relevant openings.
+                </p>
+              ) : (
+                <div>
+                  {matches.data.matches.map((match) => (
+                    <div key={match.id} className="row-link">
+                      <span className="row-link__text">
+                        <b>{match.title}</b>
+                        <small>{match.location || "Location flexible"} · {match.reasons[0]}</small>
+                      </span>
+                      <ScoreBadge score={match.score} label="Match" />
+                      <Link className="button button--secondary button--sm" href="/candidate/jobs">
+                        View role
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
+
+          <details className="panel screening-history">
+            <summary>Screening history ({attempts.data?.attempts.length ?? 0})</summary>
+            {attempts.data && attempts.data.attempts.length === 0 ? (
+              <p className="panel-body panel-note">
+                You have not taken a Profile Screening yet. Complete an interactive AI voice
+                screening to generate a portable, verified skill score that employers trust.
+              </p>
+            ) : (
+              <div>
+                {attempts.data?.attempts.map((attempt) => (
+                  <div key={attempt.id} className="row-link">
+                    <span className="row-link__text">
+                      <b>Attempt {attempt.attempt_number}</b>
+                      <small>{attempt.pack_id}</small>
+                    </span>
+                    <Pill tone={attempt.status === "evaluated" ? "verified" : "attention"}>
+                      {attempt.status.replace(/_/g, " ")}
+                    </Pill>
+                    <ScoreBadge score={attempt.overall_score} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </details>
+
+          <section className="panel" aria-label="Profile snapshot">
+            <div className="panel__header">
+              <h2>Profile snapshot</h2>
+              <Link className="link panel__actions" href="/candidate/profile">Edit profile</Link>
+            </div>
+            <div className="panel-body stack-md">
+              <strong>{candidate?.profile.headline || "Add a professional headline"}</strong>
+              <div className="chip-row">
+                {candidate?.profile.skills && candidate.profile.skills.length > 0
+                  ? candidate.profile.skills.slice(0, 5).map((skill) => <Badge key={skill}>{skill}</Badge>)
+                  : <span className="panel-note">No skills added yet</span>}
+              </div>
+              <div>
+                <Pill tone={candidate?.consents.discovery ? "verified" : "neutral"}>
+                  {candidate?.consents.discovery ? "Visible to verified employers" : "Hidden from talent search"}
+                </Pill>
+              </div>
             </div>
           </section>
-        </div>
+        </>
       )}
     </div>
   );

@@ -2,15 +2,8 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
-import { 
-  LuBuilding2, 
-  LuUser, 
-  LuShieldCheck, 
-  LuSend, 
-  LuArrowLeft, 
-  LuCircleCheck, 
-  LuCircleAlert 
-} from "react-icons/lu";
+import { LuBuilding2, LuUser, LuSend, LuArrowLeft, LuCircleCheck, LuCircleAlert } from "react-icons/lu";
+import { AuthLayout } from "@/components/auth/auth-layout";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { api, ApiError, idempotencyKey, register } from "@/lib/api";
@@ -73,32 +66,18 @@ export function OrganizationApplyForm() {
   if (!ready) return null;
 
   return (
-    <main id="main-content" className="auth-page" style={{ padding: "40px 16px" }}>
-      <form className="auth-card panel auth-card--wide" onSubmit={onSubmit} aria-label="Register organization">
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
-          <div className="wordmark__symbol">T</div>
-          <span style={{ font: "600 18px Poppins, sans-serif", letterSpacing: "0.04em" }}>THOS</span>
-        </div>
-
-        <div>
-          <p className="eyebrow" style={{ color: "var(--brand-600)" }}>Organization Onboarding</p>
-          <h1 style={{ fontSize: "24px", marginTop: "2px" }}>Register Your Organization</h1>
-          <p className="panel-note" style={{ marginTop: "4px" }}>
-            Create an enterprise hiring space with verified talent discovery, structured interview stages, and domain pack enforcement.
-          </p>
-        </div>
-
+    <AuthLayout
+      wide
+      title="Register your organization"
+      subtitle="Create a hiring workspace with verified talent discovery, structured interview stages, and domain pack enforcement."
+    >
+      <form className="auth__form" onSubmit={onSubmit} aria-label="Register organization">
         {success ? (
-          <div style={{ padding: "24px", background: "var(--teal-50)", border: "1px solid var(--teal-200)", borderRadius: "8px", display: "grid", gap: "12px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", color: "var(--teal-800)" }}>
-              <LuCircleCheck size={24} style={{ color: "var(--teal-600)", flexShrink: 0 }} />
-              <h2 style={{ fontSize: "16px", fontWeight: 600, margin: 0 }}>Application Received</h2>
-            </div>
-            <p style={{ fontSize: "14px", color: "var(--teal-900)", lineHeight: 1.5 }}>
-              {success}
-            </p>
-            <div style={{ marginTop: "8px" }}>
-              <Link href="/login" className="button button--primary button--md">
+          <div className="note-box note-box--ok auth__success" role="status">
+            <h2><LuCircleCheck size={22} aria-hidden="true" /> Application Received</h2>
+            <p>{success}</p>
+            <div>
+              <Link href="/login" className="button button--primary">
                 Proceed to Sign In
               </Link>
             </div>
@@ -106,18 +85,16 @@ export function OrganizationApplyForm() {
         ) : (
           <>
             {!authenticated && (
-              <div style={{ display: "grid", gap: "16px", padding: "16px", background: "var(--surface-sunken)", borderRadius: "8px", border: "1px solid var(--border-subtle)" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <LuUser style={{ color: "var(--brand-600)" }} size={18} />
-                  <div>
-                    <h2 style={{ fontSize: "15px", fontWeight: 600, margin: 0 }}>Administrator Account</h2>
-                    <p style={{ fontSize: "12px", color: "var(--ink-500)", margin: 0 }}>The submitter will be assigned as the primary organization owner.</p>
-                  </div>
-                </div>
+              <fieldset className="auth__section auth__section--boxed">
+                <legend className="auth__legend">
+                  <LuUser size={16} aria-hidden="true" /> Administrator Account
+                </legend>
+                <p className="panel-note">The submitter will be assigned as the primary organization owner.</p>
 
-                <div className="form-grid">
-                  <FormField label="Your Full Name" required>
+                <div className="form-grid auth__grid">
+                  <FormField id="org-owner-name" label="Your Full Name" required>
                     <input
+                      id="org-owner-name"
                       className="input"
                       required
                       autoComplete="name"
@@ -127,8 +104,9 @@ export function OrganizationApplyForm() {
                     />
                   </FormField>
 
-                  <FormField label="Your Work Email" required>
+                  <FormField id="org-owner-email" label="Your Work Email" required>
                     <input
+                      id="org-owner-email"
                       className="input"
                       type="email"
                       required
@@ -140,8 +118,9 @@ export function OrganizationApplyForm() {
                   </FormField>
 
                   <div className="form-grid__full">
-                    <FormField label="Password" hint="At least 8 characters" required>
+                    <FormField id="org-owner-password" label="Password" hint="At least 8 characters" required>
                       <input
+                        id="org-owner-password"
                         className="input"
                         type="password"
                         required
@@ -154,114 +133,73 @@ export function OrganizationApplyForm() {
                     </FormField>
                   </div>
                 </div>
-              </div>
+              </fieldset>
             )}
 
-            <div style={{ display: "grid", gap: "16px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", borderBottom: "1px solid var(--border-subtle)", paddingBottom: "8px" }}>
-                <LuBuilding2 style={{ color: "var(--brand-600)" }} size={18} />
-                <h2 style={{ fontSize: "15px", fontWeight: 600, margin: 0 }}>Organization Information</h2>
-              </div>
+            <fieldset className="auth__section">
+              <legend className="auth__legend">
+                <LuBuilding2 size={16} aria-hidden="true" /> Organization Information
+              </legend>
 
-              <div className="form-grid">
-                <FormField label="Organization / Display Name" required>
-                  <input 
-                    className="input"
-                    required 
-                    value={name} 
-                    onChange={(e) => setName(e.target.value)} 
-                    placeholder="e.g. Acme Health"
-                  />
+              <div className="form-grid auth__grid">
+                <FormField id="org-name" label="Organization / Display Name" required>
+                  <input id="org-name" className="input" required value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Acme Health" />
                 </FormField>
 
-                <FormField label="Legal Entity Name" hint="Optional if same as display name">
-                  <input 
-                    className="input"
-                    value={legalName} 
-                    onChange={(e) => setLegalName(e.target.value)} 
-                    placeholder="Acme Health Technologies Inc."
-                  />
+                <FormField id="org-legal" label="Legal Entity Name" hint="Optional if same as display name">
+                  <input id="org-legal" className="input" value={legalName} onChange={(e) => setLegalName(e.target.value)} placeholder="Acme Health Technologies Inc." />
                 </FormField>
 
-                <FormField label="Company Domain" required hint="Must match email domain for instant verification">
-                  <input
-                    className="input"
-                    required
-                    placeholder="acmehealth.com"
-                    value={domain}
-                    onChange={(e) => setDomain(e.target.value)}
-                  />
+                <FormField id="org-domain" label="Company Domain" required hint="Must match email domain for instant verification">
+                  <input id="org-domain" className="input" required placeholder="acmehealth.com" value={domain} onChange={(e) => setDomain(e.target.value)} />
                 </FormField>
 
-                <FormField label="Official Contact Email" required>
-                  <input
-                    className="input"
-                    type="email"
-                    required
-                    value={contactEmail}
-                    onChange={(e) => setContactEmail(e.target.value)}
-                    placeholder="recruiting@acmehealth.com"
-                  />
+                <FormField id="org-contact-email" label="Official Contact Email" required>
+                  <input id="org-contact-email" className="input" type="email" required value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} placeholder="recruiting@acmehealth.com" />
                 </FormField>
 
-                <FormField label="Contact Phone" required>
-                  <input
-                    className="input"
-                    required
-                    value={contactPhone}
-                    onChange={(e) => setContactPhone(e.target.value)}
-                    placeholder="+1 (555) 019-2834"
-                  />
+                <FormField id="org-phone" label="Contact Phone" required>
+                  <input id="org-phone" className="input" required value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} placeholder="+1 (555) 019-2834" />
                 </FormField>
 
-                <FormField label="Registration / Tax Number" hint="e.g. EIN or CRN">
-                  <input
-                    className="input"
-                    value={registrationNumber}
-                    onChange={(e) => setRegistrationNumber(e.target.value)}
-                    placeholder="XX-XXXXXXX"
-                  />
+                <FormField id="org-registration" label="Registration / Tax Number" hint="e.g. EIN or CRN">
+                  <input id="org-registration" className="input" value={registrationNumber} onChange={(e) => setRegistrationNumber(e.target.value)} placeholder="XX-XXXXXXX" />
                 </FormField>
 
                 <div className="form-grid__full">
-                  <FormField label="Physical / Registered Office Address" required>
+                  <FormField id="org-address" label="Physical / Registered Office Address" required>
                     <textarea
-                      className="input"
+                      id="org-address"
+                      className="textarea"
                       required
                       rows={2}
                       value={address}
                       onChange={(e) => setAddress(e.target.value)}
                       placeholder="100 Innovation Way, Suite 400, Austin, TX 78701"
-                      style={{ resize: "vertical" }}
                     />
                   </FormField>
                 </div>
               </div>
-            </div>
+            </fieldset>
 
             {error && (
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 14px", background: "var(--red-50)", border: "1px solid var(--red-200)", borderRadius: "6px", color: "var(--red-700)", fontSize: "13px" }} role="alert">
-                <LuCircleAlert size={16} style={{ flexShrink: 0 }} />
+              <p className="thread__error auth__error" role="alert">
+                <LuCircleAlert size={16} aria-hidden="true" />
                 <span>{error}</span>
-              </div>
+              </p>
             )}
 
-            <div className="form-actions" style={{ display: "flex", alignItems: "center", gap: "12px", justifyContent: "flex-end", paddingTop: "8px", borderTop: "1px solid var(--border-subtle)" }}>
-              <Link className="button button--ghost button--md" href={authenticated ? "/" : "/login"}>
-                <LuArrowLeft size={14} /> {authenticated ? "Cancel" : "Back to Sign In"}
+            <div className="auth__actions">
+              <Link className="button button--ghost" href={authenticated ? "/" : "/login"}>
+                <LuArrowLeft size={14} aria-hidden="true" /> {authenticated ? "Cancel" : "Back to Sign In"}
               </Link>
               <Button type="submit" loading={busy} iconLeft={<LuSend size={15} />}>
                 {authenticated ? "Submit Application" : "Create Account & Submit"}
               </Button>
             </div>
-
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", color: "var(--ink-400)", fontSize: "11px", paddingTop: "6px" }}>
-              <LuShieldCheck size={14} style={{ color: "var(--teal-600)" }} />
-              <span>Multi-tenant data encryption &amp; enterprise RBAC protected</span>
-            </div>
           </>
         )}
       </form>
-    </main>
+    </AuthLayout>
   );
 }

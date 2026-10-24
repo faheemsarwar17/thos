@@ -57,25 +57,20 @@ export function Modal({
         ref={dialogRef}
         tabIndex={-1}
         className={cn("dialog", className)}
-        style={{ maxWidth }}
+        style={maxWidth ? { maxWidth } : undefined}
         role="dialog"
         aria-modal="true"
         aria-label={typeof title === "string" ? title : undefined}
         onClick={(e) => e.stopPropagation()}
       >
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "16px" }}>
-          <div>
+        <div className="dialog__head">
+          <div className="dialog__titles">
             <h2>{title}</h2>
-            {description && (
-              <p style={{ margin: "4px 0 0", color: "var(--ink-500)", fontSize: "13px" }}>
-                {description}
-              </p>
-            )}
+            {description && <p className="dialog__desc">{description}</p>}
           </div>
           <button
             type="button"
-            className="icon-button focus-ring"
-            style={{ width: "32px", height: "32px", flexShrink: 0 }}
+            className="icon-button"
             aria-label="Close dialog"
             onClick={onClose}
           >

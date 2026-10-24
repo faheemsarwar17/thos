@@ -1,18 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
-import {
-  LuBuilding2,
-  LuUsers,
-  LuShieldCheck,
-  LuGitFork,
-  LuMail,
-  LuHistory,
-} from "react-icons/lu";
-import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { Button } from "@/components/ui/button";
+import { Modal } from "@/components/ui/modal";
+import { PageHeader } from "@/components/ui/page-header";
 import { Pill } from "@/components/ui/pill";
-import { Tabs, type TabItem } from "@/components/ui/tabs";
 import { ErrorState, LoadingState } from "@/components/ui/state";
 import { api, ApiError } from "@/lib/api";
 import { useApi } from "@/lib/use-api";
@@ -96,7 +89,7 @@ function UnitsPanel({ org, onChanged }: { org: Organization; onChanged: () => vo
   return (
     <section className="panel" aria-labelledby="units-heading">
       <div className="panel__header">
-        <div><p className="eyebrow">Structure</p><h2 id="units-heading">Departments and units</h2></div>
+        <h2 id="units-heading">Departments and units</h2>
       </div>
       <div className="panel-body">
         {org.units.length === 0 ? (
@@ -180,7 +173,7 @@ function MembersPanel() {
   return (
     <section className="panel" aria-labelledby="members-heading">
       <div className="panel__header">
-        <div><p className="eyebrow">People</p><h2 id="members-heading">Members and roles</h2></div>
+        <h2 id="members-heading">Members and roles</h2>
       </div>
       <div className="panel-body">
         {loading ? (
@@ -250,6 +243,8 @@ function PlatformPendingPanel() {
     }[];
   }>("/api/v1/admin/organizations/pending");
   const [message, setMessage] = useState<string | null>(null);
+  const [rejecting, setRejecting] = useState<{ id: string; name: string } | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
 
   async function verify(orgId: string) {
     setMessage(null);
@@ -262,8 +257,7 @@ function PlatformPendingPanel() {
     }
   }
 
-  async function reject(orgId: string) {
-    const reason = window.prompt("Rejection reason");
+  async function reject(orgId: string, reason: string) {
     if (!reason) return;
     setMessage(null);
     try {
@@ -280,10 +274,7 @@ function PlatformPendingPanel() {
   return (
     <section className="panel" aria-labelledby="platform-pending-heading">
       <div className="panel__header">
-        <div>
-          <p className="eyebrow">Platform</p>
-          <h2 id="platform-pending-heading">Pending organization applications</h2>
-        </div>
+        <h2 id="platform-pending-heading">Pending organization applications</h2>
       </div>
       <div className="panel-body">
         {loading ? (
@@ -300,9 +291,16 @@ function PlatformPendingPanel() {
                   <strong>{org.name}</strong>
                   <span>{org.domain} · {org.contact_email}</span>
                 </div>
-                <div style={{ display: "flex", gap: "8px", flexShrink: 0 }}>
+                <div className="row-actions">
                   <Button size="small" onClick={() => void verify(org.id)}>Verify</Button>
-                  <Button size="small" variant="secondary" onClick={() => void reject(org.id)}>
+                  <Button
+                    size="small"
+                    variant="secondary"
+                    onClick={() => {
+                      setRejectReason("");
+                      setRejecting({ id: org.id, name: org.name });
+                    }}
+                  >
                     Reject
                   </Button>
                 </div>
@@ -312,6 +310,30 @@ function PlatformPendingPanel() {
         )}
         {message && <p className="panel-note">{message}</p>}
       </div>
+      {rejecting && (
+        <Modal open onClose={() => setRejecting(null)} title={`Reject ${rejecting.name}?`} description="The applicant sees this reason.">
+          <form
+            className="modal-stack"
+            onSubmit={(event) => {
+              event.preventDefault();
+              const reason = rejectReason.trim();
+              if (!reason) return;
+              const target = rejecting;
+              setRejecting(null);
+              void reject(target.id, reason);
+            }}
+          >
+            <label className="form-field">
+              <span className="form-field__label">Rejection reason</span>
+              <textarea className="textarea" required autoFocus value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} rows={3} />
+            </label>
+            <div className="modal-actions">
+              <Button variant="secondary" onClick={() => setRejecting(null)}>Cancel</Button>
+              <Button type="submit" variant="danger-filled" disabled={!rejectReason.trim()}>Reject organization</Button>
+            </div>
+          </form>
+        </Modal>
+      )}
     </section>
   );
 }
@@ -455,7 +477,7 @@ function PacksPanel() {
   return (
     <section className="panel" aria-labelledby="packs-heading">
       <div className="panel__header">
-        <div><p className="eyebrow">Domain intelligence</p><h2 id="packs-heading">Domain packs</h2></div>
+        <h2 id="packs-heading">Domain packs</h2>
         <div className="panel__actions">
           {active.data?.activation && (
             <Pill tone="verified">
@@ -696,10 +718,7 @@ function WorkflowsPanel() {
   return (
     <section className="panel" aria-labelledby="workflows-heading">
       <div className="panel__header">
-        <div>
-          <p className="eyebrow">Configuration</p>
-          <h2 id="workflows-heading">Hiring workflow</h2>
-        </div>
+        <h2 id="workflows-heading">Hiring workflow</h2>
         <div className="panel__actions">
           {data?.workflow && (
             <Pill tone="verified">Company workflow · v{data.workflow.version}</Pill>
@@ -837,7 +856,7 @@ function EmailTemplateEditor({
       <div className="email-template__row">
         <div>
           <strong>{template.label}</strong>
-          <span className="panel-note" style={{ display: "block" }}>{template.subject}</span>
+          <span className="panel-note cell-sub">{template.subject}</span>
         </div>
         <div className="workflow-list__actions">
           <Pill tone={template.is_custom ? "approval" : "brand"}>
@@ -907,10 +926,7 @@ function EmailTemplatesPanel() {
   return (
     <section className="panel" aria-labelledby="email-templates-heading">
       <div className="panel__header">
-        <div>
-          <p className="eyebrow">Candidate communication</p>
-          <h2 id="email-templates-heading">Email templates</h2>
-        </div>
+        <h2 id="email-templates-heading">Email templates</h2>
       </div>
       <div className="panel-body">
         <p className="panel-note">
@@ -946,7 +962,7 @@ function AuditPanel() {
   return (
     <section className="panel" id="audit" aria-labelledby="audit-heading">
       <div className="panel__header">
-        <div><p className="eyebrow">Governance</p><h2 id="audit-heading">Audit log</h2></div>
+        <h2 id="audit-heading">Audit log</h2>
       </div>
       <div className="panel-body">
         {loading ? (
@@ -974,45 +990,58 @@ function AuditPanel() {
   );
 }
 
+const SECTIONS = ["units", "members", "packs", "workflows", "emails", "audit", "organization"] as const;
+type Section = (typeof SECTIONS)[number];
+
+const SECTION_LABELS: Record<Section, string> = {
+  units: "Departments & units",
+  members: "Staff & roles",
+  packs: "Domain packs",
+  workflows: "Hiring workflow",
+  emails: "Email templates",
+  audit: "Audit log",
+  organization: "Organization",
+};
+
+function OrganizationPanel() {
+  return (
+    <section className="panel" aria-labelledby="organization-heading">
+      <div className="panel__header">
+        <h2 id="organization-heading">Organization</h2>
+      </div>
+      <div className="panel-body stack-md">
+        <p className="panel-note">Register another organization or review onboarding.</p>
+        <div>
+          <Link className="button button--secondary button--sm" href="/register/organization">
+            Register organization
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function AdminPage() {
   const { data, error, loading, reload } = useApi<Organization>("/api/v1/organizations/current");
-  const [activeTab, setActiveTab] = useState<"units" | "members" | "packs" | "workflows" | "emails" | "audit">("units");
+  const [activeTab, setActiveTab] = useState<Section>("units");
 
+  // Follow the hash on mount and on every hashchange (bell → #audit while already on /admin).
   useEffect(() => {
-    if (typeof window !== "undefined" && window.location.hash) {
-      const hash = window.location.hash.replace("#", "");
-      if (["units", "members", "packs", "workflows", "emails", "audit"].includes(hash)) {
-        setActiveTab(hash as typeof activeTab);
-      }
-    }
+    const sync = () => {
+      const h = window.location.hash.replace("#", "");
+      if ((SECTIONS as readonly string[]).includes(h)) setActiveTab(h as Section);
+    };
+    sync();
+    window.addEventListener("hashchange", sync);
+    return () => window.removeEventListener("hashchange", sync);
   }, []);
-
-  const tabs: TabItem<"units" | "members" | "packs" | "workflows" | "emails" | "audit">[] = [
-    { id: "units", label: "Departments & Units", icon: <LuBuilding2 size={14} /> },
-    { id: "members", label: "Staff & Roles", icon: <LuUsers size={14} /> },
-    { id: "packs", label: "Domain Packs", icon: <LuShieldCheck size={14} /> },
-    { id: "workflows", label: "Hiring Workflow", icon: <LuGitFork size={14} /> },
-    { id: "emails", label: "Email Templates", icon: <LuMail size={14} /> },
-    { id: "audit", label: "Audit Log", icon: <LuHistory size={14} /> },
-  ];
 
   return (
     <div className="dashboard">
-      <div style={{ marginBottom: "16px" }}>
-        <Breadcrumbs items={[{ label: "Employer Workspace", href: "/" }, { label: "Administration" }]} />
-      </div>
-
-      <div className="page-heading">
-        <div>
-          <p className="eyebrow">Organization governance</p>
-          <h1>{data?.organization.name ?? "Administration Console"}</h1>
-          <p>
-            {data
-              ? `Your role: ${data.role.replace(/_/g, " ")} · All mutations and configuration changes are recorded in the immutable audit log.`
-              : "Manage organization departments, staff RBAC, domain packs, and verification."}
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title={data?.organization.name ?? "Administration"}
+        meta={data ? `Your role: ${data.role.replace(/_/g, " ")} · changes are recorded in the audit log` : undefined}
+      />
 
       <PlatformPendingPanel />
 
@@ -1024,25 +1053,31 @@ export function AdminPage() {
           onRetry={reload}
         />
       ) : (
-        <div>
-          <div className="admin-tabs-nav">
-            <Tabs
-              tabs={tabs}
-              activeTab={activeTab}
-              onChange={(tab) => {
-                setActiveTab(tab);
-                window.location.hash = tab;
-              }}
-            />
-          </div>
+        <div className="settings">
+          <nav className="settings__nav" aria-label="Administration sections">
+            {SECTIONS.map((section) => (
+              <button
+                key={section}
+                type="button"
+                aria-current={activeTab === section ? "true" : undefined}
+                onClick={() => {
+                  setActiveTab(section);
+                  window.location.hash = section;
+                }}
+              >
+                {SECTION_LABELS[section]}
+              </button>
+            ))}
+          </nav>
 
-          <div style={{ marginTop: "-1px" }}>
+          <div className="settings__body">
             {activeTab === "units" && <UnitsPanel org={data} onChanged={reload} />}
             {activeTab === "members" && <MembersPanel />}
             {activeTab === "packs" && <PacksPanel />}
             {activeTab === "workflows" && <WorkflowsPanel />}
             {activeTab === "emails" && <EmailTemplatesPanel />}
             {activeTab === "audit" && <AuditPanel />}
+            {activeTab === "organization" && <OrganizationPanel />}
           </div>
         </div>
       )}

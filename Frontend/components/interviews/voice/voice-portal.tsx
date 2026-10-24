@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { LuCircleCheck, LuMic, LuTriangleAlert } from "react-icons/lu";
+import { FocusLayout } from "@/components/layout/focus-layout";
 import { api } from "@/lib/api";
 import { configureVoiceApi, publicApi, type VoiceKind } from "@/utils/api";
 import type { Interview } from "@/types/tracking";
@@ -12,22 +14,22 @@ import InterviewSetup from "@/components/interviews/voice/InterviewSetup";
 
 type Step = "permissions" | "device-check" | "setup" | "interview";
 
-function InterviewShell({ children }: { children: React.ReactNode }) {
+/** Shell-less focus layout for every voice-flow state (PRD §5.3). */
+function InterviewShell({
+  title,
+  steps,
+  full,
+  children,
+}: {
+  title: string;
+  steps?: React.ReactNode;
+  full?: boolean;
+  children: React.ReactNode;
+}) {
   return (
-    <div
-      style={{
-        position: "relative",
-        display: "flex",
-        flexDirection: "column",
-        minHeight: "calc(100dvh - var(--topbar-height))",
-        overflowX: "hidden",
-        overflowY: "auto",
-        boxSizing: "border-box",
-        backgroundColor: "var(--surface-app)",
-      }}
-    >
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>{children}</div>
-    </div>
+    <FocusLayout title={title} steps={steps} exitHref="/candidate" full={full}>
+      {children}
+    </FocusLayout>
   );
 }
 
@@ -43,30 +45,13 @@ function CenterCard({
   children?: React.ReactNode;
 }) {
   return (
-    <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "32px 20px" }}>
-      <div style={{ width: "100%", maxWidth: "680px" }}>
-        <div
-          className="panel"
-          style={{
-            padding: "48px 40px",
-            textAlign: "center",
-            boxShadow: "var(--shadow-overlay)",
-            border: "1px solid var(--border)",
-            borderRadius: "var(--radius-xl)",
-          }}
-        >
-          <p className="eyebrow" style={{ color: tone === "success" ? "var(--green-700)" : tone === "danger" ? "var(--red-600)" : "var(--brand-600)" }}>
-            {tone === "success" ? "Assessment Complete" : tone === "danger" ? "Notice" : "Voice Screening"}
-          </p>
-          <h1 style={{ fontSize: "22px", marginBottom: "10px" }}>{title}</h1>
-          {message ? (
-            <p style={{ margin: "0 auto", maxWidth: "480px", color: "var(--ink-600)", fontSize: "14px" }}>
-              {message}
-            </p>
-          ) : null}
-          {children ? <div style={{ marginTop: "24px" }}>{children}</div> : null}
-        </div>
-      </div>
+    <div className="fx-card" role={tone === "danger" ? "alert" : undefined}>
+      <span className={tone === "success" ? "fx-icon fx-icon--ok" : tone === "danger" ? "fx-icon fx-icon--warn" : "fx-icon"} aria-hidden="true">
+        {tone === "success" ? <LuCircleCheck size={24} /> : tone === "danger" ? <LuTriangleAlert size={24} /> : <LuMic size={24} />}
+      </span>
+      <h1>{title}</h1>
+      {message ? <p className="fx-card__text">{message}</p> : null}
+      {children ? <div className="fx-card__actions">{children}</div> : null}
     </div>
   );
 }
@@ -131,14 +116,14 @@ export function VoiceInterviewPortal({
 
   if (isLoading) {
     return (
-      <InterviewShell>
+      <InterviewShell title={label}>
         <CenterCard title={`Preparing ${label}`} message="Loading your interview session…" />
       </InterviewShell>
     );
   }
   if (error) {
     return (
-      <InterviewShell>
+      <InterviewShell title={label}>
         <CenterCard title={`${label} unavailable`} message={error} tone="danger" />
       </InterviewShell>
     );
@@ -150,7 +135,7 @@ export function VoiceInterviewPortal({
       Boolean(sandbox?.required) &&
       !["submitted", "expired"].includes(sandbox?.status ?? "");
     return (
-      <InterviewShell>
+      <InterviewShell title={label}>
         <CenterCard
           title={`${label} complete`}
           message={
@@ -161,14 +146,14 @@ export function VoiceInterviewPortal({
           tone="success"
         >
           {sandboxPending ? (
-            <div style={{ display: "flex", gap: "10px", justifyContent: "center", flexWrap: "wrap" }}>
+            <>
               <a className="button button--primary" href={`/candidate/sandbox/${attemptId}`}>
                 Continue to the sandbox
               </a>
               <a className="button button--secondary" href="/candidate">
                 Back to candidate home
               </a>
-            </div>
+            </>
           ) : (
             <a className="button button--primary" href="/candidate">
               Back to candidate home
@@ -180,16 +165,17 @@ export function VoiceInterviewPortal({
   }
   if (!interview) {
     return (
-      <InterviewShell>
+      <InterviewShell title={label}>
         <CenterCard title={label} message="Interview session not found." tone="danger" />
       </InterviewShell>
     );
   }
 
   return (
-    <InterviewShell>
-      <div style={{ width: "100%", maxWidth: "720px", margin: "0 auto", padding: "32px 16px 8px" }}>
-        <p className="eyebrow" style={{ textAlign: "center" }}>{label}</p>
+    <InterviewShell
+      title={label}
+      full={currentStep === "interview"}
+      steps={
         <StepIndicator
           current={
             currentStep === "permissions"
@@ -202,7 +188,8 @@ export function VoiceInterviewPortal({
           }
           steps={["Permissions", "Device check", "Setup", "Interview"]}
         />
-      </div>
+      }
+    >
 
       {currentStep === "permissions" && (
         <PermissionCheck cameraRequired={false} onComplete={() => setCurrentStep("device-check")} />
@@ -229,21 +216,12 @@ export function VoiceInterviewPortal({
           {setupStarted && (
             <div
               suppressHydrationWarning={true}
-              style={
-                currentStep === "interview"
-                  ? { flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden" }
-                  : {
-                      position: "absolute",
-                      inset: 0,
-                      opacity: 0,
-                      pointerEvents: "none",
-                      overflow: "hidden"
-                    }
-              }
+              className={currentStep === "interview" ? "fx-room" : "fx-room fx-room--hidden"}
             >
               <LiveKitRoomWrapper
                 token={attemptId}
                 interview={interview}
+                title={label}
                 onRequestInterviewComplete={requestInterviewComplete}
                 onInterviewFinished={markInterviewFinished}
                 uiMode={currentStep === "setup" ? "setup" : "interview"}
@@ -314,10 +292,30 @@ export function ProfileScreeningLauncher() {
     };
   }, []);
 
-  if (loading) return <CenterCard title="Profile Screening" message="Starting your session…" />;
-  if (error) return <CenterCard title="Profile Screening" message={error} tone="danger" />;
-  if (!attemptId) {
-    return <CenterCard title="Profile Screening" message="No attempt available." tone="danger" />;
+  const explainer =
+    "A short AI voice interview on your target domain. Your best score is shared with employers you apply to.";
+  if (loading) {
+    return (
+      <InterviewShell title="Skill screening">
+        <CenterCard title="Skill screening" message={`${explainer} Starting your session…`} />
+      </InterviewShell>
+    );
   }
-  return <VoiceInterviewPortal kind="profile" attemptId={attemptId} label="Profile Screening" />;
+  if (error) {
+    return (
+      <InterviewShell title="Skill screening">
+        <CenterCard title="Skill screening" message={error} tone="danger">
+          <a className="button button--secondary" href="/candidate">Back to candidate home</a>
+        </CenterCard>
+      </InterviewShell>
+    );
+  }
+  if (!attemptId) {
+    return (
+      <InterviewShell title="Skill screening">
+        <CenterCard title="Skill screening" message="No attempt available." tone="danger" />
+      </InterviewShell>
+    );
+  }
+  return <VoiceInterviewPortal kind="profile" attemptId={attemptId} label="Skill screening" />;
 }

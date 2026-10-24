@@ -13,6 +13,7 @@ import { AuthedImage } from "@/components/ui/authed-image";
 import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
 import { Pill, type PillTone } from "@/components/ui/pill";
+import { Popover } from "@/components/ui/popover";
 import { ScoreBadge } from "@/components/ui/score-badge";
 import { Tabs, type TabItem } from "@/components/ui/tabs";
 import { ErrorState, LoadingState } from "@/components/ui/state";
@@ -43,14 +44,14 @@ function IdentityVerdictBlock({ verdict }: { verdict: IdentityVerification }) {
       <div className="identity-verdict__row">
         <Pill tone={display.tone}>{display.label}</Pill>
         {typeof verdict.confidence === "number" && (
-          <span className="panel-note" style={{ fontVariantNumeric: "tabular-nums" }}>
+          <span className="panel-note tabular-nums">
             confidence {Math.round(verdict.confidence * 100)}%
           </span>
         )}
       </div>
       {verdict.detail && <p className="panel-note">{verdict.detail}</p>}
       {verdict.checked_at && (
-        <p className="panel-note" style={{ fontSize: "11px", color: "var(--ink-400)" }}>
+        <p className="panel-note panel-note--xs">
           Checked {new Date(verdict.checked_at).toLocaleString()}
         </p>
       )}
@@ -165,48 +166,52 @@ function ScorecardForm({
 
       {error && <p className="form-error" role="alert">{error}</p>}
 
-      <Button size="sm" onClick={submit} loading={busy}>
-        Save Scorecard
-      </Button>
-
-      <div style={{ marginTop: "20px", paddingTop: "16px", borderTop: "1px solid var(--border)" }}>
-        <h4 style={{ margin: "0 0 8px", fontSize: "13px" }}>Direct Candidate Communication</h4>
-        <p className="panel-note" style={{ marginBottom: "12px" }}>
-          Trigger branded automated notification workflows for candidate progression.
-        </p>
-        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() => submitDecision("Selected", "Congratulations! We would like to extend an offer.")}
-            disabled={busy}
-            iconLeft={<LuAward size={13} />}
-          >
-            Extend Offer
-          </Button>
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() =>
-              submitDecision("Online Interview 2", "We would like to invite you to a second round online interview.")
-            }
-            disabled={busy}
-            iconLeft={<LuMail size={13} />}
-          >
-            Invite Round 2
-          </Button>
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() =>
-              submitDecision("Onsite Interview", "We would like to invite you to an onsite interview.")
-            }
-            disabled={busy}
-            iconLeft={<LuMail size={13} />}
-          >
-            Invite Onsite
-          </Button>
-        </div>
+      <div className="scorecard-form__actions">
+        <Button size="sm" onClick={submit} loading={busy}>
+          Save Scorecard
+        </Button>
+        <Popover
+          label="Candidate decision"
+          align="left"
+          className="menu popover--up"
+          trigger={({ open, toggle, ref }) => (
+            <button ref={ref} type="button" className="button button--secondary button--sm" aria-expanded={open} onClick={toggle} disabled={busy}>
+              Decide…
+            </button>
+          )}
+        >
+          {(close) => (
+            <>
+              <button
+                type="button"
+                className="menu__item"
+                disabled={busy}
+                onClick={() => { close(); void submitDecision("Selected", "Congratulations! We would like to extend an offer."); }}
+              >
+                <span><LuAward size={13} aria-hidden="true" /> Extend Offer</span>
+                <small>Sends the branded offer email</small>
+              </button>
+              <button
+                type="button"
+                className="menu__item"
+                disabled={busy}
+                onClick={() => { close(); void submitDecision("Online Interview 2", "We would like to invite you to a second round online interview."); }}
+              >
+                <span><LuMail size={13} aria-hidden="true" /> Invite Round 2</span>
+                <small>Second-round online interview invitation</small>
+              </button>
+              <button
+                type="button"
+                className="menu__item"
+                disabled={busy}
+                onClick={() => { close(); void submitDecision("Onsite Interview", "We would like to invite you to an onsite interview."); }}
+              >
+                <span><LuMail size={13} aria-hidden="true" /> Invite Onsite</span>
+                <small>Onsite interview invitation</small>
+              </button>
+            </>
+          )}
+        </Popover>
       </div>
     </div>
   );
@@ -308,8 +313,9 @@ export function ApplicationDrawer({
     <Drawer
       open={true}
       onClose={onClose}
+      className="drawer--wide"
       title={
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+        <span className="app-head">
           {!blindMode && application?.candidate_avatar_url && (
             <AuthedImage
               path={application.candidate_avatar_url}
@@ -317,33 +323,15 @@ export function ApplicationDrawer({
               size={36}
             />
           )}
-          {blindMode && (
-            <div
-              style={{
-                width: "36px",
-                height: "36px",
-                borderRadius: "50%",
-                background: "var(--brand-100)",
-                color: "var(--brand-700)",
-                display: "grid",
-                placeItems: "center",
-                fontWeight: 700,
-                fontSize: "13px",
-              }}
-            >
-              #
-            </div>
-          )}
-          <div>
+          {blindMode && <span className="avatar app-head__avatar" aria-hidden="true">#</span>}
+          <span className="app-head__text">
             <span>{candidateDisplayName}</span>
-            <span style={{ display: "block", fontSize: "12px", color: "var(--ink-500)", fontWeight: 400 }}>
-              {application?.job_title}
-            </span>
-          </div>
-        </div>
+            <small>{application?.job_title}</small>
+          </span>
+        </span>
       }
       subtitle={
-        <div style={{ display: "flex", gap: "8px", marginTop: "6px" }}>
+        <span className="app-head__meta">
           {application && <Pill tone="brand">{application.stage_label}</Pill>}
           {application && (
             <ScoreBadge
@@ -352,7 +340,7 @@ export function ApplicationDrawer({
             />
           )}
           {blindMode && <Pill tone="neutral">Blind Review Active</Pill>}
-        </div>
+        </span>
       }
     >
       {loading ? (
@@ -366,15 +354,15 @@ export function ApplicationDrawer({
         <div>
           <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
 
-          <div style={{ marginTop: "20px" }}>
+          <div className="app-body">
             {activeTab === "overview" && (
-              <div style={{ display: "grid", gap: "20px" }}>
+              <div className="app-stack">
                 {application.job_match_reasons && (
                   <section aria-labelledby="drawer-match-reasoning">
-                    <h3 id="drawer-match-reasoning" style={{ marginBottom: "6px" }}>
+                    <h3 id="drawer-match-reasoning">
                       AI Match Reasoning
                     </h3>
-                    <p className="panel-note" style={{ background: "var(--surface-sunken)", padding: "12px", borderRadius: "8px" }}>
+                    <p className="panel-note note-box">
                       {application.job_match_reasons}
                     </p>
                   </section>
@@ -382,28 +370,17 @@ export function ApplicationDrawer({
 
                 {application.ai_improvement_feedback && (
                   <section aria-labelledby="drawer-ai-feedback">
-                    <h3 id="drawer-ai-feedback" style={{ marginBottom: "6px", display: "flex", alignItems: "center", gap: "6px", color: "var(--brand-700)" }}>
-                      <LuSparkles size={14} /> AI Improvement Feedback &amp; Advice
+                    <h3 id="drawer-ai-feedback" className="app-body__ai">
+                      <LuSparkles size={14} aria-hidden="true" /> AI Improvement Feedback &amp; Advice
                     </h3>
-                    <div
-                      className="panel-note"
-                      style={{
-                        background: "var(--brand-50)",
-                        border: "1px solid var(--brand-200)",
-                        padding: "14px",
-                        borderRadius: "8px",
-                        whiteSpace: "pre-wrap",
-                        lineHeight: 1.6,
-                        color: "var(--ink-800)",
-                      }}
-                    >
+                    <div className="panel-note note-box note-box--brand">
                       {application.ai_improvement_feedback}
                     </div>
                   </section>
                 )}
 
                 <section aria-labelledby="drawer-profile">
-                  <h3 id="drawer-profile" style={{ marginBottom: "6px" }}>
+                  <h3 id="drawer-profile">
                     Profile Snapshot
                   </h3>
                   <p className="panel-note">
@@ -432,14 +409,14 @@ export function ApplicationDrawer({
             )}
 
             {activeTab === "interview" && (
-              <div style={{ display: "grid", gap: "20px" }}>
+              <div className="app-stack">
                 <section aria-labelledby="drawer-interview">
-                  <h3 id="drawer-interview" style={{ marginBottom: "8px" }}>
+                  <h3 id="drawer-interview">
                     Job Interview Status
                   </h3>
                   {!application.applied_interview ? (
-                    <div style={{ padding: "16px", background: "var(--surface-sunken)", borderRadius: "8px" }}>
-                      <p className="panel-note" style={{ marginBottom: "12px" }}>
+                    <div className="note-box app-stack">
+                      <p className="panel-note">
                         Not invited yet. Inviting sends the locked question pool for this requisition to the candidate.
                       </p>
                       {inviteError && <p className="form-error" role="alert">{inviteError}</p>}
@@ -448,8 +425,8 @@ export function ApplicationDrawer({
                       </Button>
                     </div>
                   ) : (
-                    <div style={{ display: "grid", gap: "14px" }}>
-                      <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                    <div className="app-stack">
+                      <div className="app-row">
                         <Pill
                           tone={
                             application.applied_interview.status === "evaluated"
@@ -493,7 +470,7 @@ export function ApplicationDrawer({
                                   <li key={index}>
                                     <strong>{ev.dimension_id}:</strong> {ev.text}
                                     {ev.timestamp_range && (
-                                      <span style={{ marginLeft: "6px", color: "var(--ink-400)", fontVariantNumeric: "tabular-nums" }}>
+                                      <span className="evidence-time tabular-nums">
                                         [{ev.timestamp_range.start}s – {ev.timestamp_range.end}s]
                                       </span>
                                     )}
@@ -511,11 +488,11 @@ export function ApplicationDrawer({
             )}
 
             {activeTab === "scorecard" && (
-              <div style={{ display: "grid", gap: "20px" }}>
+              <div className="app-stack">
                 {application.scorecards.length > 0 && (
                   <section aria-labelledby="existing-scorecards">
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
-                      <h3 id="existing-scorecards" style={{ margin: 0 }}>
+                    <div className="app-row app-row--between">
+                      <h3 id="existing-scorecards">
                         Submitted Reviewer Scorecards ({application.scorecards.length})
                       </h3>
                       {application.scorecards.length >= 2 && (
@@ -532,19 +509,11 @@ export function ApplicationDrawer({
                     </div>
 
                     {application.scorecards.length >= 2 && (
-                      <div
-                        style={{
-                          padding: "12px 14px",
-                          borderRadius: "8px",
-                          background: "var(--surface-sunken)",
-                          border: "1px solid var(--border)",
-                          marginBottom: "12px",
-                        }}
-                      >
-                        <strong style={{ fontSize: "13px", display: "block", marginBottom: "4px" }}>
+                      <div className="note-box">
+                        <strong className="note-box__title">
                           Reviewer Panel Calibration Analysis
                         </strong>
-                        <p className="panel-note" style={{ fontSize: "12px", margin: 0 }}>
+                        <p className="panel-note">
                           {new Set(application.scorecards.map((s) => s.recommendation)).size === 1
                             ? "All panel reviewers agree on the candidate recommendation. Score distribution is well-aligned."
                             : "Panel divergence detected: Multiple reviewers submitted conflicting recommendations. Review panel discussion is recommended before issuing an offer or rejection."}
@@ -555,22 +524,22 @@ export function ApplicationDrawer({
                     <ul className="scorecard-list">
                       {application.scorecards.map((card) => (
                         <li key={card.id}>
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                          <div className="app-row app-row--between">
                             <strong>{card.reviewer_name}</strong>
                             <Pill tone={card.recommendation === "advance" || card.recommendation === "hire" ? "approval" : "neutral"}>
                               {card.recommendation}
                             </Pill>
                           </div>
                           {card.scores && Object.keys(card.scores).length > 0 && (
-                            <div style={{ display: "flex", gap: "10px", marginTop: "6px", flexWrap: "wrap" }}>
+                            <div className="app-row app-row--wrap">
                               {Object.entries(card.scores).map(([dim, val]) => (
-                                <span key={dim} style={{ fontSize: "11px", color: "var(--ink-600)" }}>
+                                <span key={dim} className="panel-note panel-note--xs">
                                   {dim}: <strong>{val}/100</strong>
                                 </span>
                               ))}
                             </div>
                           )}
-                          {card.note && <p style={{ margin: "6px 0 0", fontSize: "13px" }}>{card.note}</p>}
+                          {card.note && <p className="scorecard-list__note">{card.note}</p>}
                         </li>
                       ))}
                     </ul>
@@ -598,15 +567,15 @@ export function ApplicationDrawer({
 
             {activeTab === "history" && (
               <section aria-labelledby="drawer-history">
-                <h3 id="drawer-history" style={{ marginBottom: "12px" }}>
+                <h3 id="drawer-history">
                   Immutable Transition Audit Log
                 </h3>
                 <ul className="history-list">
                   {(application.history || application.transitions || []).map((entry: { id: string; action?: string; detail?: string; from_stage?: string; to_stage?: string; reason_code?: string; note?: string; timestamp?: string; occurred_at?: string; actor_id?: string; actor_name?: string }) => (
                     <li key={entry.id}>
                       <strong>{entry.action ?? `${entry.from_stage} → ${entry.to_stage}`}</strong>
-                      <p style={{ margin: "2px 0 0" }}>{entry.detail ?? entry.note ?? entry.reason_code}</p>
-                      <span style={{ fontVariantNumeric: "tabular-nums" }}>
+                      <p>{entry.detail ?? entry.note ?? entry.reason_code}</p>
+                      <span className="tabular-nums">
                         {(entry.timestamp || entry.occurred_at) ? new Date(entry.timestamp || entry.occurred_at!).toLocaleString() : "Recently"} · Actor: {entry.actor_id ?? entry.actor_name ?? "System"}
                       </span>
                     </li>

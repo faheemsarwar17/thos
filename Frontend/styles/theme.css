@@ -1,0 +1,180 @@
+/**
+ * THOS "D" design system — semantic tokens (light + dark) and legacy re-mapping.
+ * Spec: .scratch/ui-revamp/prd.md §4. Loaded right after tokens.css so these values win.
+ * New code uses the semantic names (--bg, --surface, --ink, --brand…). Legacy names are re-pointed below
+ * so older CSS adopts the new palette until every screen is migrated.
+ */
+
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f7f7f8;
+  --surface: #ffffff;
+  --surface-2: #f2f3f5;
+  --surface-3: #eaebee;
+  --border: #e5e6ea;
+  --border-strong: #d4d6dc;
+  --ink: #111318;
+  --ink-2: #4b505b;
+  --ink-3: #767c88;
+  --ink-4: #9aa0ab;
+  --brand: #2f5bea;
+  --brand-hover: #2449c4;
+  --brand-ink: #ffffff;
+  --brand-soft: #eef2fe;
+  --brand-line: #c9d5fb;
+  --teal: #0f7f74;
+  --teal-soft: #e5f4f1;
+  --amber: #9a5b00;
+  --amber-soft: #fcf1de;
+  --red: #b8322a;
+  --red-soft: #fbeceb;
+  --green: #1d7a45;
+  --green-soft: #e6f4ec;
+  --violet: #6247b8;
+  --violet-soft: #f0ecfb;
+  --viz-1: #2a78d6;
+  --viz-2: #eb6834;
+  --viz-3: #1baf7a;
+  --viz-4: #eda100;
+  --viz-mag: #2a78d6;
+  --viz-grid: #ececef;
+  --viz-axis: #d4d6dc;
+  --shadow-1: 0 1px 2px rgba(17, 19, 24, 0.05);
+  --shadow-pop: 0 12px 32px -8px rgba(17, 19, 24, 0.22), 0 0 0 1px rgba(17, 19, 24, 0.06);
+  --scrim: rgba(10, 11, 14, 0.35);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0c0d10;
+  --surface: #141519;
+  --surface-2: #1a1c21;
+  --surface-3: #22252b;
+  --border: #25282f;
+  --border-strong: #343842;
+  --ink: #eceef2;
+  --ink-2: #b0b5bf;
+  --ink-3: #7d838f;
+  --ink-4: #5c626d;
+  --brand: #7090ff;
+  --brand-hover: #8aa3ff;
+  --brand-ink: #0c0d10;
+  --brand-soft: #1b2340;
+  --brand-line: #2e3d73;
+  --teal: #4cc7b8;
+  --teal-soft: #11302c;
+  --amber: #e7a94a;
+  --amber-soft: #33260f;
+  --red: #f0837a;
+  --red-soft: #3a1a18;
+  --green: #5fcf8e;
+  --green-soft: #12301f;
+  --violet: #a996f2;
+  --violet-soft: #251f3d;
+  --viz-1: #3987e5;
+  --viz-2: #d95926;
+  --viz-3: #199e70;
+  --viz-4: #c98500;
+  --viz-mag: #3987e5;
+  --viz-grid: #22252b;
+  --viz-axis: #343842;
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-pop: 0 16px 40px -8px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --scrim: rgba(0, 0, 0, 0.55);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0c0d10;
+    --surface: #141519;
+    --surface-2: #1a1c21;
+    --surface-3: #22252b;
+    --border: #25282f;
+    --border-strong: #343842;
+    --ink: #eceef2;
+    --ink-2: #b0b5bf;
+    --ink-3: #7d838f;
+    --ink-4: #5c626d;
+    --brand: #7090ff;
+    --brand-hover: #8aa3ff;
+    --brand-ink: #0c0d10;
+    --brand-soft: #1b2340;
+    --brand-line: #2e3d73;
+    --teal: #4cc7b8;
+    --teal-soft: #11302c;
+    --amber: #e7a94a;
+    --amber-soft: #33260f;
+    --red: #f0837a;
+    --red-soft: #3a1a18;
+    --green: #5fcf8e;
+    --green-soft: #12301f;
+    --violet: #a996f2;
+    --violet-soft: #251f3d;
+    --viz-1: #3987e5;
+    --viz-2: #d95926;
+    --viz-3: #199e70;
+    --viz-4: #c98500;
+    --viz-mag: #3987e5;
+    --viz-grid: #22252b;
+    --viz-axis: #343842;
+    --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-pop: 0 16px 40px -8px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.06);
+    --scrim: rgba(0, 0, 0, 0.55);
+  }
+}
+
+/* Theme-independent geometry + legacy re-mapping (var() resolves per theme automatically). */
+:root,
+[data-theme] {
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-xl: 16px;
+  --radius-xs: 4px;
+  --radius-sm: var(--r-sm);
+  --radius-md: var(--r-md);
+  --radius-lg: var(--r-lg);
+  --radius-xl: var(--r-xl);
+  --rail-w: 60px;
+  --panel-w: 248px;
+  --topbar-h: 52px;
+  --topbar-height: var(--topbar-h);
+  --tabbar-h: 60px;
+  --focus-ring: 0 0 0 2px var(--surface), 0 0 0 4px var(--brand);
+  --focus: var(--brand);
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* legacy → semantic */
+  --surface-app: var(--bg);
+  --surface-card: var(--surface);
+  --surface-card-hover: var(--surface-2);
+  --surface-card-active: var(--surface-3);
+  --surface-sunken: var(--surface-2);
+  --surface-subtle: var(--surface-2);
+  --surface-warm: var(--surface-2);
+  --border-subtle: var(--border);
+  --border-focus: var(--brand);
+  --ink-900: var(--ink);
+  --ink-800: var(--ink);
+  --ink-700: var(--ink-2);
+  --ink-600: var(--ink-2);
+  --ink-500: var(--ink-3);
+  --ink-400: var(--ink-4);
+  --ink-300: var(--border-strong);
+  --ink-200: var(--border);
+  --ink-100: var(--surface-2);
+  --brand-500: var(--brand);
+  --brand-600: var(--brand-hover);
+  --brand-200: var(--brand-line);
+  --brand-100: var(--brand-soft);
+  --shadow-xs: var(--shadow-1);
+  --shadow-sm: var(--shadow-1);
+  --shadow-card: var(--shadow-1);
+  --shadow-hover: var(--shadow-1);
+  --shadow-popover: var(--shadow-pop);
+  --shadow-overlay: var(--shadow-pop);
+  --shadow-drawer: var(--shadow-pop);
+}

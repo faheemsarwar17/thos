@@ -1,18 +1,20 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-import {
-  LuSave,
-  LuUpload,
-} from "react-icons/lu";
-import { Breadcrumbs } from "@/components/ui/breadcrumbs";
+import { LuFileUp, LuSave, LuUpload } from "react-icons/lu";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
+import { PageHeader } from "@/components/ui/page-header";
+import { Switch } from "@/components/ui/switch";
 import { ErrorState, LoadingState } from "@/components/ui/state";
 import { api, ApiError } from "@/lib/api";
 import { useApi } from "@/lib/use-api";
 import type { CandidateProfile, ParsedCv } from "@/lib/types";
 import { AvatarPanel } from "@/components/candidate/avatar-panel";
+
+const SECTIONS = ["profile", "photo", "resume", "privacy"] as const;
+type Section = (typeof SECTIONS)[number];
+const SECTION_LABELS: Record<Section, string> = { profile: "Profile", photo: "Photo", resume: "Resume", privacy: "Privacy" };
 
 export function CandidateProfilePage() {
   const { data, error, loading, reload } = useApi<{ candidate: CandidateProfile }>(
@@ -32,6 +34,18 @@ export function CandidateProfilePage() {
   const [cvError, setCvError] = useState<string | null>(null);
   const [cvMessage, setCvMessage] = useState<string | null>(null);
   const [parsedPreview, setParsedPreview] = useState<ParsedCv | null>(null);
+  const [section, setSection] = useState<Section>("profile");
+
+  // Section follows the hash (Home's "Privacy" tile links to #privacy).
+  useEffect(() => {
+    const sync = () => {
+      const h = window.location.hash.replace("#", "");
+      if ((SECTIONS as readonly string[]).includes(h)) setSection(h as Section);
+    };
+    sync();
+    window.addEventListener("hashchange", sync);
+    return () => window.removeEventListener("hashchange", sync);
+  }, []);
 
   useEffect(() => {
     const candidate = data?.candidate;
@@ -152,226 +166,198 @@ export function CandidateProfilePage() {
 
   return (
     <div className="dashboard">
-      <div style={{ marginBottom: "16px" }}>
-        <Breadcrumbs items={[{ label: "Candidate Portal", href: "/candidate" }, { label: "Profile & Privacy" }]} />
-      </div>
+      <PageHeader title="Profile & privacy" meta="Control what verified employers see and who can discover you" />
 
-      <div className="page-heading">
-        <div>
-          <p className="eyebrow">Identity &amp; Governance</p>
-          <h1>Profile &amp; Privacy Settings</h1>
-          <p>Control what verified employers see, and manage who is allowed to discover your talent profile.</p>
-        </div>
-      </div>
+      <div className="settings">
+        <nav className="settings__nav" aria-label="Profile sections">
+          {SECTIONS.map((id) => (
+            <button
+              key={id}
+              type="button"
+              aria-current={section === id ? "true" : undefined}
+              onClick={() => {
+                setSection(id);
+                window.location.hash = id;
+              }}
+            >
+              {SECTION_LABELS[id]}
+            </button>
+          ))}
+        </nav>
 
-      <div className="candidate-grid">
-        {/* Profile Details Form */}
-        <form className="panel" onSubmit={save} aria-labelledby="edit-heading">
-          <div className="panel__header">
-            <div>
-              <p className="eyebrow">Verified Profile</p>
-              <h2 id="edit-heading">Edit Profile Information</h2>
-            </div>
-          </div>
-          <div className="form-grid panel-body">
-            <div className="form-grid__full">
-              <FormField label="Professional Headline" hint="Brief one-line summary displayed on matching cards.">
-                <input
-                  className="input"
-                  value={headline}
-                  onChange={(e) => setHeadline(e.target.value)}
-                  placeholder="e.g. Senior Software Engineer · 6 years distributed systems"
-                  maxLength={200}
-                />
-              </FormField>
-            </div>
-
-            <div className="form-grid__full">
-              <FormField label="Executive Summary">
-                <textarea
-                  className="textarea"
-                  value={summary}
-                  onChange={(e) => setSummary(e.target.value)}
-                  rows={4}
-                  placeholder="Detailed overview of technical background and accomplishments…"
-                  maxLength={4000}
-                />
-              </FormField>
-            </div>
-
-            <FormField label="Core Skills (comma separated)">
-              <input
-                className="input"
-                value={skills}
-                onChange={(e) => setSkills(e.target.value)}
-                placeholder="Python, React, TypeScript, System Design"
-              />
-            </FormField>
-
-            <FormField label="Credentials & Certifications (comma separated)">
-              <input
-                className="input"
-                value={credentials}
-                onChange={(e) => setCredentials(e.target.value)}
-                placeholder="BS Computer Science, AWS Solutions Architect"
-              />
-            </FormField>
-
-            {saveError && <p className="form-error form-grid__full" role="alert">{saveError}</p>}
-            {saved && <p className="form-success form-grid__full" role="status">Profile saved successfully.</p>}
-
-            <div className="form-actions form-grid__full">
-              <Button type="submit" loading={busy} iconLeft={<LuSave size={14} />}>
-                Save Profile Changes
-              </Button>
-            </div>
-          </div>
-        </form>
-
-        {/* Privacy & Discovery Consent Controls */}
-        <section className="panel" aria-labelledby="privacy-heading">
-          <div className="panel__header">
-            <div>
-              <p className="eyebrow">Consent &amp; Discovery</p>
-              <h2 id="privacy-heading">Privacy Controls</h2>
-            </div>
-          </div>
-          <div className="panel-body consent-list">
-            <div className="consent-row">
-              <div>
-                <strong>Proactive Talent Discovery</strong>
-                <p className="panel-note">
-                  Allow verified employers to find your profile and skill scores in search.
-                  Disabling removes you from discovery results; existing applications preserve their lawful records.
-                </p>
+        <div className="settings__body">
+          {section === "profile" && (
+            <form className="panel" onSubmit={save} aria-labelledby="edit-heading">
+              <div className="panel__header">
+                <h2 id="edit-heading">Profile information</h2>
               </div>
-              <label className="switch">
-                <input
-                  type="checkbox"
+              <div className="form-grid panel-body">
+                <div className="form-grid__full">
+                  <FormField id="profile-headline" label="Professional Headline" hint="Brief one-line summary displayed on matching cards.">
+                    <input
+                      id="profile-headline"
+                      className="input"
+                      value={headline}
+                      onChange={(e) => setHeadline(e.target.value)}
+                      placeholder="e.g. Senior Software Engineer · 6 years distributed systems"
+                      maxLength={200}
+                    />
+                  </FormField>
+                </div>
+
+                <div className="form-grid__full">
+                  <FormField id="profile-summary" label="Executive Summary">
+                    <textarea
+                      id="profile-summary"
+                      className="textarea"
+                      value={summary}
+                      onChange={(e) => setSummary(e.target.value)}
+                      rows={4}
+                      placeholder="Detailed overview of technical background and accomplishments…"
+                      maxLength={4000}
+                    />
+                  </FormField>
+                </div>
+
+                <FormField id="profile-skills" label="Core Skills (comma separated)">
+                  <input
+                    id="profile-skills"
+                    className="input"
+                    value={skills}
+                    onChange={(e) => setSkills(e.target.value)}
+                    placeholder="Python, React, TypeScript, System Design"
+                  />
+                </FormField>
+
+                <FormField id="profile-credentials" label="Credentials & Certifications (comma separated)">
+                  <input
+                    id="profile-credentials"
+                    className="input"
+                    value={credentials}
+                    onChange={(e) => setCredentials(e.target.value)}
+                    placeholder="BS Computer Science, AWS Solutions Architect"
+                  />
+                </FormField>
+
+                {saveError && <p className="form-error form-grid__full" role="alert">{saveError}</p>}
+                {saved && <p className="form-success form-grid__full" role="status">Profile saved successfully.</p>}
+
+                <div className="form-actions form-grid__full">
+                  <Button type="submit" loading={busy} iconLeft={<LuSave size={14} />}>
+                    Save Profile Changes
+                  </Button>
+                </div>
+              </div>
+            </form>
+          )}
+
+          {section === "photo" && <AvatarPanel />}
+
+          {section === "resume" && (
+            <form className="panel" onSubmit={parseCv} aria-labelledby="cv-heading">
+              <div className="panel__header">
+                <h2 id="cv-heading">Resume</h2>
+              </div>
+              <div className="panel-body stack-md">
+                <p className="panel-note">
+                  Upload your resume (PDF, DOCX, or text). We structure it once, embed the competencies, and match
+                  against newly published requisitions automatically.
+                </p>
+
+                <label className="dropzone">
+                  <LuFileUp size={22} aria-hidden="true" />
+                  <span><strong>Choose a resume file</strong> (PDF, DOCX, TXT, MD, CSV)</span>
+                  {cvFile && (
+                    <span className="dropzone__file">
+                      Selected file: {cvFile.name} ({(cvFile.size / 1024).toFixed(1)} KB)
+                    </span>
+                  )}
+                  <input
+                    type="file"
+                    className="file-input-hidden"
+                    aria-label="Upload Resume File (PDF or DOCX)"
+                    accept=".pdf,.docx,.txt,.md,.csv,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+                    onChange={(event) => onCvFile(event.target.files?.[0] ?? null)}
+                  />
+                </label>
+
+                <FormField id="cv-text" label="Or Paste Resume Plain Text">
+                  <textarea
+                    id="cv-text"
+                    className="textarea"
+                    value={cvText}
+                    onChange={(event) => {
+                      setCvText(event.target.value);
+                      if (event.target.value.trim()) setCvFile(null);
+                    }}
+                    rows={8}
+                    placeholder="Paste raw resume text here if not uploading a file…"
+                    maxLength={100000}
+                  />
+                </FormField>
+
+                {cvError && <p className="form-error" role="alert">{cvError}</p>}
+                {cvMessage && <p className="form-success" role="status">{cvMessage}</p>}
+
+                <div className="form-actions">
+                  <Button
+                    type="submit"
+                    loading={cvBusy}
+                    disabled={cvBusy || (!cvFile && cvText.trim().length < 40)}
+                    iconLeft={<LuUpload size={14} />}
+                  >
+                    Parse &amp; update profile
+                  </Button>
+                </div>
+
+                {parsedPreview && parsedPreview.sections.length > 0 && (
+                  <div className="stack-md">
+                    <h3>Structured resume preview ({parsedPreview.parser})</h3>
+                    <ul className="kv-list kv-list--stack">
+                      {parsedPreview.sections.map((item, idx) => (
+                        <li key={`${item.title}-${idx}`}>
+                          <strong>{item.title}</strong>
+                          {item.description && <span className="panel-note">{item.description}</span>}
+                          <span className="panel-note">{item.content.slice(0, 3).join(" · ")}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </form>
+          )}
+
+          {section === "privacy" && (
+            <section className="panel" aria-labelledby="privacy-heading">
+              <div className="panel__header">
+                <h2 id="privacy-heading">Privacy</h2>
+              </div>
+              <div className="panel-body stack-md">
+                <Switch
+                  label="Let employers discover me"
+                  description="Verified employers can find your profile and skill scores in search. Turning this off removes you from discovery; existing applications keep their lawful records."
                   checked={Boolean(consents.discovery)}
                   disabled={consentBusy}
-                  onChange={(event) => toggleConsent("discovery", event.target.checked)}
+                  onChange={(next) => void toggleConsent("discovery", next)}
                 />
-                <span style={{ fontWeight: 600, color: consents.discovery ? "var(--teal-700)" : "var(--ink-400)" }}>
-                  {consents.discovery ? "Enabled" : "Disabled"}
-                </span>
-              </label>
-            </div>
-
-            <div className="consent-row">
-              <div>
-                <strong>Application Processing</strong>
-                <p className="panel-note">
-                  Required to apply to open requisitions. Your profile snapshot is shared only with
-                  organizations you explicitly apply to.
-                </p>
-              </div>
-              <label className="switch">
-                <input
-                  type="checkbox"
+                <Switch
+                  label="Process my applications"
+                  description="Required to apply to open requisitions. Your profile snapshot is shared only with organizations you apply to."
                   checked={Boolean(consents.application_processing)}
                   disabled={consentBusy}
-                  onChange={(event) => toggleConsent("application_processing", event.target.checked)}
+                  onChange={(next) => void toggleConsent("application_processing", next)}
                 />
-                <span style={{ fontWeight: 600, color: consents.application_processing ? "var(--green-700)" : "var(--ink-400)" }}>
-                  {consents.application_processing ? "Enabled" : "Disabled"}
-                </span>
-              </label>
-            </div>
-
-            <div style={{ marginTop: "10px", padding: "10px 14px", background: "var(--surface-sunken)", borderRadius: "8px" }}>
-              <p className="panel-note" style={{ fontSize: "12px" }}>
-                <strong>Matching Vector Index:</strong>{" "}
-                {candidate.has_embedding
-                  ? `Active (${candidate.embedding_model ?? "vector embedded"})`
-                  : "Not generated yet — parse a CV or save profile to activate semantic matching."}
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* Reference Photo Verification Avatar */}
-        <AvatarPanel />
-
-        {/* CV Parser & Embedding Panel */}
-        <form className="panel candidate-grid__full" onSubmit={parseCv} aria-labelledby="cv-heading">
-          <div className="panel__header">
-            <div>
-              <p className="eyebrow">Semantic resume parsing</p>
-              <h2 id="cv-heading">Parse CV for Semantic Matching</h2>
-            </div>
-          </div>
-          <div className="form-grid panel-body">
-            <p className="panel-note form-grid__full">
-              Upload your resume (PDF, DOCX, or text). We structure it once, embed the competencies, and match
-              against newly published requisitions automatically.
-            </p>
-
-            <div className="form-grid__full">
-              <FormField label="Upload Resume File (PDF or DOCX)">
-                <input
-                  type="file"
-                  className="input"
-                  style={{ padding: "8px" }}
-                  accept=".pdf,.docx,.txt,.md,.csv,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
-                  onChange={(event) => onCvFile(event.target.files?.[0] ?? null)}
-                />
-              </FormField>
-              {cvFile && (
-                <p className="panel-note" style={{ marginTop: "4px", color: "var(--brand-600)", fontWeight: 500 }}>
-                  Selected file: {cvFile.name} ({(cvFile.size / 1024).toFixed(1)} KB)
+                <p className="note-box panel-note">
+                  <strong>Matching vector index:</strong>{" "}
+                  {candidate.has_embedding
+                    ? `Active (${candidate.embedding_model ?? "vector embedded"})`
+                    : "Not generated yet — parse a CV or save profile to activate semantic matching."}
                 </p>
-              )}
-            </div>
-
-            <div className="form-grid__full">
-              <FormField label="Or Paste Resume Plain Text">
-                <textarea
-                  className="textarea"
-                  value={cvText}
-                  onChange={(event) => {
-                    setCvText(event.target.value);
-                    if (event.target.value.trim()) setCvFile(null);
-                  }}
-                  rows={8}
-                  placeholder="Paste raw resume text here if not uploading a file…"
-                  maxLength={100000}
-                />
-              </FormField>
-            </div>
-
-            {cvError && <p className="form-error form-grid__full" role="alert">{cvError}</p>}
-            {cvMessage && <p className="form-success form-grid__full" role="status">{cvMessage}</p>}
-
-            <div className="form-actions form-grid__full">
-              <Button
-                type="submit"
-                loading={cvBusy}
-                disabled={cvBusy || (!cvFile && cvText.trim().length < 40)}
-                iconLeft={<LuUpload size={14} />}
-              >
-                Parse &amp; Embed Resume
-              </Button>
-            </div>
-
-            {parsedPreview && parsedPreview.sections.length > 0 && (
-              <div className="form-grid__full" style={{ marginTop: "12px" }}>
-                <p className="eyebrow">Structured Resume Preview ({parsedPreview.parser})</p>
-                <ul className="consent-list" style={{ marginTop: "8px" }}>
-                  {parsedPreview.sections.map((section, idx) => (
-                    <li key={`${section.title}-${idx}`} style={{ padding: "10px 14px", background: "var(--surface-sunken)", borderRadius: "8px" }}>
-                      <strong>{section.title}</strong>
-                      {section.description && <p className="panel-note">{section.description}</p>}
-                      <p className="panel-note" style={{ color: "var(--ink-700)" }}>
-                        {section.content.slice(0, 3).join(" · ")}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
               </div>
-            )}
-          </div>
-        </form>
+            </section>
+          )}
+        </div>
       </div>
     </div>
   );

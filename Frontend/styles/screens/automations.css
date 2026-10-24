@@ -1,0 +1,17 @@
+/* Automations (PRD §6.1) */
+.section { margin-bottom: 18px; }
+.section__title { margin-bottom: 10px; font-size: 13.5px; font-weight: 600; }
+.recipe-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 12px; }
+.recipe-card { display: grid; align-content: space-between; justify-items: start; gap: 8px; padding: 14px 16px; border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); }
+.recipe-card h3 { font-size: 13.5px; }
+.recipe-card p { font-size: 12.5px; color: var(--ink-3); }
+.cell-title { display: block; }
+.cell-sub { display: block; font-size: 11.5px; font-weight: 400; color: var(--ink-3); }
+.chip-row { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.chip-code { padding: 2px 6px; border-radius: 4px; background: var(--surface-2); font-family: var(--font-mono); font-size: 11.5px; }
+.row-actions { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.rule-block { border: 1px solid var(--border); }
+.rule-block__title { padding: 0 4px; font-size: 11.5px; font-weight: 700; letter-spacing: 0.04em; color: var(--brand); }
+.form-grid--2 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); padding: 0; }
+.note-box--ok { border-color: var(--green); background: var(--green-soft); }
+.table td .switch-row { gap: 8px; }

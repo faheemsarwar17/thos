@@ -64,55 +64,20 @@ export default function MicLevelIndicator({ micSourceRef, audioContextRef, isMut
   }, [micSourceRef, audioContextRef, isMuted]);
 
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "8px",
-        padding: "6px 12px",
-        backgroundColor: isMuted ? "rgba(239, 68, 68, 0.1)" : "rgba(15, 23, 42, 0.4)",
-        border: `1px solid ${isMuted ? "rgba(239, 68, 68, 0.2)" : "rgba(255, 255, 255, 0.1)"}`,
-        borderRadius: "20px",
-        transition: "all 0.2s ease",
-        margin: "0 auto",
-        width: "fit-content",
-      }}
-      title={isMuted ? "Microphone is muted" : "Microphone active"}
-    >
-      {isMuted ? (
-        <RiMicOffLine size={16} color="#ef4444" />
-      ) : (
-        <RiMicLine size={16} color="var(--color-text-muted)" />
-      )}
-      
-      <div style={{ display: "flex", gap: "3px", alignItems: "center", height: "12px" }}>
+    <div className={isMuted ? "fx-mic is-muted" : "fx-mic"} title={isMuted ? "Microphone is muted" : "Microphone active"}>
+      {isMuted ? <RiMicOffLine size={16} aria-hidden /> : <RiMicLine size={16} aria-hidden />}
+
+      <div className="fx-mic__bars" aria-hidden="true">
         {[0, 1, 2, 3, 4].map((i) => {
           // Calculate if this bar should be active based on current level (0-100)
           // Thresholds: 10, 30, 50, 70, 90
           const threshold = i * 20 + 10;
           const isActive = !isMuted && level >= threshold;
-          
-          return (
-            <div
-              key={i}
-              style={{
-                width: "4px",
-                height: isActive ? "100%" : "30%",
-                backgroundColor: isMuted 
-                  ? "rgba(239, 68, 68, 0.3)" 
-                  : isActive 
-                    ? "var(--color-accent)" 
-                    : "rgba(255, 255, 255, 0.2)",
-                borderRadius: "2px",
-                transition: "height 0.1s ease, background-color 0.1s ease",
-              }}
-            />
-          );
+
+          return <span key={i} className={isActive ? "is-active" : undefined} />;
         })}
       </div>
-      <span style={{ fontSize: "0.75rem", color: isMuted ? "#ef4444" : "var(--color-text-muted)", marginLeft: "4px", fontWeight: 500 }}>
-        {isMuted ? "Muted" : "Mic"}
-      </span>
+      <span className="fx-mic__label">{isMuted ? "Muted" : "Mic"}</span>
     </div>
   );
 }

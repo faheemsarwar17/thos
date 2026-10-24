@@ -1,16 +1,10 @@
 "use client";
 
 import { useMemo, useState, type FormEvent } from "react";
-import {
-  LuSearch,
-  LuSparkles,
-  LuFilter,
-  LuMail,
-} from "react-icons/lu";
+import { LuSearch, LuSparkles, LuMail } from "react-icons/lu";
 import { Badge } from "@/components/ui/badge";
-import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { Button } from "@/components/ui/button";
-import { FormField } from "@/components/ui/form-field";
+import { PageHeader } from "@/components/ui/page-header";
 import { Pill } from "@/components/ui/pill";
 import { ScoreBadge } from "@/components/ui/score-badge";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/state";
@@ -65,71 +59,58 @@ export function TalentDiscoveryPage() {
     }
   }
 
+  function clearFilters() {
+    setQuery("");
+    setPackId("");
+    setMinScore("");
+  }
+
   return (
     <div className="dashboard">
-      <div style={{ marginBottom: "16px" }}>
-        <Breadcrumbs items={[{ label: "Employer Workspace", href: "/" }, { label: "Talent Discovery" }]} />
-      </div>
+      <PageHeader title="Talent" meta="Verified candidates who applied or opted into discovery" />
 
-      <div className="page-heading">
-        <div>
-          <p className="eyebrow">Explainable search</p>
-          <h1>Talent Discovery</h1>
-          <p>
-            Search verified talent who applied to your requisitions or opted into discovery consent.
-            All matches remain tenant-scoped and citation-explainable.
-          </p>
-        </div>
-      </div>
-
-      <form className="panel form-panel" onSubmit={(event) => void search(event)} aria-label="Talent search filters">
-        <div className="panel__header">
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <LuFilter size={16} style={{ color: "var(--ink-400)" }} />
-            <h2 style={{ fontSize: "15px" }}>Search Filters</h2>
-          </div>
-          <Button type="submit" size="sm" loading={busy} iconLeft={<LuSearch size={14} />}>
-            Search Talent
-          </Button>
-        </div>
-
-        <div className="form-grid">
-          <FormField label="Keywords (Name, Skills, Title)">
+      <form className="filter-bar" role="search" aria-label="Talent search filters" onSubmit={(event) => void search(event)}>
+        <label className="filter-bar__field filter-bar__field--grow">
+          <span className="sr-only">Keywords (Name, Skills, Title)</span>
+          <span className="input-icon">
             <input
               className="input"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="e.g. Distributed Systems, Python, React…"
+              placeholder="Keywords: name, skills, title…"
             />
-          </FormField>
-
-          <FormField label="Domain Pack Scorecard">
-            <select
-              className="select"
-              value={packId}
-              onChange={(event) => setPackId(event.target.value)}
-            >
-              <option value="">Any Domain Pack</option>
-              {(packs.data?.packs ?? []).map((pack) => (
-                <option key={pack.pack_id} value={pack.pack_id}>
-                  {pack.display_name}
-                </option>
-              ))}
-            </select>
-          </FormField>
-
-          <FormField label="Minimum Screening Score Floor (0–100)">
-            <input
-              type="number"
-              className="input"
-              min={0}
-              max={100}
-              value={minScore}
-              onChange={(event) => setMinScore(event.target.value)}
-              placeholder="e.g. 70"
-            />
-          </FormField>
-        </div>
+            <LuSearch size={15} aria-hidden="true" />
+          </span>
+        </label>
+        <label className="filter-bar__field">
+          <span className="sr-only">Domain Pack Scorecard</span>
+          <select className="select" value={packId} onChange={(event) => setPackId(event.target.value)}>
+            <option value="">Any Domain Pack</option>
+            {(packs.data?.packs ?? []).map((pack) => (
+              <option key={pack.pack_id} value={pack.pack_id}>
+                {pack.display_name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="filter-bar__field filter-bar__field--sm">
+          <span className="sr-only">Minimum Screening Score Floor (0–100)</span>
+          <input
+            type="number"
+            className="input"
+            min={0}
+            max={100}
+            value={minScore}
+            onChange={(event) => setMinScore(event.target.value)}
+            placeholder="Min score"
+          />
+        </label>
+        <Button type="submit" size="sm" loading={busy} iconLeft={<LuSearch size={14} />}>
+          Search
+        </Button>
+        <Button type="button" variant="ghost" size="sm" onClick={clearFilters}>
+          Clear
+        </Button>
       </form>
 
       {error && <ErrorState message={error} onRetry={() => void search()} />}
@@ -157,91 +138,48 @@ export function TalentDiscoveryPage() {
           }
         />
       ) : results ? (
-        <section className="panel" aria-label="Talent search results">
-          <div className="panel__header">
-            <div>
-              <p className="eyebrow">Verified pool</p>
-              <h2>{results.length} Candidate{results.length === 1 ? "" : "s"} Found</h2>
-            </div>
-          </div>
-
-          <ul className="pack-list" style={{ padding: "16px 20px" }}>
+        <section aria-label="Talent search results">
+          <p className="results-count">{results.length} candidate{results.length === 1 ? "" : "s"} found</p>
+          <ul className="talent-grid">
             {results.map((person) => (
-              <li
-                key={person.candidate_id}
-                style={{
-                  display: "flex",
-                  alignItems: "flex-start",
-                  justifyContent: "space-between",
-                  gap: "16px",
-                  padding: "16px",
-                  borderRadius: "10px",
-                  border: "1px solid var(--border)",
-                  marginBottom: "12px",
-                  background: "white",
-                  boxShadow: "var(--shadow-xs)",
-                }}
-              >
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
-                    <div
-                      style={{
-                        width: "32px",
-                        height: "32px",
-                        borderRadius: "50%",
-                        background: "var(--brand-100)",
-                        color: "var(--brand-700)",
-                        display: "grid",
-                        placeItems: "center",
-                        fontSize: "12px",
-                        fontWeight: 700,
-                      }}
-                    >
-                      {person.display_name.slice(0, 2).toUpperCase()}
-                    </div>
-                    <div>
-                      <strong style={{ fontSize: "14px", color: "var(--ink-900)" }}>
-                        {person.display_name}
-                      </strong>
-                      <span style={{ marginLeft: "8px", color: "var(--ink-500)", fontSize: "12px" }}>
-                        {person.headline || "Verified Talent"}
-                      </span>
-                    </div>
-                  </div>
-
-                  {person.email && (
-                    <p style={{ margin: "4px 0 8px", color: "var(--ink-500)", fontSize: "12px" }}>
-                      <LuMail size={12} style={{ display: "inline", marginRight: "4px" }} />
-                      {person.email}
-                    </p>
-                  )}
-
-                  {person.skills.length > 0 && (
-                    <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", margin: "8px 0" }}>
-                      {person.skills.slice(0, 6).map((skill) => (
-                        <Badge key={skill} variant="default">
-                          {skill}
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-
-                  {person.why.length > 0 && (
-                    <div style={{ marginTop: "10px", padding: "8px 12px", background: "var(--surface-sunken)", borderRadius: "6px" }}>
-                      <p style={{ margin: 0, fontSize: "11px", fontWeight: 600, color: "var(--ink-700)" }}>
-                        Match Explanation:
-                      </p>
-                      <ul style={{ margin: "4px 0 0", paddingLeft: "16px", fontSize: "11px", color: "var(--ink-600)" }}>
-                        {person.why.map((reason) => (
-                          <li key={reason}>{reason}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+              <li key={person.candidate_id} className="talent-card">
+                <div className="talent-card__head">
+                  <span className="avatar" aria-hidden="true">{person.display_name.slice(0, 2).toUpperCase()}</span>
+                  <span className="talent-card__who">
+                    <strong>{person.display_name}</strong>
+                    <small>{person.headline || "Verified Talent"}</small>
+                  </span>
+                  <ScoreBadge score={person.best_score} />
                 </div>
 
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "8px", flexShrink: 0 }}>
-                  <ScoreBadge score={person.best_score} />
+                {person.email && (
+                  <p className="talent-card__email">
+                    <LuMail size={12} aria-hidden="true" /> {person.email}
+                  </p>
+                )}
+
+                {person.skills.length > 0 && (
+                  <div className="talent-card__skills">
+                    {person.skills.slice(0, 6).map((skill) => (
+                      <Badge key={skill} variant="default">
+                        {skill}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+
+                {person.why.length > 0 && (
+                  <div className="talent-card__why">
+                    <p>Why this match</p>
+                    <ul>
+                      {person.why.map((reason) => (
+                        <li key={reason}>{reason}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                <div className="talent-card__foot">
                   <Pill tone={person.application_count > 0 ? "brand" : "verified"}>
                     {person.application_count > 0
                       ? `${person.application_count} Requisition${person.application_count === 1 ? "" : "s"}`
@@ -255,7 +193,7 @@ export function TalentDiscoveryPage() {
         </section>
       ) : (
         <EmptyState
-          icon={<LuSparkles size={24} style={{ color: "var(--brand-500)" }} />}
+          icon={<LuSparkles size={24} />}
           title="Explore the Verified Talent Network"
           description="Filter candidates by verified domain skill scores, evaluated rubric dimensions, and technical specialties."
           action={

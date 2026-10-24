@@ -833,6 +833,8 @@ def _cfg(settings) -> ProctoringConfig
 - Modify: `Backend/app/ai/runtime/manager.py`
 - Test: `Backend/tests/test_proctoring_runtime.py`
 
+> Note: livekit-agents 1.8.6 has both `AgentSession.interrupt()` and `input.set_audio_enabled()`, so the server mutes the candidate itself. While paused the session also skips `user_turn_granted`. `_last_agent_text` strips the "Thanks. Let's continue." prefix so repeated resumes don't stack it. The shared helper is `service.record_server_event` (session events and violations; no-op unless the record is enabled). It is covered by a test in `test_proctoring_service.py`.
+
 **Changes to `InterviewSession`:**
 
 1. **New state in `__init__`:**
@@ -907,7 +909,7 @@ async def pause_for_proctoring(session_id: str) -> bool:
 
 **WebSocket (client contract).** The new message types `proctoring_warning`, `proctoring_resumed` and `proctoring_terminated` are sent from `service.dispatch_decision` and the acknowledge route. The session's own `interview_completed` keeps `reason: "proctoring_terminated"`.
 
-- [ ] **Step 1: Failing tests** `tests/test_proctoring_runtime.py`. These are unit tests with fakes; no LiveKit is needed.
+- [x] **Step 1: Failing tests** `tests/test_proctoring_runtime.py`. These are unit tests with fakes; no LiveKit is needed.
   - Build an `InterviewSession` with a fake `agent_session` (an object with `interrupt()`, `say()` returning a handle with `async wait_for_playout()`, `input.set_audio_enabled()`), `config={"proctoring_enabled": True}` and the `settings` fixture.
   - Monkeypatch `_send_completed` and `_schedule_analysis` to record calls.
   - **Timer:** with `asyncio`'s loop time faked by monkeypatching `self._now_loop = lambda: t[0]`, start 600 s, advance 100, pause, advance 1000 (no fire), resume → remaining ≈ 500.
@@ -915,8 +917,8 @@ async def pause_for_proctoring(session_id: str) -> bool:
   - **terminate:** never calls `say`, calls `_send_completed("proctoring_terminated")` once, and a second call is a no-op.
   - **manager:** with no session, every function returns False.
   - **watchdog:** with `heartbeat_timeout_seconds=0.05`, `heartbeat_interval_seconds=0.01`, `_candidate_connected=True` and no heartbeat, `record_server_violation` (monkeypatched) is called **once** with `detector_heartbeat_lost`.
-- [ ] **Step 2:** Run. Expected: FAIL. **Step 3:** Implement. **Step 4:** `uv run pytest -q`. Expected: PASS.
-- [ ] **Step 5: Commit**: `feat(proctoring): pausable interview runtime, proctoring termination and heartbeat watchdog`
+- [x] **Step 2:** Run. Expected: FAIL. **Step 3:** Implement. **Step 4:** `uv run pytest -q`. Expected: PASS.
+- [x] **Step 5: Commit**: `feat(proctoring): pausable interview runtime, proctoring termination and heartbeat watchdog`
 
 ---
 

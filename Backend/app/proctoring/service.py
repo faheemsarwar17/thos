@@ -15,9 +15,10 @@ from typing import Any
 
 from app.core.config import Settings
 from app.db import store
-from app.db.database import Connection
+from app.db.database import Connection, connect
 from app.logging import logger
 from app.proctoring import policy
+from app.proctoring.config import ProctoringConfig
 from app.services.identity import decode_data_url_image
 
 _EVENT_ID = re.compile(r"^pev_[0-9a-f]{16}$")
@@ -248,3 +249,60 @@ async def dispatch_decision(
     update(conn, attempt_id=attempt_id, status="submitted")
     conn.commit()
     await synthesis_service.analyze_interview(attempt_id)
+
+
+async def record_server_event(
+    settings: Settings,
+    *,
+    kind: str,
+    attempt_id: str,
+    type_: str,
+    metrics: dict[str, Any] | None = None,
+) -> policy.Decision | None:
+    """Record an event raised on the server (heartbeat watchdog, voice monitor, room).
+
+    Opens its own connection, so it is safe to call from background tasks. Does nothing
+    unless proctoring is enabled on the attempt.
+    """
+    conn = connect(settings.database)
+    try:
+        current = store.get_attempt_proctoring(conn, kind=kind, attempt_id=attempt_id)
+        if not (current or {}).get("enabled"):
+            return None
+        now = utcnow()
+        if type_ in policy.SESSION_EVENTS:
+            mutate(
+                conn,
+                kind=kind,
+                attempt_id=attempt_id,
+                fn=lambda r: policy.record_session_event(r, type_=type_, now=now, metrics=metrics),
+            )
+            conn.commit()
+            return None
+        cfg = ProctoringConfig.from_settings(settings)
+        record, decision = mutate(
+            conn,
+            kind=kind,
+            attempt_id=attempt_id,
+            fn=lambda r: policy.apply_event(
+                r,
+                type_=type_,
+                now=now,
+                max_warnings=cfg.max_warnings,
+                cooldown_seconds=cfg.strike_cooldown_seconds,
+                flag_dedup_seconds=cfg.flag_dedup_seconds,
+                metrics=metrics,
+            ),
+        )
+        conn.commit()
+        await dispatch_decision(
+            conn=conn,
+            settings=settings,
+            kind=kind,
+            attempt_id=attempt_id,
+            decision=decision,
+            record=record,
+        )
+        return decision
+    finally:
+        conn.close()

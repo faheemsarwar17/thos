@@ -267,3 +267,51 @@ def test_dispatch_warn_pauses_session_and_sends_ws(
         ]
     finally:
         conn.close()
+
+
+def test_record_server_event_only_when_enabled(
+    client: TestClient, settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    sent: list[dict] = []
+
+    async def fake_send(session_id: str, message: dict) -> None:
+        sent.append(message)
+
+    monkeypatch.setattr(service, "_send_ws", fake_send)
+    profile_id = profile_attempt(client)
+    result = asyncio.run(
+        service.record_server_event(
+            settings, kind="profile", attempt_id=profile_id, type_="detector_heartbeat_lost"
+        )
+    )
+    assert result is None and sent == []
+
+    conn = connect(settings.database)
+    try:
+        service.ensure_record(
+            conn, kind="profile", attempt_id=profile_id, enabled=True, now=datetime.now(UTC)
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    asyncio.run(
+        service.record_server_event(
+            settings, kind="profile", attempt_id=profile_id, type_="candidate_disconnected"
+        )
+    )
+    decision = asyncio.run(
+        service.record_server_event(
+            settings, kind="profile", attempt_id=profile_id, type_="detector_heartbeat_lost"
+        )
+    )
+    assert decision.action == "warn" and decision.strike == 1
+    assert sent[-1]["type"] == "proctoring_warning"
+    conn = connect(settings.database)
+    try:
+        record = store.get_attempt_proctoring(conn, kind="profile", attempt_id=profile_id)
+        assert [e["type"] for e in record["events"]] == [
+            "candidate_disconnected",
+            "detector_heartbeat_lost",
+        ]
+    finally:
+        conn.close()

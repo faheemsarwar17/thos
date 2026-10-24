@@ -70,16 +70,29 @@ async def request_user_end(session_id: str) -> None:
         await session.request_user_end()
 
 
-# --- interview proctoring (filled in by the runtime task) ------------------------
+# --- interview proctoring ------------------------------------------------------------
+# Each returns False when no live, started session exists, so the caller falls back.
 
 
 async def pause_for_proctoring(session_id: str) -> bool:
-    return False
+    session = get_session(session_id)
+    if session is None or not session.has_started:
+        return False
+    await session.pause_for_proctoring()
+    return True
 
 
 async def resume_after_proctoring(session_id: str) -> bool:
-    return False
+    session = get_session(session_id)
+    if session is None or not session.has_started:
+        return False
+    await session.resume_after_proctoring()
+    return True
 
 
 async def terminate_for_proctoring(session_id: str, *, reason: str) -> bool:
-    return False
+    session = get_session(session_id)
+    if session is None or not session.has_started:
+        return False
+    await session.terminate_for_proctoring(reason)
+    return True

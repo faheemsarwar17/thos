@@ -8,6 +8,7 @@ consumes, so no frontend changes are required.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 from datetime import UTC, datetime
 from typing import Any
 
@@ -28,6 +29,7 @@ from app.websocket.manager import get_websocket_manager
 from .graph_llm import GraphLLM
 
 _SAY_PLAYOUT_TIMEOUT = 60.0
+_RESUME_PREFIX = "Thanks. Let's continue."
 
 
 class InterviewSession:
@@ -55,6 +57,16 @@ class InterviewSession:
         self._completed = False
         self._started_ok = False
         self._persisted_assessments = 0
+        # Interview proctoring (PRD §5.5-5.6): the server pauses, resumes or ends the session.
+        self.proctoring_enabled = bool(config.get("proctoring_enabled"))
+        self._paused = False
+        self._deadline_remaining: float | None = None
+        self._timer_started_at: float | None = None
+        self._last_agent_text = ""
+        self._candidate_connected = False
+        self._watchdog_task: asyncio.Task[None] | None = None
+        self._voice_monitor: Any = None
+        self._now_loop = lambda: asyncio.get_running_loop().time()
 
     # ------------------------------------------------------------- lifecycle
 
@@ -69,6 +81,7 @@ class InterviewSession:
             self.room = rtc.Room()
             await self.room.connect(self.settings.livekit_ws_url, self._agent_token())
             logger.info(f"Interview session {self.attempt_id} joined room {self.room.name}")
+            self._track_candidate_presence()
 
             await self._send_setup("initializing_agents")
             self._build_pipeline()
@@ -81,11 +94,12 @@ class InterviewSession:
                 {"status": "ready", "session_id": self.attempt_id},
             )
             duration = max(1, int(self.plan.duration_minutes or 10))
-            self._timer_task = self._spawn(
-                self._duration_timer(duration * 60),
-                name=f"interview-timer-{self.attempt_id}",
-            )
+            self._start_timer(duration * 60)
             self._started_ok = True
+            if self.proctoring_enabled:
+                self._watchdog_task = self._spawn(
+                    self._heartbeat_watchdog(), name=f"proctoring-watchdog-{self.attempt_id}"
+                )
             opening = await self.engine.opening() if self.engine else ""
             if opening:
                 self.agent_session.say(opening, allow_interruptions=True)
@@ -105,6 +119,8 @@ class InterviewSession:
         """Tear down the pipeline and room connection."""
         if self._timer_task and not self._timer_task.done():
             self._timer_task.cancel()
+        if self._watchdog_task and not self._watchdog_task.done():
+            self._watchdog_task.cancel()
         self._flush_assessments()  # never lose trailing assessments
         try:
             if self.agent_session is not None:
@@ -124,6 +140,123 @@ class InterviewSession:
         if not self._started_ok:
             return  # never started (or start failed) — nothing to wrap up
         await self._finish(reason="user_requested_end")
+
+    # ----------------------------------------------------------- proctoring
+
+    async def pause_for_proctoring(self) -> None:
+        """A warning is open: stop the AI, mute the candidate, freeze the clock."""
+        if self._completed or self._paused:
+            return
+        self._paused = True
+        self._pause_timer()
+        if self.agent_session is not None:
+            with contextlib.suppress(Exception):
+                self.agent_session.interrupt()
+            with contextlib.suppress(Exception):
+                self.agent_session.input.set_audio_enabled(False)
+
+    async def resume_after_proctoring(self) -> None:
+        """The warning was acknowledged: restart the clock and repeat the last question."""
+        if not self._paused or self._completed:
+            return
+        self._paused = False
+        if self.agent_session is not None:
+            with contextlib.suppress(Exception):
+                self.agent_session.input.set_audio_enabled(True)
+        self._resume_timer()
+        text = f"{_RESUME_PREFIX} {self._last_agent_text}".strip()
+        if self.agent_session is not None:
+            with contextlib.suppress(Exception):
+                self.agent_session.say(text, allow_interruptions=True)
+
+    async def terminate_for_proctoring(self, reason: str) -> None:
+        """The third violation: end now, with no closing line."""
+        if self._completed:
+            return
+        if self.agent_session is not None:
+            with contextlib.suppress(Exception):
+                self.agent_session.interrupt()
+        logger.info(f"Interview session {self.attempt_id} ended by proctoring ({reason})")
+        await self._finish(reason="proctoring_terminated", speak_closing=False)
+
+    def _remember_agent_text(self, text: str) -> None:
+        # The resume line repeats the last question; never let the prefix stack up.
+        if text.startswith(_RESUME_PREFIX):
+            text = text[len(_RESUME_PREFIX) :].strip()
+        if text:
+            self._last_agent_text = text
+
+    def _track_candidate_presence(self) -> None:
+        room = self.room
+        if room is None:
+            return
+
+        def is_candidate(participant: Any) -> bool:
+            return str(getattr(participant, "identity", "")).startswith("candidate-")
+
+        self._candidate_connected = any(
+            is_candidate(p) for p in room.remote_participants.values()
+        )
+
+        @room.on("participant_connected")
+        def _on_connected(participant: Any) -> None:
+            if is_candidate(participant):
+                self._candidate_connected = True
+
+        @room.on("participant_disconnected")
+        def _on_disconnected(participant: Any) -> None:
+            if not is_candidate(participant):
+                return
+            self._candidate_connected = False
+            if self.proctoring_enabled and not self._completed:
+                self._spawn(
+                    self._record_proctoring_event("candidate_disconnected", {}),
+                    name=f"proctoring-disconnect-{self.attempt_id}",
+                )
+
+    async def _record_proctoring_event(self, type_: str, metrics: dict[str, Any]) -> None:
+        from app.proctoring import service as proctoring_service
+
+        await proctoring_service.record_server_event(
+            self.settings,
+            kind=self.kind,
+            attempt_id=self.attempt_id,
+            type_=type_,
+            metrics=metrics,
+        )
+
+    async def _heartbeat_watchdog(self) -> None:
+        """A connected candidate whose browser stops sending heartbeats is a violation."""
+        from app.proctoring import policy
+        from app.proctoring.config import ProctoringConfig
+
+        cfg = ProctoringConfig.from_settings(self.settings)
+        flagged = False
+        # Give the browser one full timeout before the first check.
+        await asyncio.sleep(cfg.heartbeat_timeout_seconds)
+        while not self._completed:
+            if not self._paused and self._candidate_connected:
+                conn = connect(self.settings.database)
+                try:
+                    record = store.get_attempt_proctoring(
+                        conn, kind=self.kind, attempt_id=self.attempt_id
+                    )
+                finally:
+                    conn.close()
+                last = (record or {}).get("heartbeat_at")
+                beat = policy._parse(last)
+                stale = (
+                    beat is None
+                    or (datetime.now(UTC) - beat).total_seconds() >= cfg.heartbeat_timeout_seconds
+                )
+                if stale and not flagged:
+                    flagged = True
+                    await self._record_proctoring_event(
+                        "detector_heartbeat_lost", {"last_heartbeat": last}
+                    )
+                elif not stale:
+                    flagged = False
+            await asyncio.sleep(cfg.heartbeat_interval_seconds)
 
     @property
     def is_completed(self) -> bool:
@@ -266,7 +399,7 @@ class InterviewSession:
                         self._finish(reason="completed"),
                         name=f"finish-interview-{self.attempt_id}",
                     )
-                elif not self._completed:
+                elif not self._completed and not self._paused:
                     self._spawn(
                         self._send("user_turn_granted", self._base()),
                         name="ws-user-turn-granted",
@@ -287,6 +420,8 @@ class InterviewSession:
             if not text:
                 return
             speaker = "user" if role == "user" else "agent"
+            if speaker == "agent":
+                self._remember_agent_text(text)
             self._spawn(
                 self._record_transcript(speaker, text),
                 name=f"record-transcript-{self.attempt_id}",
@@ -422,19 +557,38 @@ class InterviewSession:
 
     # ------------------------------------------------------------ completion
 
-    async def _duration_timer(self, seconds: int) -> None:
+    def _start_timer(self, seconds: float) -> None:
+        self._deadline_remaining = float(seconds)
+        self._timer_started_at = self._now_loop()
+        self._timer_task = self._spawn(
+            self._duration_timer(seconds), name=f"interview-timer-{self.attempt_id}"
+        )
+
+    def _pause_timer(self) -> None:
+        if self._timer_task and not self._timer_task.done():
+            self._timer_task.cancel()
+        if self._deadline_remaining is not None and self._timer_started_at is not None:
+            self._deadline_remaining -= self._now_loop() - self._timer_started_at
+            self._timer_started_at = None
+
+    def _resume_timer(self) -> None:
+        if self._deadline_remaining is None:
+            return
+        self._start_timer(max(1.0, self._deadline_remaining))
+
+    async def _duration_timer(self, seconds: float) -> None:
         try:
             await asyncio.sleep(seconds)
             await self._finish(reason="time_limit")
         except asyncio.CancelledError:
             pass
 
-    async def _finish(self, *, reason: str) -> None:
+    async def _finish(self, *, reason: str, speak_closing: bool = True) -> None:
         if self._completed:
             return
         self._completed = True
         closing = ""
-        if self.engine is not None and not self.engine.is_done:
+        if speak_closing and self.engine is not None and not self.engine.is_done:
             closing = await self.engine.force_wrap()
         if closing and self.agent_session is not None:
             try:

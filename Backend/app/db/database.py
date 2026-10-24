@@ -530,6 +530,10 @@ _AUTH_COLUMN_MIGRATIONS: list[tuple[str, str, str]] = [
     ("applications", "ai_improvement_feedback", "TEXT"),
     # Workplace work mode (remote, hybrid, onsite)
     ("postings", "work_mode", "TEXT NOT NULL DEFAULT 'hybrid'"),
+    # Interview proctoring (gaze + voice)
+    ("profile_interview_attempts", "proctoring", "TEXT"),
+    ("applied_interview_attempts", "proctoring", "TEXT"),
+    ("postings", "proctoring_enabled", "INTEGER NOT NULL DEFAULT 1"),
 ]
 
 

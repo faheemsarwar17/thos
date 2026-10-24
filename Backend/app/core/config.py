@@ -99,6 +99,45 @@ class Settings(BaseSettings):
     videos_dir: str = "./data/videos"
     voice_interview_enabled: bool = True
 
+    # Interview proctoring (gaze + voice). Thresholds are fixed config, not UI-editable.
+    proctoring_enabled_default: bool = True
+    proctoring_max_warnings: int = 2
+    proctoring_gaze_sustained_seconds: float = 10.0
+    proctoring_glance_seconds: float = 1.5
+    proctoring_glance_count: int = 4
+    proctoring_glance_window_seconds: float = 30.0
+    proctoring_reading_min_seconds: float = 3.0
+    proctoring_reading_reversals: int = 3
+    proctoring_face_missing_seconds: float = 5.0
+    proctoring_multi_face_seconds: float = 2.0
+    proctoring_multi_face_confidence: float = 0.7
+    proctoring_question_grace_seconds: float = 3.0
+    proctoring_ai_speaking_multiplier: float = 1.5
+    proctoring_strike_cooldown_seconds: float = 20.0
+    proctoring_tab_hidden_seconds: float = 2.0
+    proctoring_blur_seconds: float = 3.0
+    proctoring_heartbeat_interval_seconds: float = 5.0
+    proctoring_heartbeat_timeout_seconds: float = 15.0
+    proctoring_envelope_margin_degrees: float = 5.0
+    proctoring_fallback_yaw_degrees: float = 25.0
+    proctoring_fallback_pitch_down_degrees: float = 20.0
+    proctoring_fallback_pitch_up_degrees: float = 15.0
+    proctoring_calibration_min_presence: float = 0.7
+    proctoring_snapshot_retention_days: int = 180
+    proctoring_snapshot_max_bytes: int = 400_000
+    snapshots_dir: str = "./data/proctoring"
+    proctoring_voice_model: str = "speechbrain/spkrec-ecapa-voxceleb"
+    proctoring_model_dir: str = "./data/models"
+    proctoring_voice_mismatch_threshold: float = 0.25
+    proctoring_voice_mismatch_consecutive: int = 2
+    proctoring_second_voice_threshold: float = 0.30
+    proctoring_second_voice_match: float = 0.40
+    proctoring_voice_min_segment_seconds: float = 1.5
+    proctoring_enrolment_fallback_seconds: float = 45.0
+    proctoring_flag_dedup_seconds: float = 30.0
+    proctoring_accommodation_email: str = "accessibility@thos.local"
+    proctoring_policy_version: str = "proctoring-v1"
+
     @field_validator("livekit_url", "livekit_api_key", "database_url", mode="before")
     @classmethod
     def empty_string_is_none(cls, value: object) -> object:

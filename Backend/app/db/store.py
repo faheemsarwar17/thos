@@ -9,7 +9,7 @@ transaction as the mutation they describe.
 from typing import Any
 
 from app.core.ids import new_id
-from app.db.database import Connection, from_json, to_json, utc_now
+from app.db.database import Connection, PostgresConnection, from_json, to_json, utc_now
 
 # --- users ---------------------------------------------------------------
 
@@ -1274,6 +1274,7 @@ def _attempt_row_to_dict(row: dict[str, Any]) -> dict[str, Any]:
         "identity_verification",
         "interview_plan",
         "answer_assessments",
+        "proctoring",
     ):
         if isinstance(attempt.get(key), str):
             attempt[key] = from_json(attempt[key])
@@ -1496,6 +1497,18 @@ def best_profile_score(conn: Connection, *, candidate_id: str) -> float | None:
     return max(scores) if scores else None
 
 
+def best_profile_attempt(conn: Connection, *, candidate_id: str) -> dict[str, Any] | None:
+    """The evaluated profile attempt with the highest overall score (mirrors best_profile_score)."""
+    evaluated = [
+        attempt
+        for attempt in list_profile_attempts(conn, candidate_id=candidate_id)
+        if attempt["status"] == "evaluated" and attempt.get("evaluation")
+    ]
+    if not evaluated:
+        return None
+    return max(evaluated, key=lambda attempt: attempt["evaluation"].get("overall_score") or 0)
+
+
 def best_profile_score_for_pack(
     conn: Connection, *, candidate_id: str, pack_id: str
 ) -> float | None:
@@ -1651,6 +1664,7 @@ def _posting_row_to_dict(row: dict[str, Any]) -> dict[str, Any]:
         if isinstance(posting.get(key), str):
             posting[key] = from_json(posting[key])
     posting["sandbox_required"] = bool(posting.get("sandbox_required"))
+    posting["proctoring_enabled"] = bool(posting.get("proctoring_enabled", True))
     return posting
 
 
@@ -1668,6 +1682,8 @@ def create_posting(conn: Connection, posting: dict[str, Any]) -> dict[str, Any]:
         )
     if "sandbox_required" in stored:
         stored["sandbox_required"] = 1 if stored["sandbox_required"] else 0
+    if "proctoring_enabled" in stored:
+        stored["proctoring_enabled"] = 1 if stored["proctoring_enabled"] else 0
     columns = ", ".join(stored.keys())
     placeholders = ", ".join("?" for _ in stored)
     conn.execute(
@@ -1726,6 +1742,8 @@ def update_posting(
         stored["sandbox_config"] = to_json(stored["sandbox_config"])
     if "sandbox_required" in stored:
         stored["sandbox_required"] = 1 if stored["sandbox_required"] else 0
+    if "proctoring_enabled" in stored:
+        stored["proctoring_enabled"] = 1 if stored["proctoring_enabled"] else 0
     sets = ", ".join(f"{key} = ?" for key in stored)
     conn.execute(
         f"UPDATE postings SET {sets} WHERE tenant_id = ? AND id = ?",
@@ -1896,6 +1914,7 @@ def _applied_row_to_dict(row: dict[str, Any]) -> dict[str, Any]:
         "interview_plan",
         "answer_assessments",
         "sandbox_session",
+        "proctoring",
     ):
         if isinstance(attempt.get(key), str):
             attempt[key] = from_json(attempt[key])
@@ -2427,3 +2446,47 @@ def list_automation_runs(
     return [dict(r) for r in rows]
 
 
+# --- interview proctoring ---------------------------------------------------------
+
+_ATTEMPT_TABLE = {"profile": "profile_interview_attempts", "applied": "applied_interview_attempts"}
+
+
+def _attempt_table(kind: str) -> str:
+    try:
+        return _ATTEMPT_TABLE[kind]
+    except KeyError as exc:
+        raise ValueError(f"unknown attempt kind: {kind}") from exc
+
+
+def get_attempt_proctoring(
+    conn: Connection, *, kind: str, attempt_id: str
+) -> dict[str, Any] | None:
+    row = conn.execute(
+        f"SELECT proctoring FROM {_attempt_table(kind)} WHERE id = ?", (attempt_id,)
+    ).fetchone()
+    if row is None or row["proctoring"] is None:
+        return None
+    value = row["proctoring"]
+    return from_json(value) if isinstance(value, str) else value
+
+
+def set_attempt_proctoring(
+    conn: Connection, *, kind: str, attempt_id: str, record: dict[str, Any] | None
+) -> None:
+    conn.execute(
+        f"UPDATE {_attempt_table(kind)} SET proctoring = ? WHERE id = ?",
+        (to_json(record) if record is not None else None, attempt_id),
+    )
+
+
+def lock_attempt_row(conn: Connection, *, kind: str, attempt_id: str) -> None:
+    """Serialise read-modify-write of one attempt's proctoring record.
+
+    Postgres locks the row; SQLite takes the database write lock up front.
+    """
+    table = _attempt_table(kind)
+    if isinstance(conn, PostgresConnection):
+        conn.execute(f"SELECT id FROM {table} WHERE id = ? FOR UPDATE", (attempt_id,))
+        return
+    if not getattr(conn, "in_transaction", False):
+        conn.execute("BEGIN IMMEDIATE")

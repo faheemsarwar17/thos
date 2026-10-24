@@ -125,7 +125,10 @@ Tasks run **strictly in order 0 → 18**. Tasks 9 and 10 (pure frontend) may run
 
 ## Task 0: Precondition gate and branch
 
-- [ ] **Step 1: Check that the revamp is done.** Run from the repo root (Git Bash):
+> Note (2026-10-24): adapted with the user's agreement. The revamp is fully implemented and ticked on `feat/ui-revamp` (`focus-layout.tsx`, `focus.css`, `e2e/fixtures.ts` all present), but the user does not want anything on `main`, so it is **not merged** and proctoring is built **on `feat/ui-revamp` itself** (no `feat/proctoring` branch). The user asked to push after every task, overriding §0.4.7's "don't push".
+> Baseline: backend `uv run pytest` 105 passed, 8 skipped; `uv run ruff check app tests` 201 pre-existing errors (176 E501), so the rule is "add none". Frontend typecheck/lint (0 errors, 10 warnings)/36 vitest/build/colour gate/e2e all green (see the revamp plan's Finish note). The backend suite rewrites the tracked `Backend/data/thos.db` on every run: restore it with `git checkout Backend/data/thos.db` and never stage it.
+
+- [x] **Step 1: Check that the revamp is done.** Run from the repo root (Git Bash):
 
 ```bash
 git fetch origin
@@ -141,8 +144,8 @@ All of these must hold: `OK-focus`, `OK-css`, `OK-e2e`, `0` unticked boxes, and 
 
 **If anything fails: STOP and report it to the user** with the exact failing checks.
 
-- [ ] **Step 2: Branch.** `git checkout -b feat/proctoring`
-- [ ] **Step 3: Baseline.** Run every check in §0.3 and record pass or fail in a note under this task. Pre-existing failures are not yours, but you must not add new ones.
+- [x] **Step 2: Branch.** `git checkout -b feat/proctoring` (skipped: stays on `feat/ui-revamp`, see note)
+- [x] **Step 3: Baseline.** Run every check in §0.3 and record pass or fail in a note under this task. Pre-existing failures are not yours, but you must not add new ones.
 
 ---
 
@@ -177,16 +180,16 @@ All of these must hold: `OK-focus`, `OK-css`, `OK-e2e`, `0` unticked boxes, and 
   - Check `store.create_posting`'s column list and add the column there if the insert is explicit.
 - Test: `Backend/tests/test_proctoring_store.py`
 
-- [ ] **Step 1: Write the failing tests** `tests/test_proctoring_store.py`:
+- [x] **Step 1: Write the failing tests** `tests/test_proctoring_store.py`:
   - migration adds both `proctoring` columns and `postings.proctoring_enabled` (check with `SELECT proctoring FROM … LIMIT 0`);
   - `set_attempt_proctoring` / `get_attempt_proctoring` round-trip a dict for both kinds;
   - a created posting defaults to `proctoring_enabled == True` in `GET /api/v1/postings/{id}`;
   - `PATCH` with `{"proctoring_enabled": false}` on a draft persists `False`.
   - Reuse the helpers in `tests/test_sandbox.py` (`_create_org_and_workflow`, `_create_posting`). Import them, or copy the minimum into a new `tests/proctoring_helpers.py` that later tasks also use.
-- [ ] **Step 2:** `uv run pytest tests/test_proctoring_store.py -q`. Expected: FAIL.
-- [ ] **Step 3:** Implement as listed above.
-- [ ] **Step 4:** `uv run pytest -q`. Expected: all PASS, including the existing suite.
-- [ ] **Step 5: Commit**: `feat(proctoring): settings, attempt/posting columns and store helpers`
+- [x] **Step 2:** `uv run pytest tests/test_proctoring_store.py -q`. Expected: FAIL.
+- [x] **Step 3:** Implement as listed above.
+- [x] **Step 4:** `uv run pytest -q`. Expected: all PASS, including the existing suite.
+- [x] **Step 5: Commit**: `feat(proctoring): settings, attempt/posting columns and store helpers`
 
 ---
 

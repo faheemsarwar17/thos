@@ -41,6 +41,7 @@ def _posting_body(posting: dict[str, Any], application_count: int | None = None)
         "workflow_snapshot": posting.get("workflow_snapshot"),
         "sandbox_required": bool(posting.get("sandbox_required")),
         "sandbox": posting.get("sandbox_config"),
+        "proctoring_enabled": bool(posting.get("proctoring_enabled", True)),
         "created_at": posting["created_at"],
         "published_at": posting["published_at"],
         "closed_at": posting["closed_at"],
@@ -102,6 +103,7 @@ class CreatePostingRequest(BaseModel):
     pack_id: str | None = Field(default=None, min_length=1, max_length=100)
     sandbox_required: bool = False
     sandbox: SandboxConfig | None = None
+    proctoring_enabled: bool = True
     idempotency_key: str = Field(min_length=1, max_length=128)
 
 
@@ -172,6 +174,7 @@ async def create_posting(
         "question_pool": None,
         "pool_status": "not_generated",
         "sandbox_required": payload.sandbox_required,
+        "proctoring_enabled": payload.proctoring_enabled,
         "sandbox_config": (
             (payload.sandbox.model_dump() if payload.sandbox else None)
             or (
@@ -225,6 +228,7 @@ class UpdatePostingRequest(BaseModel):
     employment_type: str | None = Field(default=None, max_length=50)
     sandbox_required: bool | None = None
     sandbox: SandboxConfig | None = None
+    proctoring_enabled: bool | None = None
 
 
 @router.patch("/postings/{posting_id}")

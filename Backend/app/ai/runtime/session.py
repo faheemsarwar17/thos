@@ -88,6 +88,14 @@ class InterviewSession:
             await self._send_transcript_history()
             assert self.agent_session is not None
             await self.agent_session.start(self._build_agent(), room=self.room)
+            if self.proctoring_enabled:
+                from app.proctoring.voice import VoiceMonitor
+
+                self._voice_monitor = VoiceMonitor(
+                    settings=self.settings, kind=self.kind, attempt_id=self.attempt_id,
+                    room=self.room,
+                )
+                self._spawn(self._voice_monitor.start(), name=f"voice-monitor-{self.attempt_id}")
 
             await self._send(
                 "interview_setup_complete",
@@ -121,6 +129,10 @@ class InterviewSession:
             self._timer_task.cancel()
         if self._watchdog_task and not self._watchdog_task.done():
             self._watchdog_task.cancel()
+        if self._voice_monitor is not None:
+            with contextlib.suppress(Exception):
+                await self._voice_monitor.stop()
+            self._voice_monitor = None
         self._flush_assessments()  # never lose trailing assessments
         try:
             if self.agent_session is not None:

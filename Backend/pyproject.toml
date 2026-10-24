@@ -39,6 +39,23 @@ dev = [
   "pytest>=8.3,<10.0",
   "ruff>=0.9,<1.0",
 ]
+# Optional server-side voice proctoring (speaker embeddings). Install with
+# `uv sync --group proctoring-voice`; everything works without it (heuristics only).
+proctoring-voice = [
+  "speechbrain>=1.0",
+  "torch>=2.4",
+  "torchaudio>=2.4",
+  "numpy>=1.26",
+]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
+torchaudio = { index = "pytorch-cpu" }
 
 [tool.hatch.build.targets.wheel]
 packages = ["app"]

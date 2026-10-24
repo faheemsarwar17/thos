@@ -6,6 +6,7 @@ Candidate responses only ever use ``policy.public_view(record, audience="candida
 
 from __future__ import annotations
 
+import asyncio
 import secrets
 from typing import Annotated, Any
 
@@ -17,8 +18,10 @@ from app.api.dependencies import CandidateContextDependency, DbDependency, Setti
 from app.core.config import Settings
 from app.core.errors import ApiError
 from app.db.database import Connection
-from app.proctoring import policy
+from app.logging import logger
+from app.proctoring import enrolment, policy
 from app.proctoring import service as proctoring_service
+from app.proctoring import voice as voice_proctoring
 from app.proctoring.config import ProctoringConfig
 from app.services import voice_interview as voice
 
@@ -29,6 +32,8 @@ _BASES = {
     "applied": "/candidates/me/applied-interviews/{attempt_id}/voice/proctoring",
 }
 _MAX_SNAPSHOT_CHARS = 600_000  # a 400 KB JPEG as base64, plus the data URL header
+# Starlette spools uploads over 1 MB to a temp file; staying under keeps audio off disk.
+_MAX_ENROLMENT_BYTES = 1_000_000
 
 
 # --- helpers ------------------------------------------------------------------------
@@ -331,10 +336,51 @@ def _heartbeat(
     }
 
 
-async def _enrolment(kind: str, attempt_id: str, file: UploadFile, ctx: Any, conn: Connection):
+async def _enrolment(
+    kind: str, attempt_id: str, file: UploadFile, ctx: Any, conn: Connection, settings: Settings
+) -> dict:
+    """Embed the device-check voice sample in memory. Never stores the audio."""
     _load(conn, ctx, kind, attempt_id)
-    await file.close()
-    return {"enrolled": False}
+    try:
+        data = await file.read(_MAX_ENROLMENT_BYTES + 1)
+    finally:
+        await file.close()
+    if len(data) > _MAX_ENROLMENT_BYTES:
+        raise ApiError(status_code=422, code="invalid_sample", message="The sample is too large.")
+    try:
+        pcm = enrolment.decode_wav_pcm16_mono_16k(data)
+    except ValueError as exc:
+        raise ApiError(status_code=422, code="invalid_sample", message=str(exc)) from None
+    finally:
+        del data
+    seconds = len(pcm) / enrolment.SAMPLE_RATE
+    if not 5 <= seconds <= 20:
+        raise ApiError(
+            status_code=422,
+            code="invalid_sample",
+            message="The voice sample must be between 5 and 20 seconds long.",
+        )
+    embedder = await asyncio.to_thread(voice_proctoring.get_embedder, settings)
+    if not embedder.available:
+        return {"enrolled": False}
+    try:
+        embedding = await asyncio.to_thread(embedder.embed, pcm)
+    except Exception as err:  # a model failure must never become a 5xx
+        logger.warning(f"Voice enrolment failed for {attempt_id}: {type(err).__name__}")
+        return {"enrolled": False}
+    finally:
+        del pcm
+    enrolment.get_enrolment_registry().put(attempt_id, embedding, source="device_check")
+    del embedding
+    now = proctoring_service.utcnow()
+
+    def enrolled(record: dict[str, Any]) -> None:
+        record["voice"] = {"enrolled": True, "source": "device_check", "model": embedder.name}
+        policy.record_session_event(record, type_="enrolment_completed", now=now)
+
+    proctoring_service.mutate(conn, kind=kind, attempt_id=attempt_id, fn=enrolled)
+    conn.commit()
+    return {"enrolled": True}
 
 
 # --- routes (both attempt kinds) ----------------------------------------------------
@@ -402,13 +448,14 @@ def _register(kind: str) -> None:
         return _heartbeat(kind, attempt_id, body, ctx, conn)
 
     @router.post(f"{base}/enrolment", name=f"{kind}_proctoring_enrolment")
-    async def enrolment(
+    async def enrol_voice(
         attempt_id: str,
         file: Annotated[UploadFile, File()],
         ctx: CandidateContextDependency,
         conn: DbDependency,
+        settings: SettingsDependency,
     ) -> dict[str, Any]:
-        return await _enrolment(kind, attempt_id, file, ctx, conn)
+        return await _enrolment(kind, attempt_id, file, ctx, conn, settings)
 
 
 for _kind in _BASES:

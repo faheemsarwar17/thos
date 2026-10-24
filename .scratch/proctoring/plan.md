@@ -924,6 +924,8 @@ async def pause_for_proctoring(session_id: str) -> bool:
 
 ## Task 6: Voice: enrolment, monitor, embedders, heuristics
 
+> Note: the enrolment upload limit is **1 MB**, not 2 MB. Starlette spools multipart bodies over 1 MB to a temp file, which would put audio on disk; a 20 s 16 kHz sample is about 640 KB. The analyzer emits an `enrolment_fallback` marker that the monitor records as a session event through the new `service.set_voice_status` (it also sets `record.voice.source = "interview_fallback"`). The API imports the module as `voice_proctoring`, because `voice` already names `voice_interview` there. `second_voice` samples at most 16 sub-windows per segment. `uv.lock` now resolves the optional group; the default sync does not install it. The Step 5 real-model smoke test is deferred (a large download: torch plus an 83 MB model); the whole suite passes on the `NullEmbedder` path.
+
 **Files:**
 - Modify: `Backend/pyproject.toml`: add
   ```toml
@@ -1000,7 +1002,7 @@ if self.proctoring_enabled:
 ```
 `stop()` awaits `self._voice_monitor.stop()` inside `suppress(Exception)`.
 
-- [ ] **Step 1: Failing tests** `tests/test_proctoring_voice.py`. Skip the whole module with `pytest.importorskip("numpy")`. numpy is transitive via livekit, so it is normally present.
+- [x] **Step 1: Failing tests** `tests/test_proctoring_voice.py`. Skip the whole module with `pytest.importorskip("numpy")`. numpy is transitive via livekit, so it is normally present.
   - `spectral_flatness`: white noise > 0.5; a 200 Hz sine < 0.1.
   - `pause_ratio([1, 1, 0, 1])` = 0.25. `rms_cv` of constant-amplitude noise < 0.15; of an AM-modulated signal > 0.3.
   - **VoiceAnalyzer with a fake embedder** returning preset vectors per call:
@@ -1017,15 +1019,15 @@ if self.proctoring_enabled:
     - a non-16 kHz WAV → 422;
     - assert that **no new files appear** under `tmp_path` after the call.
   - `get_embedder` returns `NullEmbedder` when `speechbrain` import fails (monkeypatch `builtins.__import__` for that name).
-- [ ] **Step 2:** Run. Expected: FAIL. **Step 3:** Implement.
-- [ ] **Step 4:** `uv run pytest -q`, **without** the voice group installed. Expected: PASS.
-- [ ] **Step 5: Optional real-model smoke test** (if network is allowed):
+- [x] **Step 2:** Run. Expected: FAIL. **Step 3:** Implement.
+- [x] **Step 4:** `uv run pytest -q`, **without** the voice group installed. Expected: PASS.
+- [ ] **Step 5: Optional real-model smoke test** (deferred: not run yet, see note) (if network is allowed):
   ```bash
   uv sync --group proctoring-voice
   uv run python -c "from app.core.config import get_settings; from app.proctoring.voice import get_embedder; import numpy as np; e=get_embedder(get_settings()); print(e.name, e.available, len(e.embed(np.random.randn(32000).astype('float32')*0.01)))"
   ```
   Expected: `ecapa True 192`. Record the result in a note. If it fails, note it; the fallback covers it.
-- [ ] **Step 6: Commit**: `feat(proctoring): server-side voice enrolment and anomaly flags`
+- [x] **Step 6: Commit**: `feat(proctoring): server-side voice enrolment and anomaly flags`
 
 ---
 

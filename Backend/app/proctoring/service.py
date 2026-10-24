@@ -306,3 +306,28 @@ async def record_server_event(
         return decision
     finally:
         conn.close()
+
+
+async def set_voice_status(
+    settings: Settings,
+    *,
+    kind: str,
+    attempt_id: str,
+    voice: dict[str, Any],
+    session_event: str | None = None,
+    metrics: dict[str, Any] | None = None,
+) -> None:
+    """Update ``record.voice`` (never the embedding itself) and log a session event."""
+    conn = connect(settings.database)
+    try:
+        now = utcnow()
+
+        def update(record: dict[str, Any]) -> None:
+            record["voice"] = voice
+            if session_event:
+                policy.record_session_event(record, type_=session_event, now=now, metrics=metrics)
+
+        mutate(conn, kind=kind, attempt_id=attempt_id, fn=update)
+        conn.commit()
+    finally:
+        conn.close()

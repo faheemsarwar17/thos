@@ -680,6 +680,8 @@ def public_view(record: dict[str, Any] | None, *, audience: str, max_warnings: i
 - Create: `Backend/app/proctoring/service.py`
 - Test: `Backend/tests/test_proctoring_service.py`
 
+> Note: the image decoder moved to `identity.decode_data_url_image`, which raises `ValueError` with a user-facing message; `voice_interviews._decode_live_image` wraps it in the same 422 `invalid_image` as before. Snapshots are also checked for the JPEG magic bytes, and `service.delete_snapshot` exists for the dedup clean-up in Task 4. Async tests use `asyncio.run` inside sync tests, matching the existing suite.
+
 **Interfaces:**
 
 ```python
@@ -712,23 +714,23 @@ async def dispatch_decision(*, conn, settings, kind, attempt_id, decision: polic
   - walk `snapshots_dir`; for files whose `mtime` is older than the retention period, delete them;
   - update the matching event (`snapshot=None, snapshot_purged=True`) in the owning attempt's record. Find the kind by trying applied first, then profile.
 
-- [ ] **Step 1: Failing tests:**
+- [x] **Step 1: Failing tests:**
   - `mutate` creates a record on first use and persists changes (both kinds);
   - two sequential `mutate` calls see each other's writes;
   - `save_snapshot` rejects PNG, oversize data and a bad `event_id`, and writes a valid JPEG. Use a tiny valid JPEG: the bytes `b"\xff\xd8\xff\xe0" + b"\x00" * 64 + b"\xff\xd9"` base64-encoded.
   - `purge_expired_snapshots` with `now = file mtime + 181 days` removes the file and flags the event;
   - `dispatch_decision("terminate")` with no live session sets status `submitted`, then `evaluated` (monkeypatch `synthesis_service.analyze_interview` with an async stub that records the call);
   - `dispatch_decision("warn")` calls the manager (monkeypatched) and sends a WebSocket message (monkeypatch `get_websocket_manager().send_message`).
-- [ ] **Step 2:** Run. Expected: FAIL.
-- [ ] **Step 3:** Implement. Add stubs to `manager.py` now so the imports resolve:
+- [x] **Step 2:** Run. Expected: FAIL.
+- [x] **Step 3:** Implement. Add stubs to `manager.py` now so the imports resolve:
   ```python
   async def pause_for_proctoring(session_id: str) -> bool: return False
   async def resume_after_proctoring(session_id: str) -> bool: return False
   async def terminate_for_proctoring(session_id: str, *, reason: str) -> bool: return False
   ```
   Task 5 fills them in.
-- [ ] **Step 4:** `uv run pytest -q`. Expected: PASS.
-- [ ] **Step 5: Commit**: `feat(proctoring): record persistence, snapshots, purge and decision dispatch`
+- [x] **Step 4:** `uv run pytest -q`. Expected: PASS.
+- [x] **Step 5: Commit**: `feat(proctoring): record persistence, snapshots, purge and decision dispatch`
 
 ---
 

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import base64
 import json
 from typing import Any
 
@@ -64,33 +63,10 @@ class IdentityCheckRequest(BaseModel):
 
 
 def _decode_live_image(raw: str) -> tuple[bytes, str]:
-    if "," not in raw or not raw.startswith("data:"):
-        raise ApiError(
-            status_code=422,
-            code="invalid_image",
-            message="The identity check image must be a data URL.",
-        )
-    header, _, encoded = raw.partition(",")
-    content_type = header[5:].split(";")[0] or "image/jpeg"
-    if content_type not in ("image/jpeg", "image/png", "image/webp"):
-        raise ApiError(
-            status_code=422,
-            code="invalid_image",
-            message="The identity check image must be JPEG, PNG, or WebP.",
-        )
     try:
-        data = base64.b64decode(encoded, validate=True)
-    except (ValueError, TypeError):
-        raise ApiError(
-            status_code=422,
-            code="invalid_image",
-            message="The identity check image could not be decoded.",
-        ) from None
-    if not data:
-        raise ApiError(
-            status_code=422, code="invalid_image", message="The captured frame is empty."
-        )
-    return data, content_type
+        return identity_service.decode_data_url_image(raw, label="The identity check image")
+    except ValueError as exc:
+        raise ApiError(status_code=422, code="invalid_image", message=str(exc)) from None
 
 
 async def _run_identity_check(

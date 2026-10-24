@@ -68,3 +68,18 @@ async def request_user_end(session_id: str) -> None:
     session = get_session(session_id)
     if session is not None:
         await session.request_user_end()
+
+
+# --- interview proctoring (filled in by the runtime task) ------------------------
+
+
+async def pause_for_proctoring(session_id: str) -> bool:
+    return False
+
+
+async def resume_after_proctoring(session_id: str) -> bool:
+    return False
+
+
+async def terminate_for_proctoring(session_id: str, *, reason: str) -> bool:
+    return False

@@ -42,6 +42,33 @@ _PROMPT = (
 )
 
 
+_IMAGE_TYPE_NAMES = {"image/jpeg": "JPEG", "image/png": "PNG", "image/webp": "WebP"}
+
+
+def decode_data_url_image(
+    raw: str,
+    *,
+    allowed: frozenset[str] = frozenset(_IMAGE_TYPE_NAMES),
+    label: str = "The image",
+) -> tuple[bytes, str]:
+    """Decode a ``data:image/...;base64,`` URL. Raises ``ValueError`` with a user-facing message."""
+    if "," not in raw or not raw.startswith("data:"):
+        raise ValueError(f"{label} must be a data URL.")
+    header, _, encoded = raw.partition(",")
+    content_type = header[5:].split(";")[0] or "image/jpeg"
+    if content_type not in allowed:
+        names = [_IMAGE_TYPE_NAMES.get(t, t) for t in _IMAGE_TYPE_NAMES if t in allowed]
+        listed = names[0] if len(names) == 1 else ", ".join(names[:-1]) + ", or " + names[-1]
+        raise ValueError(f"{label} must be {listed}.")
+    try:
+        data = base64.b64decode(encoded, validate=True)
+    except (ValueError, TypeError):
+        raise ValueError(f"{label} could not be decoded.") from None
+    if not data:
+        raise ValueError("The captured frame is empty.")
+    return data, content_type
+
+
 def _data_url(image: bytes, content_type: str) -> str:
     return f"data:{content_type};base64,{base64.b64encode(image).decode('ascii')}"
 
